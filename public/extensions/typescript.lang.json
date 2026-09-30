@@ -1,0 +1,152 @@
+{
+  "id": "typescript",
+  "label": "TypeScript",
+  "extensions": ["ts"],
+  "icon": "🟦",
+  "runner": "ts",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A04", "A05", "A07", "A08", "A09", "A10"],
+    "A01": {
+      "patterns": [
+        { "regex": "router\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*\\b:id\\b[^'\"`]*['\"`]", "weight": 2, "label": "Route accepts :id from the URL" },
+        { "regex": "req\\.params\\.id|ctx\\.params\\.id", "weight": 1, "label": "Reads :id from request params" }
+      ],
+      "remediation": "Deny by default. Verify ownership / role on every route that reads a user id. Centralise authorization in middleware."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "\\bhttp://[^\\s'\"`]+", "weight": 1, "label": "Plain http:// URL" },
+        { "regex": "\\bMath\\.random\\s*\\(", "weight": 1, "label": "Non-cryptographic randomness" }
+      ],
+      "remediation": "Use bcrypt/argon2 for passwords, sha-256+ for general hashing, HTTPS-only URLs, crypto.getRandomValues for tokens, and load secrets from a managed store."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "\\beval\\s*\\(", "weight": 3, "label": "eval()" },
+        { "regex": "\\bnew\\s+Function\\s*\\(", "weight": 3, "label": "new Function()" },
+        { "regex": "\\.innerHTML\\s*=", "weight": 2, "label": "innerHTML assignment" },
+        { "regex": "document\\.write(?:ln)?\\s*\\(", "weight": 2, "label": "document.write sink" },
+        { "regex": "['\"`][^'\"`]*?(?:SELECT|INSERT|UPDATE|DELETE)[^'\"`]*?['\"`]\\s*\\+", "weight": 4, "label": "SQL string concatenation" }
+      ],
+      "remediation": "Use parameterised queries, never concatenate user input into SQL. Avoid eval / new Function. Sanitise HTML or use safe DOM APIs (textContent) instead of innerHTML."
+    },
+    "A04": {
+      "patterns": [
+        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" }
+      ],
+      "remediation": "Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "cors\\s*\\(\\s*\\{\\s*origin\\s*:\\s*['\"`]\\*['\"`]", "weight": 2, "label": "CORS origin: '*'" },
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" }
+      ],
+      "remediation": "Lock down CORS to explicit origins, disable debug in production, ship default-deny settings and helmet-style security headers."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:req\\.body|user\\.|input)", "weight": 3, "label": "Plain password compare" },
+        { "regex": "\\bjwt\\.sign\\s*\\([^,]+,\\s*[^,]+,\\s*\\{\\s*algorithm\\s*:\\s*['\"`]none['\"`]", "weight": 4, "label": "jwt.sign with algorithm: 'none'" },
+        { "regex": "\\bjwt\\.decode\\s*\\(", "weight": 1, "label": "jwt.decode without verify" }
+      ],
+      "remediation": "Use bcrypt/argon2 for password hashing, constant-time comparison, enforce MFA, and rotate any leaked signing keys."
+    },
+    "A08": {
+      "patterns": [
+        { "regex": "verify\\s*:\\s*false", "weight": 2, "label": "JWT verify: false" }
+      ],
+      "remediation": "Verify JWT signatures, sign CI artefacts and lock down auto-update channels."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "console\\.(log|info|warn|error)", "weight": 1, "label": "console.* usage" }
+      ],
+      "remediation": "Add structured logging on auth, authorization and data-modification events with user id, IP and timestamp."
+    },
+    "A10": {
+      "patterns": [
+        { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*(?:req\\.|ctx\\.|input|body|data)", "weight": 3, "label": "fetch/axios from request data" },
+        { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "fetch/axios from variable" }
+      ],
+      "remediation": "Validate and allowlist outbound URLs, resolve DNS yourself to block private/loopback addresses, and disable HTTP redirections on the HTTP client."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Add per-route guards (`router.get('/user/:id', requireAuth, canReadUser, …)`). Use ownership checks (`if (resource.ownerId !== req.user.id) throw new Forbidden()`).",
+    "A02": "Move secrets to env / vault. Use `crypto.getRandomValues` for tokens. Use `bcrypt` / `argon2` for passwords.",
+    "A03": "Use parameterised queries (`db.query('… WHERE id = ?', [id])`). Replace eval / new Function with explicit dispatch. Use textContent over innerHTML.",
+    "A04": "Add rate-limits to auth endpoints. Resolve security TODOs before shipping.",
+    "A05": "Restrict CORS to known origins, disable debug in production, enable helmet() with default config.",
+    "A07": "Compare passwords with bcrypt.compare. Pin JWT algorithms. Enforce MFA on sensitive accounts.",
+    "A08": "Verify every JWT. Never disable signature verification. Sign CI artefacts.",
+    "A09": "Use a structured logger (winston / pino) and log auth + admin events.",
+    "A10": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs. Disable HTTP redirects on the HTTP client."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: SQL concat (A03)",
+      "const row = await db.query(`SELECT * FROM users WHERE id = '${req.params.id}'`);",
+      "// VULNERABLE: hardcoded secret (A02)",
+      "const apiKey: string = 'sk_live_REPLACE_WITH_YOUR_OWN_KEY';",
+      "// VULNERABLE: jwt verify false (A08)",
+      "jwt.verify(token, secret, { algorithms: ['none'] } as jwt.VerifyOptions);"
+    ],
+    "fixed": [
+      "// FIXED: parameterised query + authorization (A03, A01)",
+      "const row = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);",
+      "if (row.ownerId !== req.user.id) throw new ForbiddenError();",
+      "// FIXED: secret from env (A02)",
+      "const apiKey = process.env.STRIPE_KEY!;",
+      "// FIXED: pin algorithm (A08)",
+      "jwt.verify(token, secret, { algorithms: ['HS256'] } as jwt.VerifyOptions);"
+    ]
+  },
+  "keywords": [
+    "abstract", "any", "as", "async", "await", "boolean", "break", "case",
+    "catch", "class", "const", "continue", "declare", "default", "delete",
+    "do", "else", "enum", "export", "extends", "false", "finally", "for",
+    "from", "function", "get", "if", "implements", "import", "in",
+    "instanceof", "interface", "is", "keyof", "let", "namespace", "never",
+    "new", "null", "number", "object", "of", "package", "private",
+    "protected", "public", "readonly", "require", "return", "set", "static",
+    "string", "super", "switch", "symbol", "this", "throw", "true", "try",
+    "type", "typeof", "undefined", "unique", "unknown", "var", "void",
+    "while", "with", "yield"
+  ],
+  "builtins": [
+    "Array", "Map", "Set", "WeakMap", "WeakSet", "Promise", "RegExp",
+    "Record", "Partial", "Pick", "Omit", "Required", "Readonly",
+    "Exclude", "Extract", "NonNullable", "ReturnType", "Parameters",
+    "Awaited", "InstanceType"
+  ],
+  "dangerousApis": [
+    "eval", "Function", "document.write", "innerHTML"
+  ],
+  "domSinks": [
+    "innerHTML", "outerHTML", "document.write", "insertAdjacentHTML"
+  ],
+  "networkApis": [
+    "fetch", "XMLHttpRequest", "axios", "got", "request", "http.request"
+  ],
+  "cryptoApis": [
+    "crypto.subtle", "crypto.getRandomValues"
+  ],
+  "weakHashes": ["md5", "sha1", "createHash('md5')", "createHash('sha1')"],
+  "authHints": [
+    "req.user", "ctx.user", "currentUser", "authenticated",
+    "authorize", "verifyToken", "jwt.verify"
+  ],
+  "loggingHints": [
+    "winston", "pino", "bunyan", "morgan", "logger.", "log.info",
+    "log.warn", "log.error", "console"
+  ],
+  "templates": [
+    "// TypeScript — preview only (browser cannot execute .ts)",
+    "const greeting: string = 'Hello, TypeScript!';",
+    "console.log(greeting);"
+  ]
+}

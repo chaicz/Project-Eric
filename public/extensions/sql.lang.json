@@ -1,0 +1,87 @@
+{
+  "id": "sql",
+  "label": "SQL",
+  "extensions": ["sql"],
+  "icon": "🗃️",
+  "runner": "sql",
+  "version": "1.0.0",
+  "owaspPack": "./owasp-pack.json",
+  "keywords": [
+    "SELECT", "FROM", "WHERE", "INSERT", "INTO", "VALUES", "UPDATE",
+    "SET", "DELETE", "CREATE", "TABLE", "DROP", "ALTER", "ADD",
+    "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "FULL", "CROSS", "ON",
+    "GROUP", "BY", "ORDER", "HAVING", "LIMIT", "OFFSET", "AS",
+    "DISTINCT", "AND", "OR", "NOT", "NULL", "IS", "IN", "EXISTS",
+    "LIKE", "BETWEEN", "UNION", "ALL", "ANY", "CASE", "WHEN", "THEN",
+    "ELSE", "END", "PRIMARY", "KEY", "FOREIGN", "REFERENCES",
+    "UNIQUE", "INDEX", "DEFAULT", "CHECK", "CONSTRAINT", "BEGIN",
+    "COMMIT", "ROLLBACK", "TRANSACTION", "DECLARE", "CURSOR", "FETCH",
+    "INTO", "PROCEDURE", "FUNCTION", "TRIGGER", "VIEW", "GRANT",
+    "REVOKE"
+  ],
+  "dangerousApis": [
+    "EXEC", "EXECUTE", "xp_cmdshell", "sp_executesql",
+    "DROP TABLE", "TRUNCATE", "DELETE FROM", "UPDATE "
+  ],
+  "domSinks": [],
+  "networkApis": [],
+  "cryptoApis": [],
+  "weakHashes": ["MD5", "SHA1"],
+  "authHints": [
+    "GRANT", "REVOKE", "CREATE USER", "ALTER ROLE"
+  ],
+  "loggingHints": [],
+  "owaspRules": {
+    "appliesTo": ["A03"],
+    "A03": {
+      "patterns": [
+        { "regex": "\\bEXEC\\s*\\(|\\bEXECUTE\\s*\\(", "weight": 4, "label": "SQL EXEC/EXECUTE (dynamic SQL)" },
+        { "regex": "xp_cmdshell\\s*\\(", "weight": 4, "label": "xp_cmdshell (RCE from SQL Server)" },
+        { "regex": "['\"][^'\"]*(?:SELECT|INSERT|UPDATE|DELETE)[^'\"]*['\"]\\s*\\+\\s*@?\\w+", "weight": 4, "label": "Dynamic SQL via concatenation" },
+        { "regex": "\\bsp_executesql\\s*\\(", "weight": 3, "label": "sp_executesql (review inputs)" }
+      ]
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "\\bGRANT\\s+(?:ALL|ALL PRIVILEGES)\\b", "weight": 2, "label": "GRANT ALL — overly permissive" },
+        { "regex": "\\b(?:admin|root|sa)\\s*[:=]\\s*['\"](?:admin|root|toor|password|changeme)['\"]", "weight": 3, "label": "Default credential literal" }
+      ],
+      "remediation": "Apply least-privilege: GRANT only the specific privileges a role needs (SELECT, INSERT) on the specific tables. Avoid GRANT ALL. Use a separate read-only role for analytics."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "PASSWORD\\s*=\\s*['\"][^'\"]*['\"]", "weight": 2, "label": "PASSWORD literal in DDL" }
+      ],
+      "remediation": "Hash passwords with bcrypt/argon2 at the application layer; never store plaintext in SQL."
+    }
+  },
+  "owaspRemediation": {
+    "A03": "Use parameterised queries / prepared statements at the application layer. Replace dynamic EXEC('SELECT … ' + @x) with sp_executesql + parameters. Remove xp_cmdshell from production.",
+    "A05": "Apply least-privilege. GRANT only the specific privileges a role needs. Avoid GRANT ALL. Use a separate read-only role for analytics.",
+    "A07": "Hash passwords in the application layer with bcrypt/argon2; never store plaintext in SQL."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "-- VULNERABLE: dynamic SQL via concatenation (A03)",
+      "EXEC('SELECT * FROM users WHERE id = ' + @user_id);",
+      "EXEC xp_cmdshell 'dir C:\\';",
+      "GRANT ALL ON *.* TO 'app'@'%';   -- A05"
+    ],
+    "fixed": [
+      "-- FIXED: parameterised query (A03)",
+      "EXEC sp_executesql N'SELECT * FROM users WHERE id = @id', N'@id INT', @id = @user_id;",
+      "-- xp_cmdshell removed (A03)",
+      "-- GRANT least-privilege (A05)",
+      "GRANT SELECT ON users TO 'app_reader'@'10.0.%';"
+    ]
+  },
+  "templates": [
+    "-- SQL — syntax check only. Execution needs a database driver.",
+    "SELECT id, name, email, created_at",
+    "FROM users",
+    "WHERE created_at >= NOW() - INTERVAL '7 days'",
+    "  AND status = 'active'",
+    "ORDER BY created_at DESC",
+    "LIMIT 50;"
+  ]
+}

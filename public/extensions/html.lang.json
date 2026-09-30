@@ -1,0 +1,88 @@
+{
+  "id": "html",
+  "label": "HTML",
+  "extensions": ["html", "htm"],
+  "icon": "🌐",
+  "runner": "html",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A03", "A05"],
+    "A03": {
+      "patterns": [
+        { "regex": "<script[^>]*>[\\s\\S]{0,200}?(?:innerHTML|document\\.write|eval\\s*\\()", "weight": 3, "label": "Inline script using unsafe sinks" },
+        { "regex": "\\son(?:click|load|error|mouseover)\\s*=\\s*['\"][^'\"]*?(?:location\\s*=|document\\.cookie)", "weight": 4, "label": "Inline event handler sinks" },
+        { "regex": "javascript:[^'\"\\s>]*", "weight": 2, "label": "javascript: URI" }
+      ],
+      "remediation": "Avoid inline event handlers and javascript: URIs. Move all logic to CSP-compatible script files. Use textContent / setAttribute over innerHTML. Set a strict Content-Security-Policy."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "<meta[^>]+http-equiv\\s*=\\s*['\"]X-Frame-Options['\"]", "weight": -1, "label": "X-Frame-Options meta (good practice)" },
+        { "regex": "<meta[^>]+http-equiv\\s*=\\s*['\"]Content-Security-Policy['\"]", "weight": -2, "label": "CSP meta tag (good practice)" },
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO" }
+      ],
+      "remediation": "Set CSP, X-Frame-Options, X-Content-Type-Options headers in HTTP responses (or via meta). Restrict CORS to explicit origins."
+    }
+  },
+  "owaspRemediation": {
+    "A03": "Avoid inline event handlers / javascript: URIs. Move all logic to CSP-compatible files. Use textContent over innerHTML. Set a strict Content-Security-Policy.",
+    "A05": "Set CSP, X-Frame-Options, X-Content-Type-Options headers. Restrict CORS to explicit origins."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "<!-- VULNERABLE: inline onclick + location assignment (A03) -->",
+      "<button onclick=\"window.location = document.cookie\">Click</button>",
+      "<a href=\"javascript:alert(document.cookie)\">Link</a>"
+    ],
+    "fixed": [
+      "<!-- FIXED: external script + addEventListener (A03) -->",
+      "<button id=\"go\">Click</button>",
+      "<script src=\"app.js\"></script>",
+      "<!-- app.js -->",
+      "document.getElementById('go').addEventListener('click', () => { window.location = '/safe'; });"
+    ]
+  },
+  "keywords": [
+    "doctype", "html", "head", "body", "title", "meta", "link", "script",
+    "style", "div", "span", "p", "a", "img", "form", "input", "label",
+    "button", "select", "option", "textarea", "table", "tr", "td", "th",
+    "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "section",
+    "article", "nav", "header", "footer", "main", "aside", "figure",
+    "figcaption"
+  ],
+  "dangerousApis": [
+    "innerHTML", "outerHTML", "document.write", "eval", "Function",
+    "setTimeout(\"", "setInterval(\""
+  ],
+  "domSinks": [
+    "innerHTML", "outerHTML", "insertAdjacentHTML", "srcdoc"
+  ],
+  "networkApis": ["fetch", "XMLHttpRequest", "axios", "WebSocket"],
+  "cryptoApis": ["crypto.subtle", "crypto.getRandomValues"],
+  "weakHashes": ["md5", "sha1"],
+  "authHints": [
+    "role=\"admin\"", "data-user-id", "data-permission"
+  ],
+  "loggingHints": ["console.log", "console.error", "console.warn"],
+  "templates": [
+    "<!DOCTYPE html>",
+    "<html lang=\"en\">",
+    "<head>",
+    "  <meta charset=\"utf-8\" />",
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />",
+    "  <title>My page</title>",
+    "  <style>",
+    "    body { font: 16px/1.5 system-ui; margin: 0; padding: 32px; background: #f8fafc; color: #0f172a; }",
+    "    h1 { color: #1e40af; }",
+    "    button { padding: 8px 14px; border: none; background: #2563eb; color: white; border-radius: 8px; cursor: pointer; }",
+    "  </style>",
+    "</head>",
+    "<body>",
+    "  <h1>Hello, HTML 👋</h1>",
+    "  <p>Click the button to run the page.</p>",
+    "  <button onclick=\"alert('It works!')\">Click me</button>",
+    "</body>",
+    "</html>"
+  ]
+}

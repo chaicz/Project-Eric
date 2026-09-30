@@ -1,0 +1,88 @@
+{
+  "id": "css",
+  "label": "CSS",
+  "extensions": ["css", "scss"],
+  "icon": "🎨",
+  "runner": "css",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A03", "A05"],
+    "A03": {
+      "patterns": [
+        { "regex": "expression\\s*\\(", "weight": 4, "label": "CSS expression() (legacy IE)" },
+        { "regex": "behavior\\s*:\\s*url\\(", "weight": 4, "label": "CSS behavior:url (legacy IE)" },
+        { "regex": "-moz-binding\\s*:", "weight": 3, "label": "-moz-binding (legacy Firefox)" },
+        { "regex": "@import\\s+url\\(\\s*['\"]?javascript:", "weight": 4, "label": "@import url(javascript:...)" }
+      ],
+      "remediation": "Remove IE-era expression() and -moz-binding. Use modern CSS. Never @import a javascript: URL. Use a strict Content-Security-Policy that blocks script-src inline."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "@import\\s+url\\(\\s*['\"]?https?://", "weight": 1, "label": "@import from external URL" }
+      ],
+      "remediation": "Self-host CSS to avoid CSS-based exfiltration via @import. Use subresource integrity (SRI) on any external stylesheet."
+    }
+  },
+  "owaspRemediation": {
+    "A03": "Remove IE-era expression() and -moz-binding. Never @import a javascript: URL. Use a strict CSP.",
+    "A05": "Self-host CSS. Use SRI on external stylesheets."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "/* VULNERABLE: CSS expression() (A03) */",
+      ".foo { width: expression(document.body.clientWidth); }",
+      "/* VULNERABLE: @import javascript: (A03) */",
+      "@import url(\"javascript:alert(1)\");"
+    ],
+    "fixed": [
+      "/* FIXED: modern CSS, self-hosted (A03, A05) */",
+      ".foo { width: 100vw; }",
+      "@import url(\"./tokens.css\");"
+    ]
+  },
+  "keywords": [
+    "color", "background", "background-color", "border", "border-radius",
+    "padding", "margin", "font", "font-size", "font-weight", "display",
+    "flex", "flex-direction", "justify-content", "align-items",
+    "grid", "grid-template", "position", "top", "left", "right", "bottom",
+    "width", "height", "min-width", "max-width", "min-height", "max-height",
+    "transition", "animation", "transform", "opacity", "z-index",
+    "overflow", "cursor", "pointer-events", "box-shadow", "text-shadow",
+    "outline", "filter", "backdrop-filter", "var(", "calc("
+  ],
+  "dangerousApis": [
+    "expression(", "behavior:", "-moz-binding", "@import url(javascript"
+  ],
+  "domSinks": [],
+  "networkApis": [
+    "@import url(http", "@import url(\"http"
+  ],
+  "cryptoApis": [],
+  "weakHashes": [],
+  "authHints": [],
+  "loggingHints": [],
+  "templates": [
+    "/* CSS — previewed against a sample HTML page in the IDE */",
+    "body {",
+    "  margin: 0;",
+    "  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;",
+    "  background: linear-gradient(135deg, #667eea, #764ba2);",
+    "  min-height: 100vh;",
+    "  display: flex;",
+    "  align-items: center;",
+    "  justify-content: center;",
+    "  color: #0f172a;",
+    "}",
+    "",
+    ".card {",
+    "  background: white;",
+    "  padding: 32px;",
+    "  border-radius: 20px;",
+    "  box-shadow: 0 20px 60px rgba(0,0,0,.3);",
+    "  text-align: center;",
+    "  max-width: 480px;",
+    "  width: 90%;",
+    "}"
+  ]
+}

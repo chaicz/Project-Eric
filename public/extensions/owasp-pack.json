@@ -1,0 +1,370 @@
+{
+  "id": "owasp-top-10-2021",
+  "label": "OWASP Top 10 (2021)",
+  "version": "1.0.0",
+  "schemaVersion": "1",
+  "kind": "owasp-pack",
+  "icon": "🛡️",
+  "description": "Static-analysis ruleset for the OWASP Top 10 (2021). Ships per-language regex patterns plus a remediation note for every category. The pack does NOT execute code — it analyses source text and surfaces findings with CWE mapping and a fix suggestion.",
+  "homepage": "https://owasp.org/Top10/",
+  "license": "Apache-2.0",
+  "publishDate": "2026-09-28",
+  "appliesTo": [
+    "javascript", "typescript", "python", "java", "csharp",
+    "go", "rust", "ruby", "php", "cpp", "html", "css", "sql"
+  ],
+  "categories": [
+    {
+      "id": "A01",
+      "name": "Broken Access Control",
+      "defaultSeverity": "high",
+      "cwe": "CWE-639",
+      "shortDescription": "Authorization enforced by the UI is bypassed, or missing on routes that take user-supplied ids.",
+      "remediation": "Deny by default. Verify ownership / role on every route that reads a user id. Centralise authorization in middleware, not in the controller.",
+      "patterns": {
+        "javascript": [
+          { "regex": "app\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*\\b:id\\b[^'\"`]*['\"`]", "weight": 2, "label": "Route accepts :id from the URL" },
+          { "regex": "req\\.params\\.id", "weight": 1, "label": "Reads :id from request params" },
+          { "regex": "params\\[['\"](?:id|userId|accountId)['\"]\\]", "weight": 1, "label": "Reads id from params dict" }
+        ],
+        "typescript": [
+          { "regex": "router\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*\\b:id\\b[^'\"`]*['\"`]", "weight": 2, "label": "Route accepts :id from the URL" },
+          { "regex": "req\\.params\\.id|ctx\\.params\\.id", "weight": 1, "label": "Reads :id from request params" }
+        ],
+        "python": [
+          { "regex": "@(?:app|router)\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*<[^>]*?(?:id|user_id|pk)[^>]*>", "weight": 2, "label": "Flask/FastAPI route reads :id" },
+          { "regex": "request\\.args\\.get\\(['\"](?:id|user_id|pk)['\"]", "weight": 1, "label": "Reads id from request args" },
+          { "regex": "get_object_or_404\\(\\s*[A-Z][A-Za-z]+,", "weight": 1, "label": "Loads object without checking ownership" }
+        ],
+        "java": [
+          { "regex": "@(?:GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping)\\s*\\([^)]*\\b(?:id|userId)\\b[^)]*\\)", "weight": 2, "label": "Spring mapping with id path variable" },
+          { "regex": "@PathVariable\\s+(?:Long|String|Integer)\\s+(?:id|userId)", "weight": 1, "label": "@PathVariable id" }
+        ],
+        "csharp": [
+          { "regex": "\\[Http(Get|Post|Put|Delete)[\"']?\\s*\\([^)]*\\{(?:id|userId)[^}]*\\}", "weight": 2, "label": "ASP.NET route with {id}" },
+          { "regex": "public\\s+async\\s+Task<.*?>\\s+\\w+\\s*\\([^)]*int\\s+(?:id|userId)[^)]*\\)", "weight": 1, "label": "Controller action takes id" }
+        ],
+        "go": [
+          { "regex": "\\.(?:GET|POST|PUT|DELETE|PATCH)\\s*\\(\\s*['\"`][^'\"`]*\\\\{[^}]*?(?:id|userId)[^}]*\\\\}", "weight": 2, "label": "Gin route with :id" },
+          { "regex": "c\\.Param\\(['\"](?:id|userId)['\"]", "weight": 1, "label": "Reads :id from Gin params" }
+        ],
+        "php": [
+          { "regex": "Route::(?:get|post|put|delete)\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|userId)[^}]*\\}", "weight": 2, "label": "Laravel route with {id}" },
+          { "regex": "\\$request->(?:input|get)\\(['\"](?:id|userId)['\"]", "weight": 1, "label": "Reads id from request" }
+        ],
+        "ruby": [
+          { "regex": "resources\\s+:\\w+|get\\s+['\"`][^'\"`]*:id[^'\"`]*['\"`]", "weight": 2, "label": "Rails route with :id" },
+          { "regex": "params\\[:(?:id|user_id)\\]", "weight": 1, "label": "Reads :id from params" }
+        ],
+        "rust": [
+          { "regex": "\\.route\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|user_id)[^}]*\\}", "weight": 2, "label": "Actix route with {id}" },
+          { "regex": "web::Path<\\([^)]*(?:u64|usize|String)[^)]*\\)>", "weight": 1, "label": "Path extractor takes id" }
+        ]
+      },
+      "authorizationHints": [
+        "authorize\\(", "checkPermission\\(", "CanCan", "Pundit",
+        "@PreAuthorize", "RolesAllowed", "AuthorizeAttribute",
+        "current_user", "ctx\\.user", "req\\.user"
+      ]
+    },
+    {
+      "id": "A02",
+      "name": "Cryptographic Failures",
+      "defaultSeverity": "critical",
+      "cwe": "CWE-798",
+      "shortDescription": "Weak hashes, hardcoded secrets, plaintext URLs or non-cryptographic randomness.",
+      "remediation": "Use bcrypt/argon2/scrypt for passwords, sha-256+ for general hashing, HTTPS-only URLs, crypto-grade randomness (crypto.randomBytes / secrets module / SecureRandom), and load secrets from a managed store (env, KMS, vault).",
+      "patterns": {
+        "_all": [
+          { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm (md5/sha1)" },
+          { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+          { "regex": "\\bhttp://[^\\s'\"`]+", "weight": 1, "label": "Plain http:// URL" },
+          { "regex": "\\bMath\\.random\\s*\\(", "weight": 1, "label": "Non-cryptographic randomness (Math.random)" }
+        ],
+        "python": [
+          { "regex": "hashlib\\.(?:md5|sha1)", "weight": 3, "label": "hashlib.md5 / hashlib.sha1" },
+          { "regex": "random\\.random\\(|random\\.randint\\(", "weight": 1, "label": "non-csprng random module" }
+        ],
+        "java": [
+          { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-?1)['\"]", "weight": 3, "label": "MessageDigest with MD5/SHA-1" }
+        ],
+        "csharp": [
+          { "regex": "\\b(?:MD5|SHA1|SHA1Managed)\\.Create\\s*\\(", "weight": 3, "label": "System.Security.Cryptography weak hash" },
+          { "regex": "\\bSystem\\.Security\\.Cryptography\\.MD5\\b", "weight": 3, "label": "MD5 namespace usage" }
+        ],
+        "go": [
+          { "regex": "crypto/(?:md5|sha1)", "weight": 3, "label": "crypto/md5 or crypto/sha1 import" }
+        ],
+        "rust": [
+          { "regex": "\\b(?:Md5|Sha1)::(?:new|default)", "weight": 3, "label": "Weak hash digest usage" }
+        ],
+        "ruby": [
+          { "regex": "Digest::(?:MD5|SHA1)", "weight": 3, "label": "Digest::MD5 / Digest::SHA1" }
+        ],
+        "cpp": [
+          { "regex": "MD5_Init\\s*\\(|SHA1_Init\\s*\\(|EVP_md5\\(\\)|EVP_sha1\\(\\)", "weight": 3, "label": "OpenSSL weak hash API" }
+        ]
+      }
+    },
+    {
+      "id": "A03",
+      "name": "Injection",
+      "defaultSeverity": "critical",
+      "cwe": "CWE-89",
+      "shortDescription": "User-controlled data flows into SQL, shell, eval, or a DOM sink without sanitisation.",
+      "remediation": "Use parameterised queries / prepared statements. Never concatenate user input into SQL or shell commands. Avoid eval / new Function. Sanitise HTML or use safe DOM APIs (textContent, setAttribute) instead of innerHTML.",
+      "patterns": {
+        "_all": [
+          { "regex": "\\beval\\s*\\(", "weight": 3, "label": "eval() call" },
+          { "regex": "\\bnew\\s+Function\\s*\\(", "weight": 3, "label": "new Function() constructor" },
+          { "regex": "\\bchild_process\\b|\\bexecSync\\s*\\(|\\bspawn\\s*\\(", "weight": 3, "label": "Node child_process / execSync / spawn" },
+          { "regex": "\\.innerHTML\\s*=", "weight": 2, "label": "innerHTML assignment" },
+          { "regex": "document\\.write(?:ln)?\\s*\\(", "weight": 2, "label": "document.write sink" },
+          { "regex": "insertAdjacentHTML\\s*\\(", "weight": 2, "label": "insertAdjacentHTML sink" }
+        ],
+        "javascript": [
+          { "regex": "(['\"`])\\s*\\+\\s*[a-zA-Z_][\\w.]*\\s*\\+\\s*\\1", "weight": 4, "label": "SQL fragment concatenating a variable on both sides" },
+          { "regex": "[\"']SELECT\\b[^\"']*[\"']\\s*\\+", "weight": 4, "label": "SQL string concatenation" },
+          { "regex": "\\b(?:db|conn|knex|sequelize)\\.(?:query|execute|raw)\\s*\\([^,)]*\\+", "weight": 4, "label": "Query built with concatenation" }
+        ],
+        "typescript": [
+          { "regex": "(['\"`])\\s*\\+\\s*[a-zA-Z_][\\w.]*\\s*\\+\\s*\\1", "weight": 4, "label": "SQL fragment concatenating a variable on both sides" },
+          { "regex": "[\"']SELECT\\b[^\"']*[\"']\\s*\\+", "weight": 4, "label": "SQL string concatenation" }
+        ],
+        "python": [
+          { "regex": "\\b(?:os\\.system|subprocess\\.(?:run|call|check_output|Popen))\\s*\\([^)]*\\+", "weight": 4, "label": "OS command built with concatenation" },
+          { "regex": "\\b(?:cursor|conn|c)\\.(?:execute|executemany)\\s*\\(\\s*['\"][^'\"]*\\{[^}]*?\\}", "weight": 4, "label": "Python DB execute with f-string SQL" },
+          { "regex": "\\bexec\\s*\\(|\\bcompile\\s*\\(", "weight": 3, "label": "exec() / compile()" }
+        ],
+        "java": [
+          { "regex": "createStatement\\s*\\(\\s*\\)", "weight": 2, "label": "Statement (not PreparedStatement)" },
+          { "regex": "\\bRuntime\\.getRuntime\\s*\\(\\s*\\)\\.exec\\s*\\(", "weight": 4, "label": "Runtime.exec()" }
+        ],
+        "csharp": [
+          { "regex": "\\bnew\\s+SqlCommand\\s*\\(\\s*['\"][^'\"]*\\+", "weight": 4, "label": "SqlCommand built with concatenation" },
+          { "regex": "Process\\.Start\\s*\\(", "weight": 3, "label": "Process.Start shell" }
+        ],
+        "go": [
+          { "regex": "fmt\\.Sprintf\\s*\\(\\s*['\"][^'\"]*?(?:SELECT|INSERT|UPDATE|DELETE)", "weight": 4, "label": "fmt.Sprintf into SQL" },
+          { "regex": "exec\\.Command\\s*\\(", "weight": 3, "label": "exec.Command shell" }
+        ],
+        "rust": [
+          { "regex": "Command::new\\s*\\(|process::Command::new\\s*\\(", "weight": 3, "label": "process::Command spawn" }
+        ],
+        "ruby": [
+          { "regex": "\\b(?:system|exec|`)\\s*[^,)]*\\+|`[^`]*#\\{[^}]*\\}[^`]*`", "weight": 4, "label": "Shell command with interpolation" }
+        ],
+        "php": [
+          { "regex": "\\b(?:mysql_query|mysqli_query|pg_query)\\s*\\(\\s*['\"][^'\"]*\\$\\w+", "weight": 4, "label": "PHP SQL with variable interpolation" },
+          { "regex": "\\beval\\s*\\(|\\bassert\\s*\\(", "weight": 4, "label": "eval/assert" },
+          { "regex": "\\b(?:shell_exec|exec|system|passthru|popen|proc_open)\\s*\\(", "weight": 3, "label": "PHP shell exec family" }
+        ],
+        "cpp": [
+          { "regex": "\\b(?:system|popen|exec\\w*)\\s*\\(", "weight": 4, "label": "C/C++ system/popen/exec" }
+        ],
+        "html": [
+          { "regex": "<script[^>]*>[\\s\\S]{0,200}?(?:innerHTML|document\\.write|eval\\s*\\()", "weight": 3, "label": "Inline script using unsafe sinks" }
+        ],
+        "sql": [
+          { "regex": "\\bEXEC\\s*\\(|\\bEXECUTE\\s*\\(|xp_cmdshell\\s*\\(", "weight": 4, "label": "SQL EXEC / xp_cmdshell" }
+        ]
+      }
+    },
+    {
+      "id": "A04",
+      "name": "Insecure Design",
+      "defaultSeverity": "medium",
+      "cwe": "CWE-307",
+      "shortDescription": "Missing abuse-case planning: no rate-limits, security TODOs, or threat-model coverage.",
+      "remediation": "Plan abuse cases up-front (brute force, scraping, mass assignment). Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping.",
+      "patterns": {
+        "_all": [
+          { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret|sanitize|escape)", "weight": 2, "label": "Security TODO/FIXME in comment" }
+        ],
+        "javascript": [
+          { "regex": "\\b(?:app|router)\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`](/login|/signin|/auth|/password|/reset)[^'\"`]*['\"`]", "weight": 1, "label": "Auth endpoint declared" }
+        ],
+        "python": [
+          { "regex": "@(?:app|router)\\.(get|post)\\s*\\(\\s*['\"`](/login|/signin|/auth|/password|/reset)[^'\"`]*['\"`]", "weight": 1, "label": "Auth endpoint declared" }
+        ],
+        "php": [
+          { "regex": "Route::(?:get|post)\\s*\\(\\s*['\"`](/login|/signin|/auth|/password|/reset)[^'\"`]*['\"`]", "weight": 1, "label": "Auth endpoint declared" }
+        ]
+      },
+      "rateLimitHints": [
+        "rate[_-]?limit", "throttle", "express[_-]?rate[_-]?limit",
+        "slow[_-]?down", "Flask-Limiter", "rack-attack", "django-ratelimit"
+      ]
+    },
+    {
+      "id": "A05",
+      "name": "Security Misconfiguration",
+      "defaultSeverity": "medium",
+      "cwe": "CWE-16",
+      "shortDescription": "CORS *, debug flags left on, default credentials, helmet disabled, stack traces emitted to the client.",
+      "remediation": "Lock down CORS to explicit origins, disable debug in production, ship default-deny settings and helmet-style security headers, remove default credentials.",
+      "patterns": {
+        "_all": [
+          { "regex": "cors\\s*\\(\\s*\\{\\s*origin\\s*:\\s*['\"`]\\*['\"`]", "weight": 2, "label": "CORS origin: '*'" },
+          { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" },
+          { "regex": "\\bconsole\\.log\\s*\\(", "weight": 1, "label": "console.log left in code" },
+          { "regex": "\\bDEBUG\\s*=\\s*True\\b|\\bNODE_ENV\\s*[!=]=\\s*['\"`]development['\"`]", "weight": 1, "label": "Debug / dev-mode flag" },
+          { "regex": "\\bhelmet\\s*\\(\\s*\\)", "weight": 1, "label": "helmet() with default config" },
+          { "regex": "\\b(?:admin|root|user)\\s*[:=]\\s*['\"`](?:admin|root|toor|password|12345?|changeme)['\"`]", "weight": 3, "label": "Default credential literal" }
+        ]
+      },
+      "secretHints": [
+        "process\\.env\\.", "os\\.environ\\[", "ENV\\[",
+        "VaultClient", "SecretManager", "KeyVaultClient"
+      ]
+    },
+    {
+      "id": "A06",
+      "name": "Vulnerable Components",
+      "defaultSeverity": "medium",
+      "cwe": "CWE-1104",
+      "shortDescription": "Use of a known-vulnerable dependency, or unpinned version range.",
+      "remediation": "Run `npm audit` / `yarn audit` / `pip-audit` / `govulncheck` / `cargo audit` on every build. Pin and upgrade flagged dependencies. Use an SBOM tool (Snyk, OSV, Dependabot).",
+      "patterns": {
+        "_all": [
+          { "regex": "['\"`]([a-z0-9_./@\\-]+)['\"`]\\s*:\\s*['\"`](?:\\^|~|>=?)?\\s*([0-9]+(?:\\.[0-9]+){0,2})['\"`]", "weight": 1, "label": "Declared dependency with version" }
+        ]
+      },
+      "flaggedDependencies": [
+        { "pattern": "^lodash@(0\\.|1\\.|2\\.|3\\.|4\\.0(\\.|\\b)|4\\.1[0-6]\\.)", "label": "lodash < 4.17.21 (CVE-2019-10744 et al.)" },
+        { "pattern": "^request@", "label": "request is deprecated (no longer maintained)" },
+        { "pattern": "^minimist@(0\\.|1\\.0(\\.|\\b))", "label": "minimist < 1.2.6 (prototype pollution)" },
+        { "pattern": "^node-fetch@1\\.", "label": "node-fetch 1.x is unmaintained" },
+        { "pattern": "^axios@0\\.([0-9]|1[0-7])\\.", "label": "axios < 0.18.0 had CVE-2019-10742 / SSRF" },
+        { "pattern": "^jquery@([0-2]\\.|3\\.0\\.|3\\.1\\.|3\\.2\\.|3\\.3\\.|3\\.4\\.0)", "label": "jquery < 3.4.1 (XSS / prototype pollution)" },
+        { "pattern": "^handlebars@(1\\.|2\\.|3\\.|4\\.0\\.|4\\.1\\.0)", "label": "handlebars < 4.7.7 (RCE)" }
+      ]
+    },
+    {
+      "id": "A07",
+      "name": "Authentication Failures",
+      "defaultSeverity": "high",
+      "cwe": "CWE-521",
+      "shortDescription": "Weak password compare, plain hashes for passwords, no MFA, jwt.alg=none.",
+      "remediation": "Use bcrypt/argon2/scrypt for password storage. Compare with constant-time helpers (bcrypt.compare, hash_equals). Enforce MFA on high-value accounts. Pin JWT algorithms and rotate any leaked signing keys.",
+      "patterns": {
+        "_all": [
+          { "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:req\\.body|user\\.|input|params|data)", "weight": 3, "label": "Plain password compare" },
+          { "regex": "\\bjwt\\.sign\\s*\\([^,]+,\\s*[^,]+,\\s*\\{\\s*algorithm\\s*:\\s*['\"`]none['\"`]", "weight": 4, "label": "jwt.sign with algorithm: 'none'" }
+        ],
+        "javascript": [
+          { "regex": "\\b(?:md5|sha1)\\s*\\(\\s*(?:req\\.body|password|user\\.)", "weight": 3, "label": "Weak hash on password" },
+          { "regex": "\\bjwt\\.decode\\s*\\(", "weight": 1, "label": "jwt.decode without verify" }
+        ],
+        "python": [
+          { "regex": "\\b(?:md5|sha1)\\s*\\(\\s*(?:password|user\\.|request\\.form|request\\.json)", "weight": 3, "label": "Weak hash on password" }
+        ],
+        "java": [
+          { "regex": "\\.equals\\s*\\(\\s*(?:password|passwd|pwd)", "weight": 2, "label": "String.equals on password" }
+        ],
+        "csharp": [
+          { "regex": "\\b(?:==|Equals)\\s*\\(\\s*[\"']?(?:password|passwd|pwd)[\"']?", "weight": 2, "label": "Equals on password" }
+        ],
+        "go": [
+          { "regex": "subtle\\.ConstantTimeCompare\\s*\\(", "weight": -2, "label": "ConstantTimeCompare (good practice, reduce score)" }
+        ],
+        "php": [
+          { "regex": "\\bpassword_verify\\s*\\(", "weight": -2, "label": "password_verify (good practice, reduce score)" }
+        ]
+      },
+      "mfaHints": [
+        "\\bMFA\\b", "\\b2FA\\b", "\\bTOTP\\b",
+        "speakeasy", "pyotp", "otplib", "Authenticator"
+      ]
+    },
+    {
+      "id": "A08",
+      "name": "Data Integrity Failures",
+      "defaultSeverity": "medium",
+      "cwe": "CWE-345",
+      "shortDescription": "Unsafe deserialisation, unsigned JWT, auto-update without signature check.",
+      "remediation": "Use safe deserialisers (json + schema validation, NOT pickle/yaml.load/ObjectInputStream). Verify JWT signatures. Sign CI artefacts and lock down auto-update channels.",
+      "patterns": {
+        "python": [
+          { "regex": "\\bpickle\\.(?:load|loads)\\s*\\(", "weight": 3, "label": "pickle.load(s) on untrusted data" },
+          { "regex": "\\byaml\\.load\\s*\\([^)]*\\)", "weight": 2, "label": "yaml.load() — use yaml.safe_load" }
+        ],
+        "java": [
+          { "regex": "\\bObjectInputStream\\s*\\(", "weight": 3, "label": "Java ObjectInputStream (deserialisation)" },
+          { "regex": "\\.readObject\\s*\\(", "weight": 3, "label": "ObjectInputStream.readObject()" }
+        ],
+        "php": [
+          { "regex": "\\bunserialize\\s*\\(", "weight": 3, "label": "PHP unserialize() on untrusted data" }
+        ],
+        "ruby": [
+          { "regex": "\\bMarshal\\.(?:load|restore)\\s*\\(", "weight": 3, "label": "Marshal.load/restore" }
+        ],
+        "javascript": [
+          { "regex": "verify\\s*:\\s*false", "weight": 2, "label": "JWT verify: false" }
+        ],
+        "typescript": [
+          { "regex": "verify\\s*:\\s*false", "weight": 2, "label": "JWT verify: false" }
+        ]
+      }
+    },
+    {
+      "id": "A09",
+      "name": "Logging Failures",
+      "defaultSeverity": "medium",
+      "cwe": "CWE-778",
+      "shortDescription": "Auth, access and admin events aren't logged; logs leak sensitive data; no audit trail.",
+      "remediation": "Add structured logging on auth, authorization and data-modification events with user id, IP, timestamp and outcome. Never log passwords, tokens or PII. Forward logs to a tamper-resistant sink.",
+      "patterns": {
+        "_all": [
+          { "regex": "console\\.(log|info|warn|error)", "weight": 1, "label": "console.* usage (consider structured logger)" }
+        ]
+      },
+      "loggerHints": [
+        "winston", "pino", "bunyan", "morgan",
+        "logging\\.getLogger", "logger\\.", "Log::",
+        "Rails\\.logger", "log/slog", "tracing::"
+      ],
+      "sensitiveRoutes": [
+        "/login", "/signin", "/sign-in", "/auth", "/authenticate",
+        "/password", "/reset", "/logout",
+        "/admin", "/manage", "/users/"
+      ]
+    },
+    {
+      "id": "A10",
+      "name": "SSRF",
+      "defaultSeverity": "high",
+      "cwe": "CWE-918",
+      "shortDescription": "Outbound HTTP / fetch from user-supplied URL without an allowlist.",
+      "remediation": "Validate and allowlist outbound URLs, resolve DNS yourself to block private/loopback addresses, and disable HTTP redirections on the HTTP client.",
+      "patterns": {
+        "javascript": [
+          { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*(?:req\\.|ctx\\.|input|body|data)", "weight": 3, "label": "fetch/axios from request data" },
+          { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "fetch/axios from variable" }
+        ],
+        "typescript": [
+          { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*(?:req\\.|ctx\\.|input|body|data)", "weight": 3, "label": "fetch/axios from request data" }
+        ],
+        "python": [
+          { "regex": "\\b(?:requests|httpx|aiohttp|urllib\\.request)\\.\\w+\\s*\\(\\s*(?:url|\\w*[Uu]rl)\\s*=", "weight": 2, "label": "HTTP call with dynamic URL" },
+          { "regex": "\\burlopen\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "urlopen from variable" }
+        ],
+        "php": [
+          { "regex": "\\b(?:curl_init|file_get_contents|fopen|fsockopen)\\s*\\(\\s*\\$", "weight": 2, "label": "PHP HTTP from variable" }
+        ],
+        "java": [
+          { "regex": "new\\s+URL\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)\\.openConnection", "weight": 2, "label": "Java URL.openConnection with variable" }
+        ],
+        "go": [
+          { "regex": "http\\.(?:Get|Post|NewRequest)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "http.Get/Post with variable" }
+        ]
+      },
+      "allowlistHints": [
+        "isValidUrl", "allowlist", "allowed_hosts", "allowList",
+        "validateUrl", "isUrlSafe", "URLValidator", "SafeURL"
+      ]
+    }
+  ],
+  "executionMode": "static-only",
+  "executionModeDescription": "This pack performs regex-based static analysis only. It never runs, executes, transpiles or interprets the supplied code. Detectors are deterministic and side-effect-free."
+}

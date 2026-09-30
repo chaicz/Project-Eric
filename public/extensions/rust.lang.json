@@ -1,0 +1,107 @@
+{
+  "id": "rust",
+  "label": "Rust",
+  "extensions": ["rs"],
+  "icon": "🦀",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A09", "A10"],
+    "A01": {
+      "patterns": [
+        { "regex": "\\.route\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|user_id)[^}]*\\}", "weight": 2, "label": "Actix route with {id}" },
+        { "regex": "web::Path<\\([^)]*(?:u64|usize|String)[^)]*\\)>", "weight": 1, "label": "Path extractor takes id" }
+      ],
+      "remediation": "Use Actix-Web middleware / extractors (`RequireAuth`) and ownership checks (`if resource.user_id != current_user.id`)."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "\\b(?:Md5|Sha1)::(?:new|default)", "weight": 3, "label": "Weak hash digest usage" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+      ],
+      "remediation": "Use `bcrypt` / `argon2` crates for passwords. Use `rand::OsRng` for tokens. Move to env / Vault."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "Command::new\\s*\\(|process::Command::new\\s*\\(", "weight": 3, "label": "process::Command spawn" }
+      ],
+      "remediation": "Pass argv lists to `Command::new(\"ping\").arg(\"-c\").arg(\"1\").arg(host)`. Avoid shell metacharacters."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "println!\\s*\\(", "weight": 1, "label": "println! (consider structured logger)" }
+      ],
+      "remediation": "Use `log::info!` / `tracing::info!` with structured fields. Log auth + admin events."
+    },
+    "A10": {
+      "patterns": [
+        { "regex": "reqwest::(?:get|Client::new|Client::builder)", "weight": 1, "label": "reqwest outbound" }
+      ],
+      "remediation": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Use Actix middleware + per-handler ownership checks.",
+    "A02": "Use bcrypt/argon2 crates. Use rand::OsRng for tokens.",
+    "A03": "Pass argv lists to Command::new. Avoid shell strings.",
+    "A09": "Use log/tracing with structured fields.",
+    "A10": "Allowlist outbound URLs. Resolve DNS yourself. Block private IPs."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: Command::new with shell (A03)",
+      "Command::new(\"sh\").arg(\"-c\").arg(format!(\"ping {}\", host)).status()",
+      "// VULNERABLE: weak hash (A02)",
+      "use md5::Md5; let digest = Md5::digest(input);"
+    ],
+    "fixed": [
+      "// FIXED: argv list (A03)",
+      "Command::new(\"ping\").arg(\"-c\").arg(\"1\").arg(host).status()",
+      "// FIXED: argon2 (A02)",
+      "use argon2::{Argon2, PasswordHasher}; let hash = Argon2::default().hash_password(pwd.as_bytes(), &salt)?.to_string();"
+    ]
+  },
+  "keywords": [
+    "as", "async", "await", "break", "const", "continue", "crate", "dyn",
+    "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in",
+    "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
+    "Self", "self", "static", "struct", "super", "trait", "true", "type",
+    "unsafe", "use", "where", "while", "box", "do", "final", "macro",
+    "override", "priv", "try", "typeof", "unsized", "virtual", "yield"
+  ],
+  "builtins": [
+    "String", "Vec", "HashMap", "HashSet", "BTreeMap", "BTreeSet",
+    "Option", "Result", "Box", "Rc", "Arc", "Cell", "RefCell",
+    "println!", "format!", "panic!", "vec!", "Box::new", "Ok", "Err",
+    "Some", "None"
+  ],
+  "dangerousApis": [
+    "Command::new", "process::Command", "unsafe", "std::process::exit",
+    "std::env::set_var"
+  ],
+  "domSinks": ["innerHTML", "outerHTML"],
+  "networkApis": [
+    "reqwest::get", "reqwest::Client", "ureq::get", "hyper::Client",
+    "TcpStream", "UdpSocket"
+  ],
+  "cryptoApis": [
+    "Sha256", "Sha512", "Md5", "Sha1", "bcrypt::hash",
+    "argon2", "rand::thread_rng", "OsRng"
+  ],
+  "weakHashes": ["Md5", "Sha1", "md5", "sha1"],
+  "authHints": [
+    "current_user", "is_authenticated", "require_auth",
+    "has_permission", "User::is_admin"
+  ],
+  "loggingHints": [
+    "log::info!", "log::warn!", "log::error!", "log::debug!",
+    "tracing::info!", "tracing::error!", "env_logger", "println!"
+  ],
+  "templates": [
+    "// Rust — preview only (needs rustc toolchain)",
+    "fn main() {",
+    "    println!(\"Hello, Rust!\");",
+    "}"
+  ]
+}

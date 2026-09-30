@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1",
+  "name": "project-eric-extension-pack",
+  "version": "1.1.0",
+  "kind": "language+owasp-pack",
+  "license": "Apache-2.0",
+  "description": "Language packs for the Project Eric web code editor, each enriched with an OWASP Top 10 (2021) ruleset. The pack is static-only: it never executes, transpiles or interprets the supplied source — it analyses text with regex patterns, maps findings to CWE ids and ships a per-category remediation.",
+  "publisher": "secureide",
+  "owasp": {
+    "pack": "owasp-pack.json",
+    "version": "1.0.0",
+    "categories": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"]
+  },
+  "extensions": [
+    { "file": "javascript.lang.json", "id": "javascript", "label": "JavaScript", "owaspCoverage": ["A01","A02","A03","A04","A05","A07","A08","A09","A10"] },
+    { "file": "typescript.lang.json", "id": "typescript", "label": "TypeScript", "owaspCoverage": ["A01","A02","A03","A04","A05","A07","A08","A09","A10"] },
+    { "file": "python.lang.json",     "id": "python",     "label": "Python",     "owaspCoverage": ["A01","A02","A03","A04","A05","A07","A08","A09","A10"] },
+    { "file": "java.lang.json",      "id": "java",       "label": "Java",       "owaspCoverage": ["A01","A02","A03","A05","A07","A09"] },
+    { "file": "csharp.lang.json",    "id": "csharp",     "label": "C#",         "owaspCoverage": ["A01","A02","A03","A05","A07","A09"] },
+    { "file": "go.lang.json",        "id": "go",         "label": "Go",         "owaspCoverage": ["A01","A02","A03","A05","A07","A09","A10"] },
+    { "file": "rust.lang.json",      "id": "rust",       "label": "Rust",       "owaspCoverage": ["A01","A02","A03","A09","A10"] },
+    { "file": "ruby.lang.json",      "id": "ruby",       "label": "Ruby",       "owaspCoverage": ["A01","A02","A03","A05","A07","A08","A09"] },
+    { "file": "php.lang.json",       "id": "php",        "label": "PHP",        "owaspCoverage": ["A01","A02","A03","A05","A07","A09"] },
+    { "file": "cpp.lang.json",       "id": "cpp",        "label": "C++",        "owaspCoverage": ["A02","A03","A05"] },
+    { "file": "html.lang.json",      "id": "html",       "label": "HTML",       "owaspCoverage": ["A03","A05"] },
+    { "file": "css.lang.json",       "id": "css",        "label": "CSS",        "owaspCoverage": ["A03","A05"] },
+    { "file": "sql.lang.json",       "id": "sql",        "label": "SQL",        "owaspCoverage": ["A03","A05","A07"] }
+  ],
+  "downloadEndpoints": {
+    "list": "/extensions/manifest.json",
+    "owaspPack": "/extensions/owasp-pack.json",
+    "language": "/extensions/{id}.lang.json"
+  },
+  "executionMode": "static-only",
+  "executionModeDescription": "This pack does NOT execute, transpile, link or interpret code. It performs regex-based static analysis against the OWASP Top 10 (2021), maps each finding to a CWE id, and provides a remediation hint per category. Patterns are deterministic and side-effect free."
+}

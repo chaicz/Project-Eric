@@ -1,0 +1,123 @@
+{
+  "id": "java",
+  "label": "Java",
+  "extensions": ["java"],
+  "icon": "☕",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A05", "A07", "A09"],
+    "A01": {
+      "patterns": [
+        { "regex": "@(?:GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping)\\s*\\([^)]*\\b(?:id|userId)\\b[^)]*\\)", "weight": 2, "label": "Spring mapping with id path variable" },
+        { "regex": "@PathVariable\\s+(?:Long|String|Integer)\\s+(?:id|userId)", "weight": 1, "label": "@PathVariable id" }
+      ],
+      "remediation": "Add method-level @PreAuthorize / @PostAuthorize (Spring Security). Verify ownership in the service layer. Deny by default with a global SecurityFilterChain."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-?1)['\"]", "weight": 3, "label": "MessageDigest with MD5/SHA-1" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+      ],
+      "remediation": "Use BCrypt / Argon2 (Spring Security Crypto). Pin MessageDigest to SHA-256+. Move secrets to env / Vault."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "createStatement\\s*\\(\\s*\\)", "weight": 2, "label": "Statement (not PreparedStatement)" },
+        { "regex": "\\bRuntime\\.getRuntime\\s*\\(\\s*\\)\\.exec\\s*\\(", "weight": 4, "label": "Runtime.exec()" },
+        { "regex": "\\bProcessBuilder\\s*\\(", "weight": 3, "label": "ProcessBuilder" }
+      ],
+      "remediation": "Use `PreparedStatement` with bind variables. Avoid Runtime.exec / ProcessBuilder with user-supplied argv. Run on a allowlisted command list."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" }
+      ],
+      "remediation": "Configure WebSecurityConfigurerAdapter (or SecurityFilterChain bean) with explicit allowed origins. Disable debug in production."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "\\.equals\\s*\\(\\s*(?:password|passwd|pwd)", "weight": 2, "label": "String.equals on password" }
+      ],
+      "remediation": "Use BCrypt.checkpw / Spring Security's BCryptPasswordEncoder. Enforce MFA via Spring Security's multi-factor plugins."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "System\\.out\\.print(?:ln)?\\s*\\(", "weight": 1, "label": "System.out.println" }
+      ],
+      "remediation": "Use SLF4J / Logback. Log auth, authorization and admin events with user id, IP, timestamp."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Add @PreAuthorize(\"hasRole('…') and #id == authentication.principal.id\"). Apply method security at the service layer, not the controller.",
+    "A02": "Use BCryptPasswordEncoder. Replace MessageDigest.getInstance('MD5') with 'SHA-256'. Move secrets to env / Vault.",
+    "A03": "Use `PreparedStatement` with `setString(1, …)`. Avoid `Runtime.exec`; pass argv lists to ProcessBuilder.",
+    "A05": "Set explicit allowedOrigins on WebMvcConfigurer. Disable debug in application-prod.yml.",
+    "A07": "Use BCrypt.checkpw. Never compare passwords with String.equals. Add MFA via TOTP plugin.",
+    "A09": "Use SLF4J. Log auth + admin events with user id, IP, outcome."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: Statement + concatenation (A03)",
+      "Statement s = conn.createStatement();",
+      "ResultSet r = s.executeQuery(\"SELECT * FROM users WHERE id = \" + id);",
+      "// VULNERABLE: Runtime.exec with concat (A03)",
+      "Runtime.getRuntime().exec(\"ping \" + host);"
+    ],
+    "fixed": [
+      "// FIXED: PreparedStatement (A03, A01)",
+      "PreparedStatement s = conn.prepareStatement(\"SELECT * FROM users WHERE id = ?\");",
+      "s.setString(1, id);",
+      "// FIXED: ProcessBuilder argv list (A03)",
+      "new ProcessBuilder(\"ping\", \"-c\", \"1\", host).start();"
+    ]
+  },
+  "keywords": [
+    "abstract", "assert", "boolean", "break", "byte", "case", "catch",
+    "char", "class", "const", "continue", "default", "do", "double",
+    "else", "enum", "extends", "final", "finally", "float", "for",
+    "goto", "if", "implements", "import", "instanceof", "int", "interface",
+    "long", "native", "new", "package", "private", "protected", "public",
+    "return", "short", "static", "strictfp", "super", "switch",
+    "synchronized", "this", "throw", "throws", "transient", "try",
+    "void", "volatile", "while", "yield", "var", "record", "sealed",
+    "permits", "non-sealed"
+  ],
+  "builtins": [
+    "String", "Integer", "Long", "Double", "Float", "Boolean", "Object",
+    "List", "Map", "Set", "HashMap", "HashSet", "ArrayList", "LinkedList",
+    "Optional", "Stream", "Collectors", "Arrays", "Collections", "System",
+    "Math", "Thread"
+  ],
+  "dangerousApis": [
+    "Runtime.getRuntime", "ProcessBuilder", "exec(", "javax.script",
+    "ObjectInputStream", "readObject"
+  ],
+  "domSinks": [],
+  "networkApis": [
+    "HttpURLConnection", "URL.openConnection", "HttpClient", "OkHttpClient",
+    "RestTemplate", "WebClient", "okhttp3"
+  ],
+  "cryptoApis": [
+    "MessageDigest.getInstance", "KeyGenerator", "SecureRandom",
+    "BCrypt", "SCrypt", "Argon2"
+  ],
+  "weakHashes": ["MD5", "SHA1", "SHA-1", "md5", "sha1"],
+  "authHints": [
+    "SecurityContextHolder", "Principal", "isAuthenticated",
+    "hasRole", "hasAuthority", "PreAuthorize", "RolesAllowed"
+  ],
+  "loggingHints": [
+    "LoggerFactory.getLogger", "logger.info", "logger.warn",
+    "logger.error", "logger.debug", "log.info", "log.error", "System.out"
+  ],
+  "templates": [
+    "// Java — preview only (needs a JDK to compile and run).",
+    "public class Main {",
+    "  public static void main(String[] args) {",
+    "    System.out.println(\"Hello, Java!\");",
+    "  }",
+    "}"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "id": "ruby",
+  "label": "Ruby",
+  "extensions": ["rb"],
+  "icon": "💎",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A05", "A07", "A08", "A09"],
+    "A01": {
+      "patterns": [
+        { "regex": "resources\\s+:\\w+|get\\s+['\"`][^'\"`]*:id[^'\"`]*['\"`]", "weight": 2, "label": "Rails route with :id" },
+        { "regex": "params\\[:(?:id|user_id)\\]", "weight": 1, "label": "Reads :id from params" }
+      ],
+      "remediation": "Use Pundit / CanCanCan. Add `before_action :authenticate_user!` and ownership check (`@post.user == current_user`)."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "Digest::(?:MD5|SHA1)", "weight": 3, "label": "Digest::MD5 / Digest::SHA1" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+      ],
+      "remediation": "Use `BCrypt::Password.create(pwd)` / `BCrypt::Password.create(string, cost: 12)`. Use `SecureRandom.hex(32)` for tokens. Move secrets to Rails credentials / Vault."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "\\b(?:system|exec|`)\\s*[^,)]*\\+|`[^`]*#\\{[^}]*\\}[^`]*`", "weight": 4, "label": "Shell command with interpolation" }
+      ],
+      "remediation": "Pass argv lists to `Open3.capture3(cmd, *args)` (never a shell string). Use ActiveRecord (parameterised by default) instead of raw SQL."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" }
+      ],
+      "remediation": "Set `config.middleware.insert_before 0, Rack::Cors` with explicit origins. Set `Rails.env = 'production'`."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:params|user\\.|input)", "weight": 3, "label": "Plain password compare" }
+      ],
+      "remediation": "Use `user.authenticate(params[:password])` (has_secure_password + BCrypt). Enforce MFA via Devise :two_factor_authenticatable."
+    },
+    "A08": {
+      "patterns": [
+        { "regex": "\\bMarshal\\.(?:load|restore)\\s*\\(", "weight": 3, "label": "Marshal.load/restore" }
+      ],
+      "remediation": "Never `Marshal.load` untrusted bytes. Use JSON + schema validation."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "puts\\s+", "weight": 1, "label": "puts (consider logger)" }
+      ],
+      "remediation": "Use Rails.logger.info(...). Log auth + admin events with user id, IP, timestamp."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Use Pundit / CanCanCan. Add authenticate_user! + ownership check.",
+    "A02": "Use BCrypt::Password. Use SecureRandom for tokens. Move secrets to Rails credentials / Vault.",
+    "A03": "Pass argv to Open3.capture3. Use ActiveRecord for queries.",
+    "A05": "Configure Rack::Cors with explicit origins. Set Rails.env = 'production'.",
+    "A07": "Use user.authenticate(...). Enable Devise two_factor_authenticatable.",
+    "A08": "Never Marshal.load untrusted bytes. Use JSON + schema validation.",
+    "A09": "Use Rails.logger. Log auth + admin events."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "# VULNERABLE: shell with interpolation (A03)",
+      "output = `ping #{host}`",
+      "# VULNERABLE: plain password compare (A07)",
+      "if User.find_by(email: params[:email]).password == params[:password]"
+    ],
+    "fixed": [
+      "# FIXED: argv list to Open3 (A03)",
+      "stdout, _, _ = Open3.capture3(\"ping\", \"-c\", \"1\", host)",
+      "# FIXED: has_secure_password (A07)",
+      "if user.authenticate(params[:password])"
+    ]
+  },
+  "keywords": [
+    "BEGIN", "END", "alias", "and", "begin", "break", "case", "class",
+    "def", "defined?", "do", "else", "elsif", "end", "ensure", "false",
+    "for", "if", "in", "module", "next", "nil", "not", "or", "redo",
+    "rescue", "retry", "return", "self", "super", "then", "true",
+    "undef", "unless", "until", "when", "while", "yield"
+  ],
+  "builtins": [
+    "puts", "print", "p", "pp", "require", "require_relative",
+    "include", "extend", "attr_reader", "attr_writer", "attr_accessor",
+    "raise", "fail", "open", "File.read", "File.write", "JSON.parse"
+  ],
+  "dangerousApis": [
+    "eval", "system", "exec", "backtick", "spawn", "Process.spawn",
+    "IO.popen", "Kernel.open", "send", "public_send"
+  ],
+  "domSinks": ["ERB::Util.html_escape", "raw", "html_safe"],
+  "networkApis": [
+    "Net::HTTP", "HTTParty", "Faraday", "RestClient",
+    "open-uri", "URI.open"
+  ],
+  "cryptoApis": [
+    "BCrypt::Password", "BCrypt::Engine", "OpenSSL::HMAC",
+    "OpenSSL::Digest", "SecureRandom"
+  ],
+  "weakHashes": ["MD5", "SHA1", "Digest::MD5", "Digest::SHA1"],
+  "authHints": [
+    "current_user", "user_signed_in?", "before_action :authenticate",
+    "Devise", "cancan"
+  ],
+  "loggingHints": [
+    "Rails.logger", "logger.info", "logger.warn", "logger.error",
+    "Logging.logger", "Log.info", "puts"
+  ],
+  "templates": [
+    "# Ruby — preview only (needs a Ruby runtime)",
+    "puts \"Hello, Ruby!\"",
+    "(1..5).each { |i| puts i }"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "id": "cpp",
+  "label": "C++",
+  "extensions": ["cpp", "cc", "cxx"],
+  "icon": "➕",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A02", "A03", "A05"],
+    "A02": {
+      "patterns": [
+        { "regex": "MD5_Init\\s*\\(|SHA1_Init\\s*\\(|EVP_md5\\(\\)|EVP_sha1\\(\\)", "weight": 3, "label": "OpenSSL weak hash API" },
+        { "regex": "\\bgets\\s*\\(|\\bstrcpy\\s*\\(|\\bsprintf\\s*\\(", "weight": 3, "label": "Unsafe C string function (gets/strcpy/sprintf)" }
+      ],
+      "remediation": "Use SHA-256 / SHA-3 via `EVP_sha256()`. Replace gets/strcpy/sprintf with fgets/strlcpy/snprintf or std::string (Rust) / std::array<char,N>."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "\\b(?:system|popen|exec\\w*)\\s*\\(", "weight": 4, "label": "C/C++ system/popen/exec" }
+      ],
+      "remediation": "Avoid system()/popen(). Use execve() with an allowlisted argv list and avoid shell metacharacters."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" }
+      ],
+      "remediation": "Return ACAO with an explicit origin allowlist, never '*'. Strip debug info with `-DNDEBUG`."
+    }
+  },
+  "owaspRemediation": {
+    "A02": "Use OpenSSL EVP_sha256(). Replace gets/strcpy/sprintf with safe variants.",
+    "A03": "Avoid system()/popen(). Use execve() with an allowlisted argv list.",
+    "A05": "Return ACAO with an explicit origin allowlist."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: gets() (A02)",
+      "char buf[64]; gets(buf);",
+      "// VULNERABLE: system() (A03)",
+      "system((\"ping \" + host).c_str());"
+    ],
+    "fixed": [
+      "// FIXED: fgets (A02)",
+      "char buf[64]; fgets(buf, sizeof(buf), stdin);",
+      "// FIXED: execve argv list (A03)",
+      "char *argv[] = {\"ping\", \"-c\", \"1\", host, NULL}; execve(\"/bin/ping\", argv, NULL);"
+    ]
+  },
+  "keywords": [
+    "alignas", "alignof", "auto", "bool", "break", "case", "catch",
+    "char", "char16_t", "char32_t", "class", "const", "constexpr",
+    "continue", "decltype", "default", "delete", "do", "double",
+    "dynamic_cast", "else", "enum", "explicit", "export", "extern",
+    "false", "final", "float", "for", "friend", "goto", "if",
+    "inline", "int", "long", "mutable", "namespace", "new", "noexcept",
+    "nullptr", "operator", "override", "private", "protected", "public",
+    "register", "reinterpret_cast", "return", "short", "signed", "sizeof",
+    "static", "static_assert", "static_cast", "struct", "switch",
+    "template", "this", "thread_local", "throw", "true", "try",
+    "typedef", "typeid", "typename", "union", "unsigned", "using",
+    "virtual", "void", "volatile", "wchar_t", "while"
+  ],
+  "builtins": [
+    "std::string", "std::vector", "std::map", "std::unordered_map",
+    "std::set", "std::array", "std::cout", "std::cin", "std::cerr",
+    "std::endl", "std::ofstream", "std::ifstream", "std::ostringstream",
+    "std::unique_ptr", "std::shared_ptr"
+  ],
+  "dangerousApis": [
+    "system(", "popen(", "execvp(", "execl(", "fork(", "strcpy",
+    "strcat", "gets", "scanf", "sprintf", "memcpy"
+  ],
+  "domSinks": [],
+  "networkApis": ["socket", "connect", "send", "recv", "Winsock", "libcurl", "CURL"],
+  "cryptoApis": ["OpenSSL_add_all_algorithms", "EVP_", "SHA256_Init", "MD5_Init"],
+  "weakHashes": ["MD5", "SHA1", "md5", "sha1"],
+  "authHints": [],
+  "loggingHints": ["std::cerr", "std::cout", "fprintf", "printf"],
+  "templates": [
+    "// C++ — preview only (needs a compiler: g++, clang++)",
+    "#include <iostream>",
+    "int main() {",
+    "  std::cout << \"Hello, C++!\" << std::endl;",
+    "  return 0;",
+    "}"
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "id": "go",
+  "label": "Go",
+  "extensions": ["go"],
+  "icon": "🐹",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A05", "A07", "A09", "A10"],
+    "A01": {
+      "patterns": [
+        { "regex": "\\.(?:GET|POST|PUT|DELETE|PATCH)\\s*\\(\\s*['\"`][^'\"`]*\\\\{[^}]*?(?:id|userId)[^}]*\\\\}", "weight": 2, "label": "Gin route with :id" },
+        { "regex": "c\\.Param\\(['\"](?:id|userId)['\"]", "weight": 1, "label": "Reads :id from Gin params" }
+      ],
+      "remediation": "Add middleware (`r.Use(auth.RequireAuth)`) and per-handler ownership checks (`if resource.UserID != currentUserID { c.AbortWithStatus(403) }`)."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "crypto/(?:md5|sha1)", "weight": 3, "label": "crypto/md5 or crypto/sha1 import" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+      ],
+      "remediation": "Use `golang.org/x/crypto/bcrypt` for passwords. Use `crypto/rand` for tokens. Move secrets to env / Vault."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "fmt\\.Sprintf\\s*\\(\\s*['\"][^'\"]*?(?:SELECT|INSERT|UPDATE|DELETE)", "weight": 4, "label": "fmt.Sprintf into SQL" },
+        { "regex": "exec\\.Command\\s*\\(", "weight": 3, "label": "exec.Command shell" }
+      ],
+      "remediation": "Use `db.Query(\"SELECT … WHERE id = ?\", id)` with `?` placeholders. Pass argv lists to `exec.Command`; avoid `sh -c`."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" }
+      ],
+      "remediation": "Restrict CORS via `github.com/gin-contrib/cors` with explicit `AllowOrigins`. Build with `-trimpath`, strip debug."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "subtle\\.ConstantTimeCompare\\s*\\(", "weight": -2, "label": "ConstantTimeCompare (good practice, reduce score)" }
+      ],
+      "remediation": "Use `bcrypt.CompareHashAndPassword`. Compare tokens with `subtle.ConstantTimeCompare`. Enforce MFA via TOTP."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "log\\.(?:Print|Println|Fatal|Panic)", "weight": 1, "label": "log.Print* (consider slog/zerolog)" }
+      ],
+      "remediation": "Use `log/slog` or `zerolog` with structured fields. Log auth, authorization and admin events with user id, IP."
+    },
+    "A10": {
+      "patterns": [
+        { "regex": "http\\.(?:Get|Post|NewRequest)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "http.Get/Post with variable" }
+      ],
+      "remediation": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs. Disable HTTP redirects (`client.CheckRedirect = func(...) error { return http.ErrUseLastResponse }`)."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Use Gin middleware + per-handler checks. Check `if resource.UserID != currentUserID { c.AbortWithStatus(403) }`.",
+    "A02": "Use bcrypt for passwords. Use crypto/rand for tokens. Move secrets to env / Vault.",
+    "A03": "Use `?` placeholders in db.Query. Pass argv to exec.Command; never `sh -c`.",
+    "A05": "Restrict CORS, build with -trimpath -ldflags='-s -w'.",
+    "A07": "Use bcrypt.CompareHashAndPassword. Compare tokens with subtle.ConstantTimeCompare.",
+    "A09": "Use log/slog with structured fields. Log auth + admin events.",
+    "A10": "Allowlist outbound URLs. Disable redirects. Block private IPs."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: Sprintf into SQL (A03)",
+      "db.Query(fmt.Sprintf(\"SELECT * FROM users WHERE id = %s\", id))",
+      "// VULNERABLE: exec.Command with shell (A03)",
+      "exec.Command(\"sh\", \"-c\", \"ping \" + host)"
+    ],
+    "fixed": [
+      "// FIXED: parameterised query (A03)",
+      "db.Query(\"SELECT * FROM users WHERE id = ?\", id)",
+      "// FIXED: argv list (A03)",
+      "exec.Command(\"ping\", \"-c\", \"1\", host)"
+    ]
+  },
+  "keywords": [
+    "break", "case", "chan", "const", "continue", "default", "defer",
+    "else", "fallthrough", "for", "func", "go", "goto", "if", "import",
+    "interface", "map", "package", "range", "return", "select", "struct",
+    "switch", "type", "var", "nil", "true", "false", "iota"
+  ],
+  "builtins": [
+    "fmt.Println", "fmt.Printf", "fmt.Sprintf", "fmt.Errorf",
+    "log.Println", "log.Fatalf", "errors.New", "errors.Wrap",
+    "http.Get", "http.Post", "http.ListenAndServe", "http.HandleFunc",
+    "context.Background", "context.WithTimeout", "sync.Mutex",
+    "json.Marshal", "json.Unmarshal", "strings.Builder"
+  ],
+  "dangerousApis": [
+    "exec.Command", "os/exec", "syscall.Exec", "eval", "template.HTML",
+    "unsafe.Pointer"
+  ],
+  "domSinks": ["template.HTML", "InnerHTML"],
+  "networkApis": [
+    "http.Get", "http.Post", "http.NewRequest", "http.Client.Do",
+    "net.Dial", "net.Listen", "url.Parse"
+  ],
+  "cryptoApis": [
+    "crypto/sha256", "crypto/sha512", "crypto/md5", "crypto/sha1",
+    "bcrypt.GenerateFromPassword", "bcrypt.CompareHashAndPassword",
+    "crypto/rand", "rand.Reader"
+  ],
+  "weakHashes": ["md5", "sha1", "crypto/md5", "crypto/sha1"],
+  "authHints": [
+    "user.IsAuthenticated", "currentUser", "RequireAuth",
+    "permission.Has", "rbac.HasRole", "jwt.Verify"
+  ],
+  "loggingHints": [
+    "log.Info", "log.Warn", "log.Error", "log.Printf",
+    "slog.Info", "logger.Info"
+  ],
+  "templates": [
+    "// Go — preview only (needs Go toolchain)",
+    "package main",
+    "import \"fmt\"",
+    "func main() {",
+    "  fmt.Println(\"Hello, Go!\")",
+    "}"
+  ]
+}

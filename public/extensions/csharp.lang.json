@@ -1,0 +1,124 @@
+{
+  "id": "csharp",
+  "label": "C#",
+  "extensions": ["cs"],
+  "icon": "🎯",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A05", "A07", "A09"],
+    "A01": {
+      "patterns": [
+        { "regex": "\\[Http(Get|Post|Put|Delete)[\"']?\\s*\\([^)]*\\{(?:id|userId)[^}]*\\}", "weight": 2, "label": "ASP.NET route with {id}" },
+        { "regex": "public\\s+async\\s+Task<.*?>\\s+\\w+\\s*\\([^)]*int\\s+(?:id|userId)[^)]*\\)", "weight": 1, "label": "Controller action takes id" }
+      ],
+      "remediation": "Apply `[Authorize]` per controller / per action. Add ownership checks in the service or use resource-based authorization handlers."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "\\b(?:MD5|SHA1|SHA1Managed)\\.Create\\s*\\(", "weight": 3, "label": "System.Security.Cryptography weak hash" },
+        { "regex": "\\bSystem\\.Security\\.Cryptography\\.MD5\\b", "weight": 3, "label": "MD5 namespace usage" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+      ],
+      "remediation": "Use `SHA256.Create()` or `SHA512.Create()` for general hashing, BCrypt.Net / Argon2 for passwords. Move secrets to env / Azure Key Vault."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "\\bnew\\s+SqlCommand\\s*\\(\\s*['\"][^'\"]*\\+", "weight": 4, "label": "SqlCommand built with concatenation" },
+        { "regex": "Process\\.Start\\s*\\(", "weight": 3, "label": "Process.Start shell" }
+      ],
+      "remediation": "Use `SqlCommand` with `Parameters.AddWithValue(...)`. Replace `Process.Start(string)` with `Process.Start(new ProcessStartInfo { FileName = …, Arguments = … })` (no shell)."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" }
+      ],
+      "remediation": "Restrict CORS via `services.AddCors(o => o.AddPolicy(...))` to explicit origins. Set `ASPNETCORE_ENVIRONMENT=Production`."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "\\b(?:==|Equals)\\s*\\(\\s*[\"']?(?:password|passwd|pwd)[\"']?", "weight": 2, "label": "Equals on password" }
+      ],
+      "remediation": "Use BCrypt.Net / Argon2. Use `CryptographicOperations.FixedTimeEquals` for compare. Enforce MFA."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "Console\\.Write(?:Line)?\\s*\\(", "weight": 1, "label": "Console.WriteLine" }
+      ],
+      "remediation": "Use `ILogger<T>` with structured logging (Serilog / NLog). Log auth, admin and data-modification events with user id and IP."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Add `[Authorize(Policy = \"OwnerOrAdmin\")]` and implement a `AuthorizationHandler<TResource>`. Verify ownership in the service layer.",
+    "A02": "Use BCrypt.Net / Argon2. Replace MD5/SHA1 with SHA256+. Move secrets to Azure Key Vault / env.",
+    "A03": "Use SqlCommand with Parameters.AddWithValue. Pass argv to ProcessStartInfo, never a string to Process.Start.",
+    "A05": "Configure explicit allowedOrigins. Set ASPNETCORE_ENVIRONMENT=Production.",
+    "A07": "Use BCrypt.Net. Use CryptographicOperations.FixedTimeEquals. Enforce MFA.",
+    "A09": "Use ILogger<T> with structured logging. Log auth + admin events."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: SqlCommand concat (A03)",
+      "var cmd = new SqlCommand(\"SELECT * FROM Users WHERE Id = \" + id);",
+      "// VULNERABLE: Process.Start shell (A03)",
+      "Process.Start(\"cmd.exe /c ping \" + host);"
+    ],
+    "fixed": [
+      "// FIXED: SqlCommand parameters (A03)",
+      "var cmd = new SqlCommand(\"SELECT * FROM Users WHERE Id = @id\");",
+      "cmd.Parameters.AddWithValue(\"@id\", id);",
+      "// FIXED: ProcessStartInfo with argv (A03)",
+      "var psi = new ProcessStartInfo(\"ping\", $\"-n 1 {host}\") { UseShellExecute = false };"
+    ]
+  },
+  "keywords": [
+    "abstract", "as", "base", "bool", "break", "byte", "case", "catch",
+    "char", "checked", "class", "const", "continue", "decimal", "default",
+    "delegate", "do", "double", "else", "enum", "event", "explicit",
+    "extern", "false", "finally", "fixed", "float", "for", "foreach",
+    "goto", "if", "implicit", "in", "int", "interface", "internal", "is",
+    "lock", "long", "namespace", "new", "null", "object", "operator",
+    "out", "override", "params", "private", "protected", "public",
+    "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof",
+    "stackalloc", "static", "string", "struct", "switch", "this", "throw",
+    "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe",
+    "ushort", "using", "virtual", "void", "volatile", "while", "yield",
+    "async", "await", "var", "record", "init", "with"
+  ],
+  "builtins": [
+    "Console", "String", "Int32", "List", "Dictionary", "HashSet",
+    "IEnumerable", "Task", "HttpClient", "WebClient", "Exception",
+    "Convert", "Math", "DateTime", "Guid", "DbContext"
+  ],
+  "dangerousApis": [
+    "Process.Start", "eval", "ExecuteScalar", "ExecuteReader"
+  ],
+  "domSinks": ["InnerHtml", "HtmlEncode", "HtmlDecode"],
+  "networkApis": [
+    "HttpClient", "WebClient", "RestClient", "HttpWebRequest",
+    "HttpClient.GetAsync", "HttpClient.PostAsync"
+  ],
+  "cryptoApis": [
+    "SHA256.Create", "SHA512.Create", "MD5.Create", "SHA1.Create",
+    "Rfc2898DeriveBytes", "BCrypt", "RandomNumberGenerator"
+  ],
+  "weakHashes": ["MD5", "SHA1", "System.Security.Cryptography.MD5", "SHA1Managed"],
+  "authHints": [
+    "ClaimsPrincipal", "User.Identity", "IsAuthenticated",
+    "AuthorizeAttribute", "RolesAllowed"
+  ],
+  "loggingHints": [
+    "ILogger", "logger.LogInformation", "logger.LogError",
+    "LogManager.GetLogger", "Console.WriteLine"
+  ],
+  "templates": [
+    "// C# — preview only (needs .NET SDK)",
+    "using System;",
+    "class Program {",
+    "  static void Main() {",
+    "    Console.WriteLine(\"Hello, C#!\");",
+    "  }",
+    "}"
+  ]
+}

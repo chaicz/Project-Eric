@@ -1,0 +1,153 @@
+{
+  "id": "python",
+  "label": "Python",
+  "extensions": ["py"],
+  "icon": "🐍",
+  "runner": "source",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A04", "A05", "A07", "A08", "A09", "A10"],
+    "A01": {
+      "patterns": [
+        { "regex": "@(?:app|router)\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*<[^>]*?(?:id|user_id|pk)[^>]*>", "weight": 2, "label": "Flask/FastAPI route reads :id" },
+        { "regex": "request\\.args\\.get\\(['\"](?:id|user_id|pk)['\"]", "weight": 1, "label": "Reads id from request args" },
+        { "regex": "get_object_or_404\\(\\s*[A-Z][A-Za-z]+,", "weight": 1, "label": "Loads object without checking ownership" }
+      ],
+      "remediation": "Deny by default. Verify ownership / role on every route that reads a user id. Use Flask-Login / FastAPI dependencies and a per-object permission check (e.g. Pundit-style policy)."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "hashlib\\.(?:md5|sha1)", "weight": 3, "label": "hashlib.md5 / hashlib.sha1" },
+        { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "random\\.random\\(|random\\.randint\\(", "weight": 1, "label": "non-csprng random module" }
+      ],
+      "remediation": "Use bcrypt / argon2 (passlib.hash) for passwords, sha-256+ for general hashing. Use `secrets` module for tokens. Load secrets from env / vault."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "\\bexec\\s*\\(|\\bcompile\\s*\\(", "weight": 3, "label": "exec() / compile()" },
+        { "regex": "\\b(?:os\\.system|subprocess\\.(?:run|call|check_output|Popen))\\s*\\([^)]*\\+", "weight": 4, "label": "OS command built with concatenation" },
+        { "regex": "\\b(?:cursor|conn|c)\\.(?:execute|executemany)\\s*\\(\\s*['\"][^'\"]*\\{[^}]*?\\}", "weight": 4, "label": "DB execute with f-string SQL" },
+        { "regex": "\\.format\\(\\s*[^)]*\\)\\s*$", "weight": 3, "label": "String-format into SQL/command" }
+      ],
+      "remediation": "Use parameterised queries (`cursor.execute('SELECT … WHERE id = %s', (id,))`). Avoid `os.system` / `subprocess` with strings; pass argv lists. Use `ast.literal_eval` instead of `eval`."
+    },
+    "A04": {
+      "patterns": [
+        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" }
+      ],
+      "remediation": "Add rate-limits with Flask-Limiter / SlowAPI. Resolve security-related TODO/FIXME comments before shipping."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" },
+        { "regex": "\\bDEBUG\\s*=\\s*True\\b", "weight": 2, "label": "Django DEBUG = True" }
+      ],
+      "remediation": "Set DEBUG = False in production. Restrict CORS to known origins. Set ALLOWED_HOSTS explicitly."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:req\\.body|user\\.|input)", "weight": 3, "label": "Plain password compare" },
+        { "regex": "\\b(?:md5|sha1)\\s*\\(\\s*(?:password|user\\.|request\\.form|request\\.json)", "weight": 3, "label": "Weak hash on password" }
+      ],
+      "remediation": "Use `bcrypt.checkpw` / `argon2.verify` / Django's `check_password`. Enforce MFA via WebAuthn / TOTP (pyotp)."
+    },
+    "A08": {
+      "patterns": [
+        { "regex": "\\bpickle\\.(?:load|loads)\\s*\\(", "weight": 3, "label": "pickle.load(s) on untrusted data" },
+        { "regex": "\\byaml\\.load\\s*\\([^)]*\\)", "weight": 2, "label": "yaml.load() — use yaml.safe_load" }
+      ],
+      "remediation": "Never unpickle untrusted bytes. Use `yaml.safe_load`. If you must use pickle, gate it behind HMAC + signature verification."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "console\\.(log|info|warn|error)", "weight": 1, "label": "console.* usage" },
+        { "regex": "print\\(", "weight": 1, "label": "print() usage" }
+      ],
+      "remediation": "Use the `logging` module. Log auth, authorization and admin events with user id, IP and timestamp. Never log passwords or tokens."
+    },
+    "A10": {
+      "patterns": [
+        { "regex": "\\b(?:requests|httpx|aiohttp|urllib\\.request)\\.\\w+\\s*\\(\\s*(?:url|\\w*[Uu]rl)\\s*=", "weight": 2, "label": "HTTP call with dynamic URL" },
+        { "regex": "\\burlopen\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "urlopen from variable" }
+      ],
+      "remediation": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private/loopback addresses (169.254.169.254, 127.0.0.0/8, 10.0.0.0/8)."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Wrap routes with `@login_required`. Use FastAPI dependencies to load the current user and check `obj.owner_id == current_user.id`. Apply principle of least privilege.",
+    "A02": "Use `passlib.hash.bcrypt` or `argon2-cffi`. Use `secrets.token_urlsafe(32)` for tokens. Move secrets to env / vault — never commit.",
+    "A03": "Use `cursor.execute(sql, params)` with `%s` placeholders. Pass argv lists to subprocess. Replace eval with explicit dispatch tables.",
+    "A04": "Apply Flask-Limiter / SlowAPI / django-ratelimit on auth endpoints. Resolve security TODOs before shipping.",
+    "A05": "Set `DEBUG = False`, `ALLOWED_HOSTS = [...]`, restrict CORS origins. Ship a tight CSP.",
+    "A07": "Use `bcrypt.checkpw` / `argon2.verify`. Verify JWTs with `algorithms=['HS256']`. Enforce MFA on high-value accounts.",
+    "A08": "Never `pickle.load` untrusted data. Use `yaml.safe_load`. Use `itsdangerous` for signed tokens.",
+    "A09": "Use the `logging` module with JSON formatter. Log every auth event with user id, IP, outcome.",
+    "A10": "Validate URLs against an allowlist, resolve DNS yourself, block private IPs (incl. AWS metadata 169.254.169.254). Disable HTTP redirects on the client."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "# VULNERABLE: SQL f-string (A03)",
+      "cursor.execute(f\"SELECT * FROM users WHERE id = '{user_id}'\")",
+      "# VULNERABLE: os.system with concat (A03)",
+      "os.system(\"ping \" + host)",
+      "# VULNERABLE: hardcoded secret (A02)",
+      "API_KEY = 'sk_live_REPLACE_WITH_YOUR_OWN_KEY'"
+    ],
+    "fixed": [
+      "# FIXED: parameterised query (A03)",
+      "cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))",
+      "# FIXED: argv list to subprocess (A03)",
+      "subprocess.run([\"ping\", \"-c\", \"1\", host], shell=False)",
+      "# FIXED: secret from env (A02)",
+      "API_KEY = os.environ[\"STRIPE_KEY\"]"
+    ]
+  },
+  "keywords": [
+    "False", "None", "True", "and", "as", "assert", "async", "await",
+    "break", "class", "continue", "def", "del", "elif", "else", "except",
+    "finally", "for", "from", "global", "if", "import", "in", "is",
+    "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
+    "while", "with", "yield", "match", "case"
+  ],
+  "builtins": [
+    "print", "len", "range", "str", "int", "float", "bool", "list",
+    "dict", "set", "tuple", "frozenset", "open", "input", "type",
+    "isinstance", "issubclass", "getattr", "setattr", "delattr",
+    "hasattr", "map", "filter", "zip", "enumerate", "sorted", "reversed",
+    "sum", "min", "max", "abs", "round", "any", "all"
+  ],
+  "dangerousApis": [
+    "eval", "exec", "compile", "os.system", "os.popen", "subprocess.run",
+    "subprocess.call", "subprocess.Popen", "shell=True", "pickle.loads",
+    "yaml.load", "marshal.loads"
+  ],
+  "domSinks": [],
+  "networkApis": [
+    "requests.get", "requests.post", "requests.put", "requests.delete",
+    "urllib.request.urlopen", "httpx.get", "httpx.post", "aiohttp",
+    "urlopen"
+  ],
+  "cryptoApis": [
+    "hashlib.md5", "hashlib.sha1", "hashlib.sha256", "hashlib.sha512",
+    "bcrypt.hashpw", "bcrypt.checkpw", "argon2"
+  ],
+  "weakHashes": ["md5", "sha1"],
+  "authHints": [
+    "request.user", "current_user", "is_authenticated", "login_required",
+    "permission_required", "has_permission", "user.is_staff"
+  ],
+  "loggingHints": [
+    "logging.getLogger", "logger.info", "logger.warning", "logger.error",
+    "logger.exception", "log.info", "log.warning", "log.error",
+    "print("
+  ],
+  "templates": [
+    "#!/usr/bin/env python3",
+    "\"\"\"Demo script — preview only, runs in a real Python interpreter, not in the browser.\"\"\"",
+    "print('Hello, Python!')",
+    "for i in range(1, 6): print(i)"
+  ]
+}

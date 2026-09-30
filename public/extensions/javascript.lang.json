@@ -1,0 +1,168 @@
+{
+  "id": "javascript",
+  "label": "JavaScript",
+  "extensions": ["js", "mjs", "cjs"],
+  "icon": "📜",
+  "runner": "js",
+  "version": "1.1.0",
+  "owaspPack": "./owasp-pack.json",
+  "owaspRules": {
+    "appliesTo": ["A01", "A02", "A03", "A04", "A05", "A07", "A08", "A09", "A10"],
+    "A01": {
+      "patterns": [
+        { "regex": "app\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*\\b:id\\b[^'\"`]*['\"`]", "weight": 2, "label": "Route accepts :id from the URL" },
+        { "regex": "req\\.params\\.id", "weight": 1, "label": "Reads :id from request params" },
+        { "regex": "params\\[['\"](?:id|userId|accountId)['\"]\\]", "weight": 1, "label": "Reads id from params dict" }
+      ],
+      "authorizationHints": ["authorize\\(", "checkPermission\\(", "currentUser", "req\\.user"],
+      "remediation": "Deny by default. Verify ownership / role on every route that reads a user id. Centralise authorization in middleware, not in the controller."
+    },
+    "A02": {
+      "patterns": [
+        { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "\\bhttp://[^\\s'\"`]+", "weight": 1, "label": "Plain http:// URL" },
+        { "regex": "\\bMath\\.random\\s*\\(", "weight": 1, "label": "Non-cryptographic randomness" }
+      ],
+      "remediation": "Use bcrypt/argon2 for passwords, sha-256+ for general hashing, HTTPS-only URLs, crypto.randomBytes for tokens, and load secrets from a managed store (env, KMS, vault)."
+    },
+    "A03": {
+      "patterns": [
+        { "regex": "\\beval\\s*\\(", "weight": 3, "label": "eval()" },
+        { "regex": "\\bnew\\s+Function\\s*\\(", "weight": 3, "label": "new Function()" },
+        { "regex": "\\.innerHTML\\s*=", "weight": 2, "label": "innerHTML assignment" },
+        { "regex": "document\\.write(?:ln)?\\s*\\(", "weight": 2, "label": "document.write sink" },
+        { "regex": "\\b(?:db|conn|knex|sequelize)\\.(?:query|execute|raw)\\s*\\([^,)]*\\+", "weight": 4, "label": "Query built with concatenation" },
+        { "regex": "\\bchild_process\\b|\\bexecSync\\s*\\(|\\bspawn\\s*\\(", "weight": 3, "label": "child_process / execSync / spawn" }
+      ],
+      "remediation": "Use parameterised queries, never concatenate user input into SQL. Avoid eval / new Function. Sanitise HTML or use safe DOM APIs (textContent) instead of innerHTML."
+    },
+    "A04": {
+      "patterns": [
+        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" }
+      ],
+      "remediation": "Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping."
+    },
+    "A05": {
+      "patterns": [
+        { "regex": "cors\\s*\\(\\s*\\{\\s*origin\\s*:\\s*['\"`]\\*['\"`]", "weight": 2, "label": "CORS origin: '*'" },
+        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" },
+        { "regex": "\\bNODE_ENV\\s*[!=]=\\s*['\"`]development['\"`]", "weight": 1, "label": "NODE_ENV=development" },
+        { "regex": "\\bhelmet\\s*\\(\\s*\\)", "weight": 1, "label": "helmet() with default config" }
+      ],
+      "remediation": "Lock down CORS to explicit origins, disable debug in production, ship default-deny settings and helmet-style security headers."
+    },
+    "A07": {
+      "patterns": [
+        { "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:req\\.body|user\\.|input)", "weight": 3, "label": "Plain password compare" },
+        { "regex": "\\bjwt\\.sign\\s*\\([^,]+,\\s*[^,]+,\\s*\\{\\s*algorithm\\s*:\\s*['\"`]none['\"`]", "weight": 4, "label": "jwt.sign with algorithm: 'none'" },
+        { "regex": "\\bjwt\\.decode\\s*\\(", "weight": 1, "label": "jwt.decode without verify" }
+      ],
+      "remediation": "Use bcrypt/argon2 for password hashing, constant-time comparison, enforce MFA, and rotate any leaked signing keys."
+    },
+    "A08": {
+      "patterns": [
+        { "regex": "verify\\s*:\\s*false", "weight": 2, "label": "JWT verify: false" }
+      ],
+      "remediation": "Verify JWT signatures, sign CI artefacts and lock down auto-update channels."
+    },
+    "A09": {
+      "patterns": [
+        { "regex": "console\\.(log|info|warn|error)", "weight": 1, "label": "console.* usage" }
+      ],
+      "remediation": "Add structured logging on auth, authorization and data-modification events with user id, IP and timestamp."
+    },
+    "A10": {
+      "patterns": [
+        { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*(?:req\\.|ctx\\.|input|body|data)", "weight": 3, "label": "fetch/axios from request data" },
+        { "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)", "weight": 2, "label": "fetch/axios from variable" }
+      ],
+      "remediation": "Validate and allowlist outbound URLs, resolve DNS yourself to block private/loopback addresses, and disable HTTP redirections on the HTTP client."
+    }
+  },
+  "owaspRemediation": {
+    "A01": "Add authorization middleware to every route that reads a user id. Use ownership checks like `if (resource.ownerId !== req.user.id) return res.status(403)`. Never trust the client.",
+    "A02": "Replace md5/sha1 with bcrypt/argon2 for passwords, sha-256+ for general hashing. Move secrets to env / vault. Use crypto.randomBytes for tokens.",
+    "A03": "Use parameterised queries (`db.query('SELECT … WHERE id = ?', [id])`). Replace eval / new Function with explicit dispatch. Use textContent over innerHTML.",
+    "A04": "Plan abuse cases up-front. Add rate-limits to auth endpoints with `express-rate-limit`.",
+    "A05": "Restrict CORS to known origins, disable debug in production, enable helmet() with default config and HSTS.",
+    "A07": "Compare passwords with bcrypt.compare. Pin jwt algorithms: `jwt.verify(token, secret, { algorithms: ['HS256'] })`. Enforce MFA on sensitive accounts.",
+    "A08": "Verify every JWT. Never disable signature verification. Sign CI artefacts.",
+    "A09": "Use a structured logger (winston / pino) and log auth + admin events with user id, IP, timestamp, outcome.",
+    "A10": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private/loopback addresses. Disable HTTP redirects on the HTTP client."
+  },
+  "owaspExamples": {
+    "vulnerable": [
+      "// VULNERABLE: SQL concat (A03)",
+      "app.get('/user/:id', (req, res) => {",
+      "  db.query(`SELECT * FROM users WHERE id = '${req.params.id}'`, …);",
+      "});",
+      "// VULNERABLE: hardcoded secret (A02)",
+      "const apiKey = 'sk_live_REPLACE_WITH_YOUR_OWN_KEY';",
+      "// VULNERABLE: plain password compare (A07)",
+      "if (user.password === req.body.password) return res.json({ ok: true });"
+    ],
+    "fixed": [
+      "// FIXED: parameterised query + authorization middleware (A03, A01)",
+      "app.get('/user/:id', requireAuth, async (req, res) => {",
+      "  const row = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);",
+      "  if (!row || row.ownerId !== req.user.id) return res.status(403).end();",
+      "  res.json(row);",
+      "});",
+      "// FIXED: secret from env (A02)",
+      "const apiKey = process.env.STRIPE_KEY;",
+      "// FIXED: bcrypt.compare (A07)",
+      "if (await bcrypt.compare(req.body.password, user.passwordHash)) return res.json({ ok: true });"
+    ]
+  },
+  "keywords": [
+    "abstract", "arguments", "await", "boolean", "break", "byte", "case",
+    "catch", "char", "class", "const", "continue", "debugger", "default",
+    "delete", "do", "double", "else", "enum", "eval", "export", "extends",
+    "false", "final", "finally", "float", "for", "function", "goto", "if",
+    "implements", "import", "in", "instanceof", "int", "interface", "let",
+    "long", "native", "new", "null", "package", "private", "protected",
+    "public", "return", "short", "static", "super", "switch", "synchronized",
+    "this", "throw", "throws", "transient", "true", "try", "typeof", "undefined",
+    "var", "void", "volatile", "while", "with", "yield", "async", "of"
+  ],
+  "builtins": [
+    "Array", "Object", "String", "Number", "Boolean", "Date", "Math",
+    "JSON", "Promise", "Symbol", "Map", "Set", "WeakMap", "WeakSet",
+    "RegExp", "Error", "Function", "Proxy", "Reflect", "Intl"
+  ],
+  "dangerousApis": [
+    "eval", "Function", "setTimeout", "setInterval", "execScript",
+    "document.write", "document.writeln"
+  ],
+  "domSinks": [
+    "innerHTML", "outerHTML", "insertAdjacentHTML", "document.write",
+    "document.writeln", "srcdoc"
+  ],
+  "networkApis": [
+    "fetch", "XMLHttpRequest", "axios", "got", "request", "http.request",
+    "https.request", "$.ajax", "navigator.sendBeacon", "WebSocket"
+  ],
+  "cryptoApis": [
+    "crypto.subtle", "crypto.getRandomValues", "crypto.randomBytes"
+  ],
+  "weakHashes": ["md5", "sha1", "createHash('md5')", "createHash('sha1')"],
+  "authHints": [
+    "req.user", "ctx.user", "currentUser", "authenticated", "isAdmin",
+    "isOwner", "canEdit", "authorize", "requireAuth", "verifyToken",
+    "jwt.verify", "passport", "session.userId"
+  ],
+  "loggingHints": [
+    "winston", "pino", "bunyan", "morgan", "logger.", "log.info",
+    "log.warn", "log.error", "console"
+  ],
+  "allowedRoutes": [
+    "/login", "/signin", "/sign-in", "/auth", "/authenticate",
+    "/password", "/reset", "/logout", "/admin", "/manage", "/users"
+  ],
+  "templates": [
+    "// Hello world — JavaScript",
+    "console.log('Hello, JavaScript!');",
+    "for (let i = 1; i <= 5; i++) { console.log(i); }"
+  ]
+}
