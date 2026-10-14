@@ -1,0 +1,274 @@
+{
+  "name": "eric-collab",
+  "displayName": "Eric Collab",
+  "description": "Real-time collaborative editing for code-server. Start or join a session via a shareable invite link — works over the internet with no account required.",
+  "version": "0.2.0",
+  "publisher": "project-eric",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "collab",
+    "collaboration",
+    "realtime",
+    "yjs",
+    "code-server",
+    "eric",
+    "tunnel",
+    "internet"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:ericCollab.start",
+    "onCommand:ericCollab.join",
+    "onCommand:ericCollab.leave",
+    "onCommand:ericCollab.copyInvite",
+    "onCommand:ericCollab.copyTunnelUrl",
+    "onCommand:ericCollab.restartTunnel",
+    "onCommand:ericCollab.forceResync",
+    "onCommand:ericCollab.shareCurrentFile",
+    "onCommand:ericCollab.setUserPermission",
+    "onCommand:ericCollab.kickUser",
+    "onCommand:ericCollab.rename",
+    "onCommand:ericCollab.openActivityBar",
+    "onCommand:ericCollab.openPanel",
+    "onView:ericCollab.view",
+    "onUri"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ericCollab.start",
+        "title": "Eric Collab: Start Session",
+        "category": "Eric Collab",
+        "icon": "$(broadcast)"
+      },
+      {
+        "command": "ericCollab.join",
+        "title": "Eric Collab: Join Session",
+        "category": "Eric Collab",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "ericCollab.leave",
+        "title": "Eric Collab: End Session",
+        "category": "Eric Collab",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "ericCollab.copyInvite",
+        "title": "Eric Collab: Copy Invite Link",
+        "category": "Eric Collab",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "ericCollab.copyTunnelUrl",
+        "title": "Eric Collab: Copy Public Tunnel URL",
+        "category": "Eric Collab",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "ericCollab.restartTunnel",
+        "title": "Eric Collab: Restart Public Tunnel",
+        "category": "Eric Collab",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ericCollab.forceResync",
+        "title": "Eric Collab: Force Resync Documents",
+        "category": "Eric Collab",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "ericCollab.shareCurrentFile",
+        "title": "Eric Collab: Share Current File",
+        "category": "Eric Collab",
+        "icon": "$(share)"
+      },
+      {
+        "command": "ericCollab.setUserPermission",
+        "title": "Eric Collab: Set User Permission",
+        "category": "Eric Collab"
+      },
+      {
+        "command": "ericCollab.kickUser",
+        "title": "Eric Collab: Remove User From Room",
+        "category": "Eric Collab"
+      },
+      {
+        "command": "ericCollab.rename",
+        "title": "Eric Collab: Change My Display Name",
+        "category": "Eric Collab"
+      },
+      {
+        "command": "ericCollab.openPanel",
+        "title": "Eric Collab: Show Session Panel",
+        "category": "Eric Collab"
+      },
+      {
+        "command": "ericCollab.openActivityBar",
+        "title": "Eric Collab: Open Eric Collab Panel",
+        "category": "Eric Collab"
+      },
+      {
+        "command": "ericCollab.reconnectNow",
+        "title": "Eric Collab: Reconnect Now",
+        "category": "Eric Collab",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ericCollab.copyLiteViewerUrl",
+        "title": "Eric Collab: Copy Lite Viewer URL",
+        "category": "Eric Collab",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "ericCollab.openLiteViewer",
+        "title": "Eric Collab: Open Lite Viewer in Browser",
+        "category": "Eric Collab",
+        "icon": "$(zap)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ericCollab",
+          "title": "Eric Collab",
+          "icon": "./media/eric-collab-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ericCollab": [
+        {
+          "id": "ericCollab.view",
+          "name": "Sessions",
+          "contextualTitle": "Eric Collab",
+          "icon": "./media/eric-collab-icon.svg",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title/context": [
+        {
+          "when": "editorTextFocus",
+          "command": "ericCollab.start",
+          "group": "ericCollab@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "ericCollab.start",
+          "when": "view == ericCollab.view && !ericCollab.active",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ericCollab.join",
+          "when": "view == ericCollab.view && !ericCollab.active",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ericCollab.copyInvite",
+          "when": "view == ericCollab.view && ericCollab.active",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ericCollab.copyTunnelUrl",
+          "when": "view == ericCollab.view && ericCollab.active && ericCollab.tunnelUp",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ericCollab.restartTunnel",
+          "when": "view == ericCollab.view && ericCollab.active",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ericCollab.forceResync",
+          "when": "view == ericCollab.view && ericCollab.active",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ericCollab.shareCurrentFile",
+          "when": "view == ericCollab.view && ericCollab.active",
+          "group": "navigation@5"
+        },
+        {
+          "command": "ericCollab.leave",
+          "when": "view == ericCollab.view && ericCollab.active",
+          "group": "navigation@6"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Eric Collab",
+      "properties": {
+        "ericCollab.signalingServer": {
+          "type": "string",
+          "default": "ws://localhost:1234/ws",
+          "description": "WebSocket URL of the Yjs signaling server used to relay real-time updates between collaborators. This is a public relay — no account needed."
+        },
+        "ericCollab.autoStartOnWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, an unsaved solo session is started when a workspace is opened so you can invite later without a host handshake."
+        },
+        "ericCollab.autoTunnel": {
+          "type": "boolean",
+          "default": true,
+          "description": "When the host starts a session, automatically open a public tunnel (localtunnel) so guests on the internet can reach this code-server. Disable if you already have your own public URL or port-forwarding."
+        },
+        "ericCollab.tunnelSubdomain": {
+          "type": "string",
+          "default": "",
+          "description": "Optional reserved localtunnel subdomain (must be unique on the localtunnel server). Leave blank for a random one."
+        },
+        "ericCollab.tunnelHost": {
+          "type": "string",
+          "default": "",
+          "description": "Override the localtunnel host. Default uses https://loca.lt. Set to a self-hosted localtunnel server URL if you run one."
+        },
+        "ericCollab.tunnelPort": {
+          "type": "number",
+          "default": 8080,
+          "description": "Local code-server port the tunnel forwards to. Auto-detected from the page URL in most cases."
+        },
+        "ericCollab.tunnelBypassToken": {
+          "type": "string",
+          "default": "",
+          "description": "Optional bypass token for tunnel providers that show an interstitial warning (e.g. loca.lt)."
+        },
+        "ericCollab.liteViewerUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Public URL where the Eric Collab Lite Viewer is hosted (e.g. https://eric.example.com). When set, the invite link includes a 'Lite Viewer' URL that connects directly to the Yjs signaling server — bypassing the tunnel. Useful when the host's localtunnel is slow or returning 502."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "watch": "tsc -watch -p ./",
+    "package": "node scripts/package.js",
+    "vsce:package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "lib0": "^0.2.94",
+    "localtunnel": "^2.0.2",
+    "ws": "^8.18.0",
+    "y-protocols": "^1.0.6",
+    "y-webrtc": "^10.3.0",
+    "y-websocket": "^2.0.4",
+    "yjs": "^13.6.15"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.3.3"
+  }
+}

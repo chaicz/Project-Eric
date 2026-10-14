@@ -158,37 +158,37 @@ const BrandPanel = ({
             <img
               src="/Logo.png"
               alt="Logo"
-              className="relative w-11 h-11 drop-shadow-[0_4px_16px_rgba(59,130,246,0.5)]"
+              className="relative w-14 h-14 drop-shadow-[0_4px_16px_rgba(59,130,246,0.5)]"
             />
           </div>
           <div className="leading-tight">
-            <div className="text-lg font-bold text-white tracking-tight">
+            <div className="text-xl font-bold text-white tracking-tight">
               Project Eric
             </div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-white/50 font-medium">
+            <div className="text-[12px] uppercase tracking-[0.18em] text-white/50 font-medium">
               Security Platform
             </div>
           </div>
         </div>
 
         {/* Body — Hero + features */}
-        <div className="flex-1 flex flex-col justify-center max-w-xl py-12">
+        <div className="flex-1 flex flex-col justify-center max-w-2xl py-12">
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/8 backdrop-blur-md border border-white/15 rounded-full text-xs font-medium text-white/90 mb-7 self-start shadow-lg shadow-black/10"
+            className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-sm font-medium text-white/90 mb-8 self-start shadow-lg shadow-black/10"
             style={{ animation: 'auth-fade-up 0.6s ease-out 100ms both' }}
           >
-            <span className="relative flex w-2 h-2">
+            <span className="relative flex w-2.5 h-2.5">
               <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
-              <span className="relative rounded-full w-2 h-2 bg-emerald-400" />
+              <span className="relative rounded-full w-2.5 h-2.5 bg-emerald-400" />
             </span>
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <Sparkles className="w-4 h-4 text-amber-300" />
             {badgeTitle}
           </div>
 
           {/* Hero headline */}
           <h1
-            className="text-[44px] xl:text-[56px] font-bold text-white leading-[1.05] tracking-[-0.02em] mb-5"
+            className="text-[56px] xl:text-[68px] 2xl:text-[76px] font-bold text-white leading-[1.02] tracking-[-0.025em] mb-6"
             style={{ animation: 'auth-fade-up 0.6s ease-out 200ms both' }}
           >
             {heroPrefix}{' '}
@@ -198,7 +198,7 @@ const BrandPanel = ({
               </span>
               <span
                 aria-hidden="true"
-                className="absolute -bottom-1 left-0 right-0 h-[3px] rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-80"
+                className="absolute -bottom-1.5 left-0 right-0 h-[3px] rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 opacity-80"
               />
             </span>
             {heroSuffix}
@@ -206,7 +206,7 @@ const BrandPanel = ({
 
           {/* Description */}
           <p
-            className="text-base text-white/65 leading-relaxed max-w-md"
+            className="text-lg text-white/65 leading-relaxed max-w-lg"
             style={{ animation: 'auth-fade-up 0.6s ease-out 300ms both' }}
           >
             {description}
@@ -215,7 +215,7 @@ const BrandPanel = ({
           {/* Bento feature grid */}
           {features.length > 0 && (
             <div
-              className="grid grid-cols-3 gap-3 mt-10"
+              className="grid grid-cols-3 gap-3.5 mt-12"
               style={{ animation: 'auth-fade-up 0.6s ease-out 400ms both' }}
             >
               {features.map((feature, i) => {
@@ -223,15 +223,15 @@ const BrandPanel = ({
                 return (
                   <div
                     key={i}
-                    className="group relative px-4 py-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 backdrop-blur-sm transition-all duration-300"
+                    className="group relative px-5 py-5 rounded-2xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 hover:border-white/25 backdrop-blur-sm transition-all duration-300"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                      <Icon className={`w-4 h-4 ${feature.color || 'text-white/80'}`} />
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-white/15 to-white/5 border border-white/15 flex items-center justify-center mb-3.5 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className={`w-5 h-5 ${feature.color || 'text-white/80'}`} />
                     </div>
-                    <div className="text-[13px] font-semibold text-white leading-tight">
+                    <div className="text-sm font-semibold text-white leading-tight">
                       {feature.title}
                     </div>
-                    <div className="text-[11px] text-white/45 mt-1 leading-snug">
+                    <div className="text-xs text-white/45 mt-1.5 leading-snug">
                       {feature.desc}
                     </div>
                   </div>
@@ -243,10 +243,10 @@ const BrandPanel = ({
 
         {/* Footer — social proof */}
         <div
-          className="flex items-center gap-3 shrink-0"
+          className="flex items-center gap-3.5 shrink-0"
           style={{ animation: 'auth-fade-up 0.6s ease-out 600ms both' }}
         >
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-2.5">
             {[
               'from-blue-400 to-cyan-400',
               'from-purple-400 to-pink-400',
@@ -255,7 +255,7 @@ const BrandPanel = ({
             ].map((grad, i) => (
               <div
                 key={i}
-                className={`w-8 h-8 rounded-full bg-gradient-to-br ${grad} border-2 border-[#0a0a1f] flex items-center justify-center text-[10px] font-bold text-white shadow-md`}
+                className={`w-9 h-9 rounded-full bg-gradient-to-br ${grad} border-2 border-[#0a0a1f] flex items-center justify-center text-xs font-bold text-white shadow-md`}
               >
                 {['A', 'M', 'K', 'S'][i]}
               </div>
@@ -266,15 +266,15 @@ const BrandPanel = ({
               {[0, 1, 2, 3, 4].map((i) => (
                 <svg
                   key={i}
-                  className="w-3 h-3 text-amber-400 fill-amber-400"
+                  className="w-3.5 h-3.5 text-amber-400 fill-amber-400"
                   viewBox="0 0 24 24"
                 >
                   <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                 </svg>
               ))}
-              <span className="text-xs text-white/70 ml-1 font-medium">4.9/5</span>
+              <span className="text-sm text-white/70 ml-1.5 font-medium">4.9/5</span>
             </div>
-            <span className="text-[11px] text-white/45">
+            <span className="text-xs text-white/45">
               Loved by 10,000+ security teams
             </span>
           </div>

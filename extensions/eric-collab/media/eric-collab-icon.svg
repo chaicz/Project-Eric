@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-label="Eric Collab">
+  <!-- Two heads + shoulders, connected by a dotted link -->
+  <circle cx="7.5"  cy="6.5" r="2.6"/>
+  <circle cx="16.5" cy="6.5" r="2.6"/>
+  <path d="M2.5 18.5c0-2.6 2.5-4.5 5-4.5s5 1.9 5 4.5v.5h-10v-.5z"/>
+  <path d="M11.5 18.5c0-2.6 2.5-4.5 5-4.5s5 1.9 5 4.5v.5h-10v-.5z"/>
+  <!-- Connection dots between the two heads -->
+  <circle cx="10"  cy="6.5" r="0.7" opacity="0.7"/>
+  <circle cx="12"  cy="6.5" r="0.7" opacity="0.7"/>
+  <circle cx="14"  cy="6.5" r="0.7" opacity="0.7"/>
+</svg>

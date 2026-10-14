@@ -7,16 +7,25 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ide:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-ide.ps1",
+    "ide:start": "powershell -ExecutionPolicy Bypass -File scripts/start-ide.ps1",
+    "ide:stop": "powershell -ExecutionPolicy Bypass -File scripts/start-ide.ps1 -Stop",
+    "ide:status": "powershell -ExecutionPolicy Bypass -File scripts/start-ide.ps1 -Status",
+    "yjs:start": "node extensions/eric-collab/scripts/yjs-server.js",
+    "yjs:dev": "cross-env PORT=1234 DATA_DIR=./.yjs-data node extensions/eric-collab/scripts/yjs-server.js"
   },
   "dependencies": {
+    "@react-three/drei": "^9.92.7",
+    "@react-three/fiber": "^8.15.12",
+    "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "lucide-react": "^0.294.0",
     "three": "^0.160.0",
-    "@react-three/fiber": "^8.15.12",
-    "@react-three/drei": "^9.92.7"
+    "y-protocols": "^1.0.6",
+    "y-websocket": "^2.0.4",
+    "yjs": "^13.6.15"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

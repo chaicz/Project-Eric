@@ -26,10 +26,13 @@ import ForgotPassword from './pages/ForgotPassword';
 import AboutTeam from './pages/AboutTeam';
 import Sandbox from './pages/Sandbox';
 import OWASPAnalysis from './pages/OWASPAnalysis';
+import IDEWorkspace from './pages/IDEWorkspace';
+import EricCollabLiteViewer from './pages/EricCollabLiteViewer';
 
 // Components
 import Layout from './components/layout/Layout';
 import WelcomeTour from './components/WelcomeTour';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Route - Requires authentication
 const ProtectedRoute = ({ children }) => {
@@ -71,76 +74,86 @@ const PublicRoute = ({ children }) => <PageTransition>{children}</PageTransition
 
 function App() {
   return (
-    <AppProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Landing Page - Entry point for non-logged in users */}
-            <Route path="/landing" element={<PublicRoute><Landing /></PublicRoute>} />
+    <ErrorBoundary>
+      <AppProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Landing Page - Entry point for non-logged in users */}
+              <Route path="/landing" element={<PublicRoute><Landing /></PublicRoute>} />
 
-            {/* Root redirects to landing */}
-            <Route path="/" element={<Navigate to="/landing" replace />} />
+              {/* Root redirects to landing */}
+              <Route path="/" element={<Navigate to="/landing" replace />} />
 
-            {/* Auth Routes */}
-            <Route path="/login" element={
-              <AuthRoute>
-                <Login />
-              </AuthRoute>
-            } />
-            <Route path="/signup" element={
-              <AuthRoute>
-                <Signup />
-              </AuthRoute>
-            } />
-            <Route path="/forgot-password" element={
-              <AuthRoute>
-                <ForgotPassword />
-              </AuthRoute>
-            } />
+              {/* Auth Routes */}
+              <Route path="/login" element={
+                <AuthRoute>
+                  <Login />
+                </AuthRoute>
+              } />
+              <Route path="/signup" element={
+                <AuthRoute>
+                  <Signup />
+                </AuthRoute>
+              } />
+              <Route path="/forgot-password" element={
+                <AuthRoute>
+                  <ForgotPassword />
+                </AuthRoute>
+              } />
 
-            {/* Onboarding Route - For logged in users who haven't completed */}
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            } />
+              {/* Onboarding Route - For logged in users who haven't completed */}
+              <Route path="/onboarding" element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              } />
 
-            {/* Protected Routes - Require login and completed onboarding.
-                Layout's Outlet applies the per-route page transition. */}
-            <Route element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/analysis" element={<Analysis />} />
-              <Route path="/threats" element={<Threats />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/profile" element={<Profile />} />
+              {/* Protected Routes - Require login and completed onboarding.
+                  Layout's Outlet applies the per-route page transition. */}
+              <Route element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/analysis" element={<Analysis />} />
+                <Route path="/threats" element={<Threats />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile />} />
 
-              {/* New Pages */}
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/team" element={<Team />} />
-              <Route path="/about-team" element={<AboutTeam />} />
-              <Route path="/api-keys" element={<APIKeys />} />
-              <Route path="/audit-logs" element={<AuditLogs />} />
-              <Route path="/integrations" element={<Integrations />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/sandbox" element={<Sandbox />} />
-              <Route path="/owasp-analysis" element={<OWASPAnalysis />} />
-            </Route>
+                {/* New Pages */}
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/team" element={<Team />} />
+                <Route path="/about-team" element={<AboutTeam />} />
+                <Route path="/api-keys" element={<APIKeys />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route path="/integrations" element={<Integrations />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/sandbox" element={<Sandbox />} />
+                <Route path="/owasp-analysis" element={<OWASPAnalysis />} />
+                <Route path="/ide" element={<IDEWorkspace />} />
+              </Route>
 
-            {/* Public Pages */}
-            <Route path="/terms-of-service" element={<PublicRoute><TermsOfService /></PublicRoute>} />
-            <Route path="/privacy-policy" element={<PublicRoute><PrivacyPolicy /></PublicRoute>} />
+              {/* Public Pages */}
+              <Route path="/terms-of-service" element={<PublicRoute><TermsOfService /></PublicRoute>} />
+              <Route path="/privacy-policy" element={<PublicRoute><PrivacyPolicy /></PublicRoute>} />
 
-            {/* Catch all - Redirect to landing */}
-            <Route path="*" element={<Navigate to="/landing" replace />} />
-          </Routes>
-          <WelcomeTour />
-        </BrowserRouter>
-      </ToastProvider>
-    </AppProvider>
+              {/* Eric Collab Lite Viewer — public, no login, no onboarding.
+                  This is the tunnel-independent path for guests: the page
+                  connects straight to the public Yjs signaling server so
+                  they can read/edit the shared file even when the host's
+                  localtunnel is returning 502. */}
+              <Route path="/viewer" element={<PublicRoute><EricCollabLiteViewer /></PublicRoute>} />
+
+              {/* Catch all - Redirect to landing */}
+              <Route path="*" element={<Navigate to="/landing" replace />} />
+            </Routes>
+            <WelcomeTour />
+          </BrowserRouter>
+        </ToastProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 

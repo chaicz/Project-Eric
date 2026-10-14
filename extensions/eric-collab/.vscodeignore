@@ -1,0 +1,11 @@
+node_modules/**
+src/**
+*.vsix
+.vscode/**
+.DS_Store
+*.log
+scripts/**
+media/.gitkeep
+**/*.map
+**/*.ts
+!out/**

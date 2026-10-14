@@ -107,7 +107,7 @@ const NAV_ITEMS = [
 ];
 
 const TOOLS_ITEMS = [
-  { path: '/sandbox', label: 'Code IDE', icon: Sparkles },
+  { path: '/ide', label: 'IDE', icon: Code2 },
   { path: '/owasp-analysis', label: 'OWASP Analysis', icon: ShieldCheck },
 ];
 

@@ -129,16 +129,16 @@ const Login = () => {
       {/* RIGHT — Form */}
       <FormShell mounted={mounted} shake={shake}>
         {/* Heading */}
-        <div className="mb-7">
+        <div className="mb-8">
           {/* Mobile-only badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-medium text-indigo-700 mb-4 lg:hidden">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-medium text-indigo-700 mb-5 lg:hidden">
             <Sparkles className="w-3.5 h-3.5" /> Welcome back
           </div>
 
-          <h2 className="text-[28px] font-bold text-slate-900 tracking-tight leading-tight">
+          <h2 className="text-[34px] font-bold text-slate-900 tracking-tight leading-tight">
             Sign in to your account
           </h2>
-          <p className="text-sm text-slate-500 mt-2">
+          <p className="text-[15px] text-slate-500 mt-2.5">
             Don't have an account?{' '}
             <button
               type="button"
@@ -150,7 +150,7 @@ const Login = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <AuthInput
             id="email"
@@ -264,7 +264,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading || isSuccess}
-              className={`group relative w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden ${
+              className={`group relative w-full py-4 rounded-xl font-semibold text-[15px] text-white transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden ${
                 isSuccess
                   ? 'bg-emerald-500'
                   : 'bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:shadow-[0_10px_30px_-8px_rgba(99,102,241,0.55)] hover:-translate-y-0.5 active:translate-y-0'
@@ -280,16 +280,16 @@ const Login = () => {
               <span className="relative z-10 flex items-center gap-2">
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Signing you in...
+                    <Loader2 className="w-[18px] h-[18px] animate-spin" /> Signing you in...
                   </>
                 ) : isSuccess ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4" /> Redirecting...
+                    <CheckCircle2 className="w-[18px] h-[18px]" /> Redirecting...
                   </>
                 ) : (
                   <>
                     Sign in
-                    <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    <ArrowRight className="w-[18px] h-[18px] transition-transform duration-300 group-hover:translate-x-1" />
                   </>
                 )}
               </span>
@@ -314,12 +314,12 @@ const Login = () => {
 
         {/* Divider */}
         <FadeIn delay={350}>
-          <div className="relative my-6">
+          <div className="relative my-7">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center">
-              <span className="px-3 bg-white text-[11px] uppercase tracking-[0.15em] text-slate-400 font-semibold">
+              <span className="px-4 bg-white text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold">
                 or continue with
               </span>
             </div>
@@ -328,21 +328,21 @@ const Login = () => {
 
         {/* Social */}
         <FadeIn delay={400}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3.5">
             <button
               type="button"
               onClick={() => handleOAuth('github')}
-              className="group relative flex items-center justify-center gap-2.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+              className="group relative flex items-center justify-center gap-2.5 py-3 rounded-xl bg-white border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
             >
-              <Github className="w-[18px] h-[18px] text-slate-800" />
+              <Github className="w-5 h-5 text-slate-800" />
               <span>GitHub</span>
             </button>
             <button
               type="button"
               onClick={() => handleOAuth('google')}
-              className="group relative flex items-center justify-center gap-2.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+              className="group relative flex items-center justify-center gap-2.5 py-3 rounded-xl bg-white border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
             >
-              <Chrome className="w-[18px] h-[18px]" />
+              <Chrome className="w-5 h-5" />
               <span>Google</span>
             </button>
           </div>

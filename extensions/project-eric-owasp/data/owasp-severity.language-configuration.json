@@ -1,0 +1,13 @@
+/* Project Eric Security severity legend */
+[
+  {
+    "scopeName": "source.owasp-severity",
+    "patterns": [
+      { "name": "keyword.critical.owasp", "match": "\\b(critical|⛔)\\b" },
+      { "name": "keyword.high.owasp",     "match": "\\b(high|🔴)\\b" },
+      { "name": "keyword.medium.owasp",   "match": "\\b(medium|🟠)\\b" },
+      { "name": "keyword.low.owasp",      "match": "\\b(low|🟡)\\b" },
+      { "name": "keyword.info.owasp",     "match": "\\b(info|ℹ️)\\b" }
+    ]
+  }
+]

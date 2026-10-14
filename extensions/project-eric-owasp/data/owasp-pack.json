@@ -1,0 +1,733 @@
+{
+  "schemaVersion": "1",
+  "edition": "2021",
+  "description": "Project Eric OWASP Top 10 (2021) scanner rule pack. Reads as JSON; the structure mirrors the OWASP categories, and the `languages` array carries language-specific extensions of the global rules.",
+  "categories": {
+    "A01": {
+      "id": "A01",
+      "name": "Broken Access Control",
+      "shortName": "Access Control",
+      "description": "Authorization enforced by the UI is bypassed, or missing on routes that take user-supplied ids.",
+      "cwe": ["CWE-22", "CWE-285", "CWE-639", "CWE-862", "CWE-863"],
+      "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+    },
+    "A02": {
+      "id": "A02",
+      "name": "Cryptographic Failures",
+      "shortName": "Crypto",
+      "description": "Weak, missing, or misused cryptography. Includes storing passwords in cleartext, weak hashing (MD5/SHA1), and using HTTP where TLS is available.",
+      "cwe": ["CWE-261", "CWE-296", "CWE-310", "CWE-319", "CWE-321", "CWE-326", "CWE-327", "CWE-328", "CWE-330", "CWE-916"],
+      "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+    },
+    "A03": {
+      "id": "A03",
+      "name": "Injection",
+      "shortName": "Injection",
+      "description": "User-controlled input is interpreted as code, a query, or a command. SQL injection, command injection, XSS, and template injection all fall here.",
+      "cwe": ["CWE-20", "CWE-74", "CWE-75", "CWE-77", "CWE-78", "CWE-79", "CWE-80", "CWE-83", "CWE-87", "CWE-88", "CWE-89", "CWE-91", "CWE-94", "CWE-95", "CWE-96", "CWE-97", "CWE-98", "CWE-113", "CWE-116", "CWE-138"],
+      "url": "https://owasp.org/Top10/A03_2021-Injection/"
+    },
+    "A04": {
+      "id": "A04",
+      "name": "Insecure Design",
+      "shortName": "Insecure Design",
+      "description": "A control or process is missing by design. Can't be fixed by better implementation — it has to be redesigned.",
+      "cwe": ["CWE-209", "CWE-256", "CWE-501", "CWE-522"],
+      "url": "https://owasp.org/Top10/A04_2021-Insecure_Design/"
+    },
+    "A05": {
+      "id": "A05",
+      "name": "Security Misconfiguration",
+      "shortName": "Misconfig",
+      "description": "Default credentials, debug flags enabled in production, verbose error pages, missing patches, and unprotected files.",
+      "cwe": ["CWE-2", "CWE-11", "CWE-13", "CWE-15", "CWE-16", "CWE-260", "CWE-315", "CWE-520", "CWE-526", "CWE-537", "CWE-541", "CWE-547", "CWE-611", "CWE-614", "CWE-756", "CWE-776", "CWE-942", "CWE-1004", "CWE-1032"],
+      "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+    },
+    "A06": {
+      "id": "A06",
+      "name": "Vulnerable and Outdated Components",
+      "shortName": "Components",
+      "description": "Using libraries with known vulnerabilities, or components that are no longer maintained.",
+      "cwe": ["CWE-937", "CWE-1035", "CWE-1104"],
+      "url": "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/"
+    },
+    "A07": {
+      "id": "A07",
+      "name": "Identification and Authentication Failures",
+      "shortName": "Auth",
+      "description": "Authentication is broken — weak passwords, no MFA, credential stuffing, exposed session tokens.",
+      "cwe": ["CWE-255", "CWE-259", "CWE-287", "CWE-288", "CWE-290", "CWE-294", "CWE-295", "CWE-297", "CWE-300", "CWE-302", "CWE-304", "CWE-306", "CWE-307", "CWE-346", "CWE-384", "CWE-521", "CWE-613", "CWE-620", "CWE-640", "CWE-798", "CWE-940", "CWE-1216"],
+      "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+    },
+    "A08": {
+      "id": "A08",
+      "name": "Software and Data Integrity Failures",
+      "shortName": "Integrity",
+      "description": "Code or data is assumed trustworthy without verifying its integrity. CI/CD pipelines without integrity verification, deserialisation from untrusted input, auto-update without signature verification.",
+      "cwe": ["CWE-345", "CWE-353", "CWE-426", "CWE-502", "CWE-565", "CWE-784", "CWE-829", "CWE-830", "CWE-915"],
+      "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/"
+    },
+    "A09": {
+      "id": "A09",
+      "name": "Security Logging and Monitoring Failures",
+      "shortName": "Logging",
+      "description": "Insufficient logging, missing alerts, and inability to investigate or respond to incidents.",
+      "cwe": ["CWE-117", "CWE-223", "CWE-532", "CWE-778"],
+      "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+    },
+    "A10": {
+      "id": "A10",
+      "name": "Server-Side Request Forgery (SSRF)",
+      "shortName": "SSRF",
+      "description": "Server fetches a remote URL based on user input without validating the destination — enabling access to internal services.",
+      "cwe": ["CWE-918"],
+      "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+    }
+  },
+  "globalRules": [
+    {
+      "id": "A02-001",
+      "name": "Weak hash algorithm (MD5)",
+      "summary": "MD5 is cryptographically broken. Use SHA-256 or stronger.",
+      "description": "MD5 has known collision attacks. Use sha256 or sha3-256 instead. For passwords, use bcrypt, scrypt, or argon2.",
+      "severity": "high",
+      "category": "A02",
+      "cwe": ["CWE-327"],
+      "patterns": [
+        { "regex": "\\bmd5\\b", "flags": "i" },
+        { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|md5)['\"]\\s*\\)" }
+      ],
+      "fix": {
+        "title": "Replace MD5 with SHA-256",
+        "hint": "Use SHA-256 or stronger. For password hashing, use bcrypt/scrypt/argon2.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" },
+        { "label": "CWE-327", "url": "https://cwe.mitre.org/data/definitions/327.html" }
+      ]
+    },
+    {
+      "id": "A02-002",
+      "name": "Weak hash algorithm (SHA-1)",
+      "summary": "SHA-1 is deprecated. Use SHA-256 or stronger.",
+      "description": "SHA-1 has known collision attacks (SHAttered, 2017). Modern systems should use SHA-256 or stronger.",
+      "severity": "high",
+      "category": "A02",
+      "cwe": ["CWE-327"],
+      "patterns": [
+        { "regex": "\\bsha1\\b", "flags": "i" },
+        { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:SHA-1|SHA1)['\"]\\s*\\)" }
+      ],
+      "fix": {
+        "title": "Replace SHA-1 with SHA-256",
+        "hint": "Use SHA-256, SHA-3, or BLAKE2. For HMAC, use HMAC-SHA256.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" }
+      ]
+    },
+    {
+      "id": "A02-003",
+      "name": "Hard-coded credential",
+      "summary": "A password, API key, or secret is hard-coded in the source. Anyone with repo access can read it.",
+      "description": "Secrets in source code end up in version control, build artifacts, and crash dumps. Move them to environment variables or a secrets manager.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": ["CWE-798"],
+      "patterns": [
+        { "regex": "(password|api[_-]?key|secret|token|auth[_-]?token)\\s*[:=]\\s*['\"][^'\"\\n]{6,}['\"]", "flags": "gi" }
+      ],
+      "fix": {
+        "title": "Move the secret to environment variables",
+        "hint": "Read it from process.env at runtime. Use a secrets manager (Vault, AWS Secrets Manager, Doppler) in production.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" }
+      ]
+    },
+    {
+      "id": "A02-004",
+      "name": "Insecure HTTP URL",
+      "summary": "A plain HTTP URL is used where HTTPS is available.",
+      "description": "Plain HTTP traffic is unauthenticated and unencrypted. A network attacker can read or modify the request.",
+      "severity": "medium",
+      "category": "A02",
+      "cwe": ["CWE-319"],
+      "patterns": [
+        { "regex": "['\"]http://(?!localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|::1)[^'\"\\s]+['\"]" }
+      ],
+      "fix": {
+        "title": "Switch to HTTPS",
+        "hint": "Replace http:// with https://. For local development, localhost is fine.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" }
+      ]
+    },
+    {
+      "id": "A03-001",
+      "name": "SQL string concatenation",
+      "summary": "SQL is built by concatenating user input — classic SQL injection.",
+      "description": "User-controlled input concatenated into a SQL string lets an attacker modify the query (UNION SELECT, DROP TABLE, etc). Use parameterised queries or an ORM.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": ["CWE-89"],
+      "patterns": [
+        { "regex": "(?:execute|query|raw)\\s*\\(\\s*['\"`][^'\"`]*['\"`]?\\s*\\+\\s*[A-Za-z_]" },
+        { "regex": "['\"`].*?(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\\s+.*?['\"`]\\s*\\+" }
+      ],
+      "fix": {
+        "title": "Use parameterised queries",
+        "hint": "Replace string concatenation with placeholders (? or :name) and pass user input as parameters.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+      ]
+    },
+    {
+      "id": "A03-002",
+      "name": "Command injection (exec/system)",
+      "summary": "User input flows into exec/system/popen — classic command injection.",
+      "description": "User input passed to a shell command lets the attacker run arbitrary OS commands. Avoid shell execution or sanitise the input through a strict allowlist.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": ["CWE-78"],
+      "patterns": [
+        { "regex": "\\b(?:exec|system|popen|os\\.system|subprocess\\.call|child_process\\.exec)\\s*\\(\\s*['\"`][^'\"`]*['\"`]?\\s*\\+\\s*[A-Za-z_]" }
+      ],
+      "fix": {
+        "title": "Avoid shell execution of user input",
+        "hint": "Pass arguments as an array (no shell). Sanitise against a strict allowlist if the input must be used in a command.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+      ]
+    },
+    {
+      "id": "A03-003",
+      "name": "Cross-site scripting (innerHTML)",
+      "summary": "innerHTML is being assigned — high risk of XSS.",
+      "description": "Assigning user-controlled strings to innerHTML lets attackers inject script tags. Use textContent or a sanitiser such as DOMPurify.",
+      "severity": "high",
+      "category": "A03",
+      "cwe": ["CWE-79"],
+      "patterns": [
+        { "regex": "\\.innerHTML\\s*=\\s*[^'\"\\s;]" },
+        { "regex": "\\bdocument\\.write\\s*\\(" },
+        { "regex": "dangerouslySetInnerHTML" }
+      ],
+      "fix": {
+        "title": "Use textContent or DOMPurify",
+        "hint": "Use element.textContent for plain text, or a sanitiser like DOMPurify for HTML.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+      ]
+    },
+    {
+      "id": "A03-004",
+      "name": "eval() on user input",
+      "summary": "eval() executes arbitrary code. Never pass user input to it.",
+      "description": "eval() executes its argument as code. Anything an attacker can influence becomes arbitrary code execution in your process.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": ["CWE-95"],
+      "patterns": [
+        { "regex": "\\beval\\s*\\(\\s*(?!['\"`])" },
+        { "regex": "new\\s+Function\\s*\\(\\s*['\"`][^'\"`]*['\"\\']\\s*\\+" }
+      ],
+      "fix": {
+        "title": "Avoid eval()",
+        "hint": "Replace with a safer alternative (JSON.parse, a parser, a lookup table).",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+      ]
+    },
+    {
+      "id": "A04-001",
+      "name": "TODO/FIXME without security review",
+      "summary": "TODO/FIXME markers around security-sensitive code.",
+      "description": "Code that handles auth, secrets, payments, or user data with TODO/FIXME may not be production-ready.",
+      "severity": "low",
+      "category": "A04",
+      "cwe": [],
+      "patterns": [
+        { "regex": "TODO|FIXME|XXX", "confidence": 50 }
+      ],
+      "fix": {
+        "title": "Resolve the TODO before shipping",
+        "hint": "Replace the marker with a complete implementation or remove the dead code path."
+      },
+      "safeToAutoFix": false
+    },
+    {
+      "id": "A05-001",
+      "name": "CORS wildcard",
+      "summary": "Access-Control-Allow-Origin: * allows any origin to read responses.",
+      "description": "A wildcard CORS policy combined with credentials or sensitive responses enables cross-origin theft.",
+      "severity": "high",
+      "category": "A05",
+      "cwe": ["CWE-942"],
+      "patterns": [
+        { "regex": "Access-Control-Allow-Origin['\\s:]+['\"]\\*['\"]" },
+        { "regex": "allow_origins\\s*=\\s*\\[?\\s*['\"]\\*['\"]" }
+      ],
+      "fix": {
+        "title": "Lock CORS to known origins",
+        "hint": "List the exact origins that should be allowed. Never combine * with credentials.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false
+    },
+    {
+      "id": "A05-002",
+      "name": "Debug mode in code",
+      "summary": "DEBUG / debug = True left enabled.",
+      "description": "Debug mode exposes stack traces, configuration, and sometimes the REPL. Disable it in production.",
+      "severity": "high",
+      "category": "A05",
+      "cwe": ["CWE-489", "CWE-11"],
+      "patterns": [
+        { "regex": "DEBUG\\s*=\\s*True" },
+        { "regex": "app\\.run\\([^)]*debug\\s*=\\s*True" }
+      ],
+      "fix": {
+        "title": "Disable debug mode in production",
+        "hint": "Set DEBUG = False (or use a config-driven flag) before deploying."
+      },
+      "safeToAutoFix": false
+    },
+    {
+      "id": "A07-001",
+      "name": "Weak password validation",
+      "summary": "Password length check is too short (< 6).",
+      "description": "Most security guidance requires at least 8–12 characters. Enforce length and complexity on the server side.",
+      "severity": "medium",
+      "category": "A07",
+      "cwe": ["CWE-521"],
+      "patterns": [
+        { "regex": "(?:password|passwd)\\s*\\.\\s*length\\s*[(<]\\s*[1-5]\\b" },
+        { "regex": "min(?:Length)?\\s*[:=]\\s*[1-5]\\b" }
+      ],
+      "fix": {
+        "title": "Require ≥ 8 character passwords",
+        "hint": "NIST SP 800-63B recommends ≥ 8 characters. Enforce on the server side."
+      },
+      "safeToAutoFix": false
+    },
+    {
+      "id": "A07-002",
+      "name": "Plaintext password storage",
+      "summary": "Password is stored without hashing.",
+      "description": "Plaintext passwords in storage expose every user when the database leaks. Always hash with bcrypt/scrypt/argon2.",
+      "severity": "critical",
+      "category": "A07",
+      "cwe": ["CWE-256", "CWE-257"],
+      "patterns": [
+        { "regex": "(?:password|passwd|pwd)\\s*=\\s*['\"`][^'\"`]+['\"`]" }
+      ],
+      "fix": {
+        "title": "Hash passwords with bcrypt/scrypt/argon2",
+        "hint": "Never store passwords in plaintext or with reversible encryption."
+      },
+      "safeToAutoFix": false
+    },
+    {
+      "id": "A08-001",
+      "name": "Pickle / unsafe deserialisation",
+      "summary": "Python pickle.loads / yaml.load on untrusted data is unsafe.",
+      "description": "pickle and yaml.load can execute arbitrary code when given malicious input. Use json, or yaml.safe_load.",
+      "severity": "critical",
+      "category": "A08",
+      "cwe": ["CWE-502"],
+      "patterns": [
+        { "regex": "pickle\\.loads?\\s*\\(" },
+        { "regex": "yaml\\.load\\s*\\((?!.*Loader\\s*=\\s*yaml\\.SafeLoader)" }
+      ],
+      "fix": {
+        "title": "Use a safe deserialiser",
+        "hint": "Use json or yaml.safe_load. pickle should only be used for trusted, internal data."
+      },
+      "safeToAutoFix": false
+    },
+    {
+      "id": "A10-001",
+      "name": "SSRF — request to user URL",
+      "summary": "Server makes an HTTP request to a user-supplied URL.",
+      "description": "When the server fetches a URL from user input without validation, the user can reach internal services (169.254.169.254 cloud metadata, 127.0.0.1, file://, etc).",
+      "severity": "high",
+      "category": "A10",
+      "cwe": ["CWE-918"],
+      "patterns": [
+        { "regex": "(?:axios|fetch|requests|got|http\\.get)\\s*\\(\\s*(?!['\"`])" },
+        { "regex": "urlopen\\s*\\(\\s*(?!['\"`])" }
+      ],
+      "fix": {
+        "title": "Validate URLs against an allowlist",
+        "hint": "Block private IP ranges (RFC 1918, link-local 169.254.0.0/16, loopback 127.0.0.0/8). Use a service-side proxy if you must accept arbitrary URLs."
+      },
+      "safeToAutoFix": false
+    }
+  ],
+  "languages": [
+    {
+      "id": "javascript",
+      "label": "JavaScript",
+      "extensions": ["js", "mjs", "cjs", "jsx"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "JS-A02-001",
+          "name": "Math.random used for security",
+          "summary": "Math.random is not cryptographically secure.",
+          "description": "Math.random uses a non-cryptographic PRNG. Use crypto.getRandomValues or crypto.randomUUID for security-sensitive operations.",
+          "severity": "medium",
+          "category": "A02",
+          "cwe": ["CWE-330"],
+          "patterns": [
+            { "regex": "Math\\.random\\s*\\(" }
+          ],
+          "fix": {
+            "title": "Use crypto.getRandomValues() instead",
+            "replacement": "crypto.getRandomValues(new Uint8Array(1))[0]",
+            "hint": "For tokens or session ids, use crypto.randomUUID() or crypto.getRandomValues() with a Uint8Array.",
+            "docUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues"
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "JS-A03-001",
+          "name": "document.write after user data",
+          "summary": "document.write with dynamic input can lead to XSS.",
+          "description": "Writing user-controlled data into the document with document.write can inject script tags. Use safer DOM APIs.",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-79"],
+          "patterns": [
+            { "regex": "document\\.write(?:ln)?\\s*\\([^)]*\\+" }
+          ],
+          "fix": {
+            "title": "Use safe DOM APIs",
+            "hint": "Use textContent, setAttribute, or insertAdjacentHTML with sanitised content."
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "typescript",
+      "label": "TypeScript",
+      "extensions": ["ts", "tsx", "mts", "cts"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "TS-A03-001",
+          "name": "any in security-sensitive code",
+          "summary": "Using `any` defeats TypeScript's type checks for security-sensitive values.",
+          "description": "When a security-sensitive value (request input, JWT payload) is typed as `any`, type checks provide no protection.",
+          "severity": "low",
+          "category": "A04",
+          "patterns": [
+            { "regex": "as\\s+any\\b" }
+          ],
+          "fix": {
+            "title": "Use a precise type",
+            "hint": "Replace `as any` with a precise type (zod schema, interface, branded type)."
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "python",
+      "label": "Python",
+      "extensions": ["py", "pyw"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "PY-A02-001",
+          "name": "assert used for security check",
+          "summary": "assert can be stripped with python -O. Don't use it for security.",
+          "description": "Python's -O flag strips assertions. Use an explicit if/raise for security checks.",
+          "severity": "medium",
+          "category": "A04",
+          "cwe": ["CWE-617"],
+          "patterns": [
+            { "regex": "^\\s*assert\\s+(?:isinstance|hasattr|getattr)\\(" }
+          ],
+          "fix": {
+            "title": "Replace assert with explicit check",
+            "hint": "if not is_valid(x): raise ValueError(...)"
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "PY-A03-001",
+          "name": "shell=True in subprocess",
+          "summary": "subprocess with shell=True passes the command to /bin/sh — vulnerable to injection.",
+          "description": "shell=True lets attackers break out of the command. Pass arguments as a list with shell=False.",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-78"],
+          "patterns": [
+            { "regex": "subprocess\\.[A-Za-z_]+\\([^)]*shell\\s*=\\s*True" }
+          ],
+          "fix": {
+            "title": "Pass args as a list, shell=False",
+            "hint": "subprocess.run(['ls', user_input], shell=False). Validate user_input against an allowlist if you must pass it to a shell."
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "sql",
+      "label": "SQL",
+      "extensions": ["sql"],
+      "flags": "gi",
+      "rules": [
+        {
+          "id": "SQL-A03-001",
+          "name": "Dynamic SQL identifier interpolation",
+          "summary": "A column or table name is interpolated into a query string.",
+          "description": "Most databases don't allow parameterised identifiers. Validate the identifier against an allowlist of expected names.",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-89"],
+          "patterns": [
+            { "regex": "(?:SELECT|FROM|UPDATE|INTO|ORDER BY|GROUP BY)\\s+['\"`]?" }
+          ],
+          "fix": {
+            "title": "Validate identifiers against an allowlist",
+            "hint": "Keep a known-good list of columns/tables and check the user input against it."
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "java",
+      "label": "Java",
+      "extensions": ["java"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "JAVA-A02-001",
+          "name": "MessageDigest.getInstance(\"MD5\")",
+          "summary": "Java MessageDigest with MD5.",
+          "description": "Use SHA-256 or stronger.",
+          "severity": "high",
+          "category": "A02",
+          "cwe": ["CWE-327"],
+          "patterns": [
+            { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-1|SHA1)['\"]" }
+          ],
+          "fix": {
+            "title": "Switch to SHA-256",
+            "hint": "MessageDigest.getInstance(\"SHA-256\")"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "php",
+      "label": "PHP",
+      "extensions": ["php"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "PHP-A03-001",
+          "name": "Unsanitised $_GET / $_POST echoed",
+          "summary": "Direct echo of $_GET/$_POST — XSS.",
+          "description": "Echoing request input directly lets attackers inject script. Use htmlspecialchars($x, ENT_QUOTES, 'UTF-8').",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-79"],
+          "patterns": [
+            { "regex": "echo\\s+\\$(?:_GET|_POST|_REQUEST|_COOKIE|_SERVER)\\[" }
+          ],
+          "fix": {
+            "title": "Sanitise with htmlspecialchars",
+            "hint": "echo htmlspecialchars($x, ENT_QUOTES, 'UTF-8');"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "go",
+      "label": "Go",
+      "extensions": ["go"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "GO-A02-001",
+          "name": "math/rand used for crypto",
+          "summary": "math/rand is not cryptographically secure.",
+          "description": "Use crypto/rand for security-sensitive random values (tokens, nonces, session ids).",
+          "severity": "medium",
+          "category": "A02",
+          "cwe": ["CWE-330"],
+          "patterns": [
+            { "regex": "(?:math/rand\\.|[\"']math/rand[\"']|\\brand\\.[A-Z])" }
+          ],
+          "fix": {
+            "title": "Use crypto/rand instead",
+            "hint": "n, err := rand.Read(buf) — package crypto/rand"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "rust",
+      "label": "Rust",
+      "extensions": ["rs"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "RUST-A03-001",
+          "name": "unwrap() on user input",
+          "summary": "unwrap() on parsed user input will panic — DoS risk.",
+          "description": "Always handle parse errors gracefully on user-controlled data.",
+          "severity": "medium",
+          "category": "A04",
+          "cwe": ["CWE-754"],
+          "patterns": [
+            { "regex": "\\.unwrap\\(\\)\\s*;?" }
+          ],
+          "fix": {
+            "title": "Use ? operator or match",
+            "hint": "let n: u32 = s.parse()?;"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "ruby",
+      "label": "Ruby",
+      "extensions": ["rb"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "RB-A03-001",
+          "name": "ERB template from user input",
+          "summary": "Rendering ERB with user-controlled templates enables RCE.",
+          "description": "Never pass user input directly to ERB.new. Use a safe templating engine or a whitelist.",
+          "severity": "critical",
+          "category": "A03",
+          "cwe": ["CWE-94"],
+          "patterns": [
+            { "regex": "ERB\\.new\\([^)]*params" }
+          ],
+          "fix": {
+            "title": "Sanitise templates before rendering",
+            "hint": "Validate against an allowlist, or strip ERB tags from user input."
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "cpp",
+      "label": "C++",
+      "extensions": ["cpp", "cc", "cxx", "hpp", "hh", "h"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "CPP-A03-001",
+          "name": "strcpy / strcat on dynamic buffer",
+          "summary": "strcpy/strcat ignore buffer size — classic buffer overflow.",
+          "description": "Use strncpy, strncat, or std::string. Better: use modern C++ containers.",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-120"],
+          "patterns": [
+            { "regex": "\\b(?:strcpy|strcat|gets)\\s*\\(" }
+          ],
+          "fix": {
+            "title": "Use bounded string functions",
+            "hint": "strncpy(dst, src, sizeof(dst) - 1); dst[sizeof(dst) - 1] = '\\0';"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "csharp",
+      "label": "C#",
+      "extensions": ["cs"],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "CS-A02-001",
+          "name": "MD5CryptoServiceProvider",
+          "summary": ".NET MD5CryptoServiceProvider used.",
+          "description": "Use SHA256CryptoServiceProvider or, for passwords, Rfc2898DeriveBytes (PBKDF2).",
+          "severity": "high",
+          "category": "A02",
+          "cwe": ["CWE-327"],
+          "patterns": [
+            { "regex": "MD5CryptoServiceProvider\\b" }
+          ],
+          "fix": {
+            "title": "Switch to SHA-256 or PBKDF2",
+            "hint": "SHA256.Create() or new Rfc2898DeriveBytes(password, salt, iterations)"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "html",
+      "label": "HTML",
+      "extensions": ["html", "htm"],
+      "flags": "gi",
+      "rules": [
+        {
+          "id": "HTML-A05-001",
+          "name": "Missing Content-Security-Policy meta",
+          "summary": "No Content-Security-Policy meta tag in the HTML.",
+          "description": "CSP provides defence-in-depth against XSS by restricting what scripts can run.",
+          "severity": "low",
+          "category": "A05",
+          "cwe": ["CWE-1021"],
+          "patterns": [
+            { "regex": "<html[^>]*>(?!.*Content-Security-Policy)" }
+          ],
+          "fix": {
+            "title": "Add a Content-Security-Policy meta tag",
+            "hint": "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'\">"
+          },
+          "safeToAutoFix": false
+        }
+      ]
+    },
+    {
+      "id": "css",
+      "label": "CSS",
+      "extensions": ["css"],
+      "flags": "g",
+      "rules": []
+    }
+  ]
+}

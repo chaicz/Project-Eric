@@ -1,0 +1,310 @@
+{
+  "name": "project-eric-owasp",
+  "displayName": "Project Eric — OWASP Security Scanner",
+  "description": "Scans your code against the OWASP Top 10 (2021), surfaces a security score, lists vulnerabilities, and offers one-click improvements. Works in vscode.dev, desktop VS Code, and GitHub Codespaces.",
+  "version": "0.1.0",
+  "publisher": "project-eric",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Security",
+    "Linters"
+  ],
+  "keywords": [
+    "owasp",
+    "security",
+    "scanner",
+    "sast",
+    "vulnerability",
+    "web-security",
+    "top-10",
+    "code-quality"
+  ],
+  "homepage": "https://github.com/project-eric/project-eric-owasp#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/project-eric/project-eric-owasp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/project-eric/project-eric-owasp/issues"
+  },
+  "icon": "media/icon.svg",
+  "galleryBanner": {
+    "color": "#0F172A",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:python",
+    "onLanguage:java",
+    "onLanguage:php",
+    "onLanguage:go",
+    "onLanguage:rust",
+    "onLanguage:ruby",
+    "onLanguage:sql",
+    "onLanguage:cpp",
+    "onLanguage:csharp",
+    "onLanguage:html",
+    "onLanguage:css",
+    "onWorkspaceContains:**/*.{js,ts,py,java,php,go,rs,rb,sql,cpp,cs,html,css}",
+    "onCommand:projectEric.security.scanFile",
+    "onCommand:projectEric.security.scanWorkspace",
+    "onCommand:projectEric.security.openDashboard",
+    "onView:projectEric.securityView"
+  ],
+  "main": "./out/extension.js",
+  "browser": "./out/extension.web.js",
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "projectEric.security.scanFile",
+        "title": "Project Eric: Scan Current File",
+        "category": "Project Eric",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "projectEric.security.scanWorkspace",
+        "title": "Project Eric: Scan Workspace",
+        "category": "Project Eric",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "projectEric.security.openDashboard",
+        "title": "Project Eric: Open Security Dashboard",
+        "category": "Project Eric",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "projectEric.security.toggleAutoscan",
+        "title": "Project Eric: Toggle Auto-scan on Save",
+        "category": "Project Eric"
+      },
+      {
+        "command": "projectEric.security.applyFix",
+        "title": "Project Eric: Apply Suggested Fix",
+        "category": "Project Eric"
+      },
+      {
+        "command": "projectEric.security.markFalsePositive",
+        "title": "Project Eric: Mark Finding as False Positive",
+        "category": "Project Eric"
+      },
+      {
+        "command": "projectEric.security.openDocs",
+        "title": "Project Eric: Open OWASP Docs",
+        "category": "Project Eric"
+      },
+      {
+        "command": "projectEric.security.refresh",
+        "title": "Project Eric: Refresh",
+        "category": "Project Eric"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "projectEric.securityContainer",
+          "title": "Project Eric Security",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "projectEric.securityContainer": [
+        {
+          "id": "projectEric.securityView",
+          "name": "Findings",
+          "icon": "media/icon.svg",
+          "contextualTitle": "Project Eric Security"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "projectEric.security.scanWorkspace",
+          "when": "view == projectEric.securityView",
+          "group": "navigation"
+        },
+        {
+          "command": "projectEric.security.refresh",
+          "when": "view == projectEric.securityView",
+          "group": "navigation"
+        },
+        {
+          "command": "projectEric.security.openDashboard",
+          "when": "view == projectEric.securityView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "projectEric.security.applyFix",
+          "when": "view == projectEric.securityView && viewItem == findingWithFix",
+          "group": "inline"
+        },
+        {
+          "command": "projectEric.security.markFalsePositive",
+          "when": "view == projectEric.securityView && viewItem =~ /^finding/",
+          "group": "inline"
+        },
+        {
+          "command": "projectEric.security.openDocs",
+          "when": "view == projectEric.securityView && viewItem =~ /^finding/",
+          "group": "inline"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "projectEric.security.scanFile",
+          "when": "editorLangId =~ /^(javascript|typescript|python|java|php|go|rust|ruby|sql|cpp|csharp|html|css)$/",
+          "group": "9_security"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "projectEric.security.toggleAutoscan",
+          "when": "config.projectEric.autoScan"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "owasp-severity",
+        "configuration": "./data/owasp-severity.language-configuration.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "label": "project-eric-owasp",
+        "owner": "projectEric",
+        "pattern": [
+          {
+            "regexp": "^(.+)\\((\\d+),(\\d+)\\):\\s+(error|warning|info)\\s+(\\w+-\\d+):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "code": 5,
+            "message": 6
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "Project Eric Security",
+      "properties": {
+        "projectEric.autoScan": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically scan the active file on save."
+        },
+        "projectEric.minSeverity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"],
+          "default": "low",
+          "description": "Minimum severity to surface as a diagnostic."
+        },
+        "projectEric.enabledCategories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"]
+          },
+          "default": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"],
+          "description": "OWASP Top 10 categories to scan."
+        },
+        "projectEric.languages": {
+          "type": "array",
+          "items": "string",
+          "default": [
+            "javascript",
+            "typescript",
+            "python",
+            "java",
+            "php",
+            "go",
+            "rust",
+            "ruby",
+            "sql",
+            "cpp",
+            "csharp",
+            "html",
+            "css"
+          ],
+          "description": "Languages to scan."
+        },
+        "projectEric.scanOnType": {
+          "type": "boolean",
+          "default": false,
+          "description": "Scan while you type. Off by default to keep typing snappy."
+        },
+        "projectEric.excludePatterns": {
+          "type": "array",
+          "items": "string",
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.git/**",
+            "**/vendor/**",
+            "**/coverage/**",
+            "**/__snapshots__/**"
+          ],
+          "description": "Glob patterns to exclude from workspace scans."
+        },
+        "projectEric.apiUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Project Eric backend URL for AI explanations and online rule updates."
+        },
+        "projectEric.sharingEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Anonymously share findings with the Project Eric rule engine to improve detection."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "projectEric.security.scanFile",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "projectEric.security.openDashboard",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p tsconfig.json && node scripts/build-browser.js",
+    "watch": "tsc -p tsconfig.json --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "node scripts/test-scanner.js && node scripts/verify-examples.js",
+    "test:scanner": "node scripts/test-scanner.js",
+    "test:examples": "node scripts/verify-examples.js",
+    "package": "vsce package",
+    "build:web": "node scripts/build-browser.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-cli": "^0.0.4",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {}
+}

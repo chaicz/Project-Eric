@@ -65,16 +65,16 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
 
       {/* Glass form card */}
       <div
-        className={`relative z-10 w-full max-w-md my-auto transition-all duration-700 ${
+        className={`relative z-10 w-full max-w-lg my-auto transition-all duration-700 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}
       >
         <div
-          className="p-[1px] rounded-3xl bg-gradient-to-br from-white/60 via-white/30 to-white/60 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)] backdrop-blur-sm"
+          className="p-[1.5px] rounded-3xl bg-gradient-to-br from-white/70 via-white/40 to-white/70 shadow-[0_28px_70px_-20px_rgba(15,23,42,0.3)] backdrop-blur-sm"
           style={{ animation: 'auth-fade-up 0.6s ease-out 100ms both' }}
         >
           <div
-            className={`rounded-[23px] px-7 sm:px-9 py-8 relative backdrop-blur-2xl bg-white/65 border border-white/40 ${
+            className={`rounded-[22.5px] px-9 sm:px-11 py-10 relative backdrop-blur-2xl bg-white/75 border border-white/50 ${
               shake ? 'animate-shake' : ''
             }`}
           >
@@ -84,7 +84,7 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
 
         {/* Subtle "powered by" line under the card */}
         <p
-          className="text-center text-[11px] text-slate-600 mt-5 tracking-wide drop-shadow-sm"
+          className="text-center text-xs text-slate-700 mt-6 tracking-wide drop-shadow-sm font-medium"
           style={{ animation: 'auth-fade-up 0.6s ease-out 500ms both' }}
         >
           Protected by Project Eric's zero-trust security framework

@@ -1,0 +1,14 @@
+/*
+ * Project Eric OWASP — CSS SECURE counterpart.
+ *
+ * A02-004 fix: load fonts/CDNs over HTTPS.
+ * A02-001 fix: don't reference the legacy hash algorithm anywhere.
+ */
+
+@import url("https://fonts.googleapis.com/css?family=Roboto&display=swap");
+
+/* Active state selector — fully spelled out. */
+.dashboard-tile--active {
+    background: url("/img/tile.png") center / contain no-repeat;
+    outline: 2px solid var(--color-accent, #2684ff);
+}

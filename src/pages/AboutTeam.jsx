@@ -23,44 +23,67 @@ const AboutTeam = () => {
     setMounted(true);
   }, []);
 
+  // Photo assets are served from /public; URL-encoded for spaces in filenames.
+  const photo = (file) => encodeURI(`/${file}`);
+
   const teamMembers = [
     {
-      id: 1,
-      name: 'Alex Chen',
-      role: 'Lead Developer',
-      bio: 'Full-stack architect with 8+ years experience in security-focused web development. Passionate about building tools that help developers write safer code.',
-      avatar: 'AC',
-      skills: ['React', 'Node.js', 'Security', 'Cloud Architecture'],
+      id: 'eric',
+      name: 'Eric Tze Wei Voon',
+      studentId: '104399883',
+      role: 'Project Leader / Frontend Developer',
+      bio: 'Leads Project Eric end-to-end and owns the frontend architecture. Focused on shipping a fast, accessible, and secure experience for developers writing safer code.',
+      avatar: 'ET',
+      photo: photo('Eric Tze Wei Voon.png'),
+      skills: ['React', 'Vite', 'Tailwind CSS', 'Project Leadership'],
       github: '#',
       linkedin: '#'
     },
     {
-      id: 2,
-      name: 'Sarah Kim',
-      role: 'Security Engineer',
-      bio: 'Former penetration tester turned developer. Specializes in threat modeling, vulnerability assessment, and security automation.',
-      avatar: 'SK',
-      skills: ['Python', 'Security Auditing', 'Penetration Testing', 'OWASP'],
+      id: 'gloria',
+      name: 'Gloria Arroyo Dabin',
+      studentId: '104398314',
+      role: 'Security / Semgrep Developer / AI / LLM Developer',
+      bio: 'Bridges Semgrep-driven static analysis with AI/LLM workflows to surface real vulnerabilities fast. Builds the intelligent code-review features that power Project Eric.',
+      avatar: 'GA',
+      photo: photo('Gloria Arroyo Dabin.png'),
+      skills: ['Semgrep', 'Python', 'AI / LLM', 'Threat Modeling'],
       github: '#',
       linkedin: '#'
     },
     {
-      id: 3,
-      name: 'Marcus Johnson',
-      role: 'UI/UX Designer',
-      bio: 'Creating intuitive interfaces that make security tools accessible to everyone. Believes great security shouldn\'t require a PhD.',
-      avatar: 'MJ',
-      skills: ['Figma', 'Design Systems', 'Accessibility', 'Motion Design'],
+      id: 'alvin',
+      name: 'Alvin Thomas Egat Anak Peter',
+      studentId: '104398217',
+      role: 'Frontend Developer / UI/UX & Documentation Member',
+      bio: 'Shapes the look, feel, and clarity of Project Eric — from interface polish to the docs that help new users get started on day one.',
+      avatar: 'AT',
+      photo: photo('Alvin Thomas Egat Anak Peter.png'),
+      skills: ['React', 'UI / UX', 'Figma', 'Documentation'],
       github: '#',
       linkedin: '#'
     },
     {
-      id: 4,
-      name: 'Priya Patel',
-      role: 'Backend Engineer',
-      bio: 'Database architect and API specialist focused on scalable, secure backend systems. Champion of clean code and thorough testing.',
-      avatar: 'PP',
-      skills: ['PostgreSQL', 'Docker', 'Kubernetes', 'GraphQL'],
+      id: 'nuur',
+      name: 'Nuur Ashya Lara Binti Araman',
+      studentId: '102789246',
+      role: 'Security / Semgrep Developer / Testing & Evaluation',
+      bio: 'Owns testing and evaluation for the security stack, making sure every Semgrep rule and detection is accurate, reliable, and useful on real-world code.',
+      avatar: 'NA',
+      photo: photo('Nuur Ashya LaraBinti Araman.png'),
+      skills: ['Semgrep', 'Testing', 'Evaluation', 'OWASP'],
+      github: '#',
+      linkedin: '#'
+    },
+    {
+      id: 'cheng',
+      name: 'Cheng Zu Chai',
+      studentId: '106765596',
+      role: 'Backend Developer / Security / Semgrep Developer',
+      bio: 'Designs the APIs and backend services behind Project Eric, combining backend engineering with Semgrep and security know-how to keep the platform safe and scalable.',
+      avatar: 'CZ',
+      photo: photo('Cheng Zu Chai.png'),
+      skills: ['Node.js', 'PHP', 'API Design', 'Security'],
       github: '#',
       linkedin: '#'
     }
@@ -167,16 +190,34 @@ const AboutTeam = () => {
       {/* Team Members */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Meet the Team</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {teamMembers.map((member) => (
             <div key={member.id} className="minimal-card p-6 hover:border-violet-200 transition-colors">
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                {member.photo ? (
+                  <img
+                    src={member.photo}
+                    alt={member.name}
+                    loading="lazy"
+                    className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 ring-2 ring-white/60 dark:ring-slate-800/60"
+                    onError={(e) => {
+                      // Fallback to initials if the image fails to load
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div
+                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white text-xl font-bold flex-shrink-0 ${member.photo ? 'hidden' : ''}`}
+                >
                   {member.avatar}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-slate-900 dark:text-slate-100">{member.name}</h3>
                   <p className="text-sm text-violet-600 font-medium">{member.role}</p>
+                  {member.studentId && (
+                    <p className="text-xs text-slate-400 mt-0.5">Student ID: {member.studentId}</p>
+                  )}
                   <p className="text-sm text-slate-600 mt-2 leading-relaxed">{member.bio}</p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {member.skills.map((skill) => (

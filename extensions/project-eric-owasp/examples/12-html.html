@@ -1,0 +1,42 @@
+<!doctype html>
+<!--
+  Project Eric OWASP — HTML sample (intentionally vulnerable)
+
+  SAFE COUNTERPART: ./secure/html-secure.html
+-->
+
+<html lang="en">
+  <!--
+    ❌ HTML-A05-001: no <meta http-equiv="Content-Security-Policy"> here.
+       Without a CSP, an XSS sink elsewhere on the page has no second line
+       of defence. Add `default-src 'self'` and tighten per source.
+  -->
+  <head>
+    <meta charset="utf-8" />
+    <title>Welcome</title>
+  </head>
+  <body>
+    <!--
+      Below: an inline event handler — there is no global JS rule for this,
+      but inline handlers are exactly what a CSP would block, so the missing
+      CSP rule is the actionable finding here.
+    -->
+    <button onclick="alert('hi')">Click me</button>
+
+    <!--
+      Another classic XSS sink to point at: writing unescaped server-side
+      output. Equivalent to innerHTML = ... on the client side.
+    -->
+    <div class="comment"><?= $_GET['body'] /* XSS — escape server-side */ ?></div>
+
+    <!--
+      ❌ A02-004 — inline HTTP URL, surfaced to the user.
+    -->
+    <a href="http://legacy.svc.local:8080/docs">Legacy docs</a>
+
+    <!--
+      ❌ A04-001 — TODO marker at a security-sensitive seam.
+    -->
+    <!-- TODO: add the CSP header in nginx once the cert is renewed. -->
+  </body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; img-src 'self' https://cdn.example.com; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>Welcome</title>
+  </head>
+  <body>
+    <button id="greet">Click me</button>
+    <script defer src="/static/app.js"></script>
+    <div class="comment">{{ body | escape }}</div>
+    <a href="https://docs.example.com/">Docs</a>
+  </body>
+</html>

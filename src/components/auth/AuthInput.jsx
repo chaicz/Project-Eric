@@ -37,12 +37,12 @@ const AuthInput = ({
   const isFloating = focused || (value && String(value).length > 0);
 
   // When the input is at rest, the label should sit where the input text
-  // starts (pl-11 = 44px, just past the 18px icon at left-4). When floated
+  // starts (pl-12 = 48px, just past the 20px icon at left-4). When floated
   // up, it sits on the border at left-3 so the small label stays compact.
-  const restLeft = Icon ? 'left-11' : 'left-4';
+  const restLeft = Icon ? 'left-12' : 'left-4';
   const labelFloat = isFloating
     ? '-top-2 left-3 text-[11px] font-semibold px-1.5'
-    : `top-1/2 -translate-y-1/2 text-sm font-medium ${restLeft}`;
+    : `top-1/2 -translate-y-1/2 text-[15px] font-medium ${restLeft}`;
 
   const labelColor = hasError
     ? 'text-red-500'
@@ -54,7 +54,7 @@ const AuthInput = ({
 
   return (
     <div
-      className="space-y-1.5"
+      className="space-y-2"
       style={{
         opacity: 0,
         animation: `auth-fade-up 0.5s ease-out ${delay}ms forwards`,
@@ -75,7 +75,7 @@ const AuthInput = ({
         {/* Leading icon */}
         {Icon && (
           <Icon
-            className={`absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors duration-200 ${
+            className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200 ${
               hasError
                 ? 'text-red-400'
                 : focused
@@ -94,8 +94,8 @@ const AuthInput = ({
           onBlur={onBlur}
           autoComplete={autoComplete}
           className={`w-full ${
-            Icon ? 'pl-11' : 'pl-4'
-          } ${rightAccessory ? 'pr-12' : 'pr-4'} pt-4 pb-2.5 rounded-xl border bg-white/70 backdrop-blur-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 ${
+            Icon ? 'pl-12' : 'pl-4'
+          } ${rightAccessory ? 'pr-12' : 'pr-4'} pt-5 pb-3 rounded-xl border bg-white/70 backdrop-blur-sm text-slate-900 text-[15px] placeholder-slate-400 outline-none transition-all duration-200 ${
             hasError
               ? 'border-red-300/80 ring-2 ring-red-100/70 bg-red-50/70'
               : focused

@@ -1,0 +1,11 @@
+node_modules/**
+out/**
+dist/**
+.vscode-test/**
+*.vsix
+**/*.map
+.gitattributes
+.github/**
+.gitkeep
+**/.DS_Store
+**/Thumbs.db
