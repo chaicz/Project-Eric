@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
-  "edition": "2021",
-  "description": "Project Eric OWASP Top 10 (2021) scanner rule pack. Reads as JSON; the structure mirrors the OWASP categories, and the `languages` array carries language-specific extensions of the global rules.",
+  "edition": "2026",
+  "description": "Project Eric OWASP Top 10 (2026) scanner rule pack. Reads as JSON; the structure mirrors the OWASP categories, and the `languages` array carries language-specific extensions of the global rules.",
   "categories": {
     "A01": {
       "id": "A01",
@@ -728,6 +728,197 @@
       "extensions": ["css"],
       "flags": "g",
       "rules": []
+    },
+    {
+      "id": "mcp",
+      "label": "MCP Server",
+      "extensions": ["mcp.ts", "mcp.js", "mcp.py"],
+      "matchPatterns": [
+        "@modelcontextprotocol/sdk",
+        "@modelcontextprotocol",
+        "McpServer",
+        "new Server\\s*\\(",
+        "from\\s+mcp",
+        "FastMCP",
+        "@mcp\\.tool",
+        "@server\\.tool",
+        "setRequestHandler",
+        "tools/call",
+        "tools/list",
+        "resources/read"
+      ],
+      "flags": "g",
+      "rules": [
+        {
+          "id": "MCP-A01-001",
+          "name": "MCP tool exposed without auth check",
+          "summary": "Tool handler is registered without an auth/permission gate.",
+          "description": "Every MCP tool that touches state or returns privileged data must verify the caller's identity and permissions. The MCP server runs the handler in-process; any caller that can reach the JSON-RPC endpoint can invoke the tool.",
+          "severity": "high",
+          "category": "A01",
+          "cwe": ["CWE-862", "CWE-285"],
+          "patterns": [
+            { "regex": "\\.tool\\s*\\(\\s*['\"`][^'\"`]+['\"`]\\s*,\\s*\\{\\s*\\}" },
+            { "regex": "@(?:server|mcp)\\.tool\\s*\\(\\s*['\"`][^'\"`]+['\"`]" },
+            { "regex": "setRequestHandler\\s*\\(\\s*CallToolRequestSchema" }
+          ],
+          "fix": {
+            "title": "Add an auth check at the start of the handler",
+            "hint": "Verify the caller's token, role and ownership of the resource before doing any work. Reject with -32000 if the check fails."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A02-001",
+          "name": "Hardcoded credential in MCP server",
+          "summary": "API key, token, or secret literal detected in the MCP source.",
+          "description": "MCP servers frequently handle tokens on behalf of the caller; hardcoding them turns a credential leak into a full server compromise. Load secrets from env / vault.",
+          "severity": "critical",
+          "category": "A02",
+          "cwe": ["CWE-798"],
+          "patterns": [
+            { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]" },
+            { "regex": "Bearer\\s+[A-Za-z0-9_\\-]{16,}" }
+          ],
+          "fix": {
+            "title": "Move secrets out of source",
+            "hint": "Use process.env.MY_API_KEY or a secret manager. Never commit literals."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A03-001",
+          "name": "MCP tool passes user input to a shell",
+          "summary": "Tool handler builds a shell/OS command from caller input.",
+          "description": "MCP tools that wrap shell commands (file search, build, test runners) are a high-value target — anything an LLM can pass through becomes a command. Validate the input against a strict allowlist and pass argv as an array (no shell).",
+          "severity": "critical",
+          "category": "A03",
+          "cwe": ["CWE-78"],
+          "patterns": [
+            { "regex": "\\b(?:exec|execSync|spawn|spawnSync|os\\.system|subprocess\\.(?:run|call|Popen))\\s*\\([^)]*(?:args|input|query|param|req)" },
+            { "regex": "child_process\\.exec\\s*\\(" }
+          ],
+          "fix": {
+            "title": "Use argv arrays, no shell, allowlist the input",
+            "hint": "spawn('rg', ['--files', pattern], { shell: false }). Reject anything outside the allowlist."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A03-002",
+          "name": "Prompt injection sink in MCP tool",
+          "summary": "Tool fetches remote content and feeds it back into a prompt.",
+          "description": "Tools that read URLs / files and concatenate them into an LLM prompt are classic indirect prompt-injection vectors. Sanitise, escape, and treat remote content as untrusted.",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-1427"],
+          "patterns": [
+            { "regex": "\\bfetch\\s*\\([^)]*\\)\\s*\\.then\\s*\\([^)]*prompt" },
+            { "regex": "await\\s+fetch\\s*\\([^)]*\\)[\\s\\S]{0,80}?(?:prompt|completion|chat|llm)" },
+            { "regex": "systemPrompt\\s*[+\\.]=\\s*[^;]+(?:fetch|readFile|axios)" }
+          ],
+          "fix": {
+            "title": "Treat remote content as data, not instructions",
+            "hint": "Pass fetched content as a separate 'context' message, not the system prompt. Strip known injection patterns and cap the size."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A03-003",
+          "name": "Path traversal in MCP file tool",
+          "summary": "Tool reads a path built from caller input without normalizing.",
+          "description": "MCP file tools (read_file, list_dir) that take a user-supplied path can be tricked into reading outside the intended root via '..'. Resolve the path, then check it stays under the root.",
+          "severity": "high",
+          "category": "A03",
+          "cwe": ["CWE-22"],
+          "patterns": [
+            { "regex": "(?:readFile|read_file|fs\\.read)\\s*\\(\\s*(?:args|input|query|param|req)\\.[a-zA-Z_]+" },
+            { "regex": "path\\.join\\s*\\([^)]*(?:args|input|query|param|req)\\." }
+          ],
+          "fix": {
+            "title": "Resolve and confine to a root directory",
+            "hint": "const root = path.resolve(ROOT); const safe = path.resolve(root, p); if (!safe.startsWith(root + path.sep)) throw."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A05-001",
+          "name": "MCP server listens on all interfaces",
+          "summary": "Server bound to 0.0.0.0 — reachable from the network.",
+          "description": "By default MCP servers should bind to 127.0.0.1. Listening on 0.0.0.0 exposes the JSON-RPC endpoint to the network, which usually means the LLM can reach internal services too.",
+          "severity": "medium",
+          "category": "A05",
+          "cwe": ["CWE-668"],
+          "patterns": [
+            { "regex": "\\b0\\.0\\.0\\.0\\b" },
+            { "regex": "host\\s*[:=]\\s*['\"]0\\.0\\.0\\.0['\"]" }
+          ],
+          "fix": {
+            "title": "Bind to 127.0.0.1 unless you really need a network socket",
+            "hint": "Pass host: '127.0.0.1' to the server constructor."
+          },
+          "safeToAutoFix": true,
+          "fix": {
+            "title": "Bind to 127.0.0.1",
+            "hint": "host: '127.0.0.1'",
+            "replacement": "host: '127.0.0.1'"
+          }
+        },
+        {
+          "id": "MCP-A07-001",
+          "name": "No auth on the MCP transport",
+          "summary": "Server transport created without authentication.",
+          "description": "An unauthenticated MCP endpoint is callable by anything that can open a TCP socket. Add a token check (e.g. SSEServerTransport with a shared bearer token) before exposing the server.",
+          "severity": "high",
+          "category": "A07",
+          "cwe": ["CWE-306"],
+          "patterns": [
+            { "regex": "SSEServerTransport\\s*\\(\\s*['\"`][^'\"`]*['\"`]\\s*\\)" },
+            { "regex": "StdioServerTransport\\s*\\.connect\\s*\\(" }
+          ],
+          "fix": {
+            "title": "Add a token check at the transport layer",
+            "hint": "Validate `Authorization: Bearer <token>` against an env var before handling any request."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A09-001",
+          "name": "MCP handler swallows errors",
+          "summary": "catch (e) {} / except: pass — errors are silently dropped.",
+          "description": "MCP tools that swallow exceptions hide bugs and make auditing impossible. Always log with the tool name, request id, and a redacted error message.",
+          "severity": "medium",
+          "category": "A09",
+          "cwe": ["CWE-778"],
+          "patterns": [
+            { "regex": "catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}" },
+            { "regex": "except\\s*:\\s*\\n\\s*pass" }
+          ],
+          "fix": {
+            "title": "Log and re-throw or return a structured error",
+            "hint": "console.error(`tool=${name} err=${e.message}`); throw new McpError('InternalError', 'tool failed')."
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "MCP-A10-001",
+          "name": "MCP tool makes outbound HTTP from caller input",
+          "summary": "fetch / axios / requests called with a user-supplied URL.",
+          "description": "Tools that take a URL from the caller and fetch it turn the MCP server into an SSRF proxy. Validate against an allowlist and block private IP ranges (incl. 169.254.169.254).",
+          "severity": "high",
+          "category": "A10",
+          "cwe": ["CWE-918"],
+          "patterns": [
+            { "regex": "\\b(?:fetch|axios|got|requests|httpx|aiohttp)\\.\\w*\\s*\\(\\s*(?:args|input|query|param|req)\\." },
+            { "regex": "urlopen\\s*\\(\\s*(?:args|input|query|param|req)\\." }
+          ],
+          "fix": {
+            "title": "Allowlist URLs and resolve DNS yourself",
+            "hint": "Reject anything outside the allowlist. Resolve the host and block 127.0.0.0/8, 10.0.0.0/8, 169.254.0.0/16, ::1, fc00::/7."
+          },
+          "safeToAutoFix": false
+        }
+      ]
     }
   ]
 }

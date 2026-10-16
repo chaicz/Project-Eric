@@ -27,6 +27,7 @@ import {
   parseLanguagePack,
   ingestPack,
   languageIdForFile,
+  languageIdForContent,
   getPack,
 } from './scanner/packLoader';
 import {
@@ -43,6 +44,7 @@ import { ScoreStatusBar } from './providers/statusBar';
 import { SecurityTreeProvider } from './providers/securityTreeProvider';
 import { DashboardWebview } from './providers/dashboardWebview';
 import type { PayloadValue } from './providers/dashboardWebview';
+import { StandaloneScannerWebview } from './providers/standaloneScannerWebview';
 import {
   DiagnosticManager,
   createDiagnosticActionProvider,
@@ -57,6 +59,7 @@ let statusBarItem: ScoreStatusBar;
 let treeProvider: SecurityTreeProvider;
 let dashboard: DashboardWebview;
 let diagnosticManager: DiagnosticManager;
+let standaloneScanner: StandaloneScannerWebview;
 
 // In-memory state
 const lastScan: Map<string, ScanResult> = new Map();        // uri → result
@@ -87,11 +90,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   diagnosticManager = new DiagnosticManager();
 
   dashboard = new DashboardWebview(context, () => buildDashboardPayload());
+  standaloneScanner = new StandaloneScannerWebview(context);
 
   context.subscriptions.push(
     statusBarItem,
     diagnosticManager,
-    vscode.window.registerTreeDataProvider('projectEric.securityView', treeProvider),
+    // Use createTreeView so the activity bar shield entry stays visible.
+    // registerTreeDataProvider alone would auto-mount the view into the
+    // Explorer secondary side bar instead of the dedicated
+    // projectEric.securityContainer activity bar entry.
+    vscode.window.createTreeView('projectEric.securityView', {
+      treeDataProvider: treeProvider,
+      showCollapseAll: true,
+    }),
     vscode.languages.registerCodeActionsProvider(
       { scheme: '*' },
       createDiagnosticActionProvider((uri) => findingsByUri.get(uri.toString()) ?? []),
@@ -218,6 +229,72 @@ async function scanDocument(doc: vscode.TextDocument): Promise<ScanResult | null
   return result;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// scanKeyCode — the canonical "function inside code-server"
+//
+// The previous "MCP Security Scanner" flow ran as a standalone web app
+// (the React OWASP Analysis page) that the user pasted code into. That
+// server-style flow is gone. The scanner is now a single, first-class
+// function that lives inside code-server itself:
+//
+//   const result = await scanKeyCode(activeEditor.document);
+//
+// It reads whatever file the user has open (their "key code"), runs the
+// OWASP pack against it, and returns a ScanResult. The command wrapper
+// `projectEric.security.scanKeyCode` below calls this function, surfaces
+// the findings as diagnostics + status-bar score + dashboard update,
+// and pops a summary notification. Bind it to Ctrl+Shift+K (default)
+// or invoke it from the command palette.
+//
+// Pure function: no UI side effects, no module-level state. Safe to
+// call from other extensions, code-server tasks, or your own commands.
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function scanKeyCode(doc: vscode.TextDocument): Promise<ScanResult | null> {
+  return scanDocument(doc);
+}
+
+/**
+ * Variant of `scanKeyCode` that forces the MCP-server language pack,
+ * regardless of file extension. Useful for `.ts` / `.py` files that
+ * import `@modelcontextprotocol/sdk` — we still want to apply the MCP
+ * rules on top of the normal language rules.
+ *
+ * Implementation: temporarily injects the file's path as
+ * `<basename>.mcp.<ext>` so the extension matcher picks the MCP pack.
+ * Pure function — does not mutate the pack cache permanently.
+ */
+export async function scanKeyCodeAsMcp(doc: vscode.TextDocument): Promise<ScanResult | null> {
+  const lang = languageIdForFile(doc.uri.fsPath || doc.uri.toString(), getPack());
+  if (!lang) return null;
+  // Force the scanner to treat the file as MCP. The path override only
+  // affects pack lookup, not the editor's URI.
+  const fakePath = (doc.uri.fsPath || doc.uri.toString()) + '.mcp';
+  const result = await scanDocumentWithLangOverride(doc, fakePath);
+  return result;
+}
+
+async function scanDocumentWithLangOverride(
+  doc: vscode.TextDocument,
+  pathForLanguageLookup: string,
+): Promise<ScanResult | null> {
+  const lang = languageIdForFile(pathForLanguageLookup, getPack());
+  if (!lang) return null;
+  const cfg = vscode.workspace.getConfiguration('projectEric');
+  const minSeverity = cfg.get<string>('minSeverity', 'low') as Finding['severity'];
+  const skipCategories = (cfg.get<string[]>('enabledCategories', []) ?? [])
+    .filter((c) => !['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10'].includes(c))
+    .map(String);
+  const text = doc.getText();
+  return scanCode({
+    uri: doc.uri.toString(),
+    language: lang,
+    text,
+    minSeverity: minSeverity ?? 'low',
+    skipCategories,
+  });
+}
+
 function scheduleScanForFile(uri: vscode.Uri): void {
   if (isScanning) {
     scanPending = true;
@@ -338,9 +415,92 @@ function registerCommands(context: vscode.ExtensionContext): void {
       await scanFileNow(editor.document.uri);
     }),
 
+    // The canonical in-code-server scanner. Reads the active file (the
+    // user's "key code") and surfaces findings as a function. Bound to
+    // Ctrl+Shift+K by default; can be invoked from any UI via the
+    // `projectEric.security.scanKeyCode` command id.
+    vscode.commands.registerCommand('projectEric.security.scanKeyCode', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage(
+          'Project Eric scanKeyCode(): open a file in the editor first.',
+        );
+        return;
+      }
+      const result = await scanKeyCode(editor.document);
+      if (!result) {
+        vscode.window.showInformationMessage(
+          `Project Eric scanKeyCode(): no rules for ${editor.document.languageId} yet — pick a supported language or open a workspace.`,
+        );
+        return;
+      }
+
+      // Pipe the result through the existing in-editor UI: diagnostics,
+      // status-bar score, tree view, dashboard. This keeps the existing
+      // surface (squigglies + score + dashboard) in sync without any
+      // extra plumbing.
+      lastScan.set(result.uri, result);
+      findingsByUri.set(
+        result.uri,
+        result.findings.filter((f) => !suppressedFindings.has(f.id)),
+      );
+      diagnosticManager.update(editor.document.uri, result.findings);
+      statusBarItem.update(scoreFile(result));
+      treeProvider.refresh();
+      dashboard.pushUpdate();
+
+      // Concise summary notification.
+      const file = basenamePosix(editor.document.uri.fsPath || editor.document.uri.toString());
+      const total = result.findings.length;
+      const critical = result.findings.filter((f) => f.severity === 'critical').length;
+      const high = result.findings.filter((f) => f.severity === 'high').length;
+      if (total === 0) {
+        vscode.window.showInformationMessage(
+          `scanKeyCode() · ${file} · clean (0 findings)`,
+        );
+      } else {
+        const sev = [
+          critical ? `${critical} critical` : null,
+          high ? `${high} high` : null,
+        ].filter(Boolean).join(', ');
+        const pick = await vscode.window.showWarningMessage(
+          `scanKeyCode() · ${file} · ${total} finding${total === 1 ? '' : 's'}${sev ? ' (' + sev + ')' : ''}`,
+          'Open Problems',
+          'Open Dashboard',
+        );
+        if (pick === 'Open Problems') {
+          await vscode.commands.executeCommand('workbench.actions.view.problems');
+        } else if (pick === 'Open Dashboard') {
+          dashboard.show();
+        }
+      }
+    }),
+
     vscode.commands.registerCommand('projectEric.security.scanWorkspace', () => scanWorkspaceNow()),
 
+    // MCP-specific function. Reads the active file as MCP server code
+    // and runs the MCP OWASP rules. Use this instead of the standalone
+    // "MCP Security Scanner" extension — it's the same rules but lives
+    // entirely inside code-server as a callable function.
+    // The id is `scanMcpServer` for backward-compat; the more
+    // descriptive `scanKeyCodeAsMcp` is also registered as an alias.
+    vscode.commands.registerCommand('projectEric.security.scanMcpServer', async () => {
+      return runScanKeyCodeAsMcp();
+    }),
+    vscode.commands.registerCommand('projectEric.security.scanKeyCodeAsMcp', async () => {
+      return runScanKeyCodeAsMcp();
+    }),
+
     vscode.commands.registerCommand('projectEric.security.openDashboard', () => dashboard.show()),
+
+    // Open the standalone scanner — a code-server webview that loads
+    // the bundled `dist/project-eric-scanner.min.js` and exposes
+    // `window.ProjectEric.scan(...)`. This is the function form:
+    // reads user code from the active editor and shows findings
+    // inline. Replaces the old MCP Security Scanner server UI.
+    vscode.commands.registerCommand('projectEric.security.openStandaloneScanner', () => {
+      standaloneScanner.show();
+    }),
 
     vscode.commands.registerCommand('projectEric.security.refresh', () => {
       treeProvider.refresh();
@@ -413,6 +573,61 @@ function findFindingById(id: string): Finding | null {
     if (hit) return hit;
   }
   return null;
+}
+
+/**
+ * The shared handler behind both `projectEric.security.scanMcpServer`
+ * and `projectEric.security.scanKeyCodeAsMcp`. Reads the active file
+ * (the user's "key code"), runs the MCP OWASP rules on it, and
+ * surfaces the findings inline via diagnostics, status bar, tree view,
+ * and dashboard. A summary notification closes the loop.
+ */
+async function runScanKeyCodeAsMcp(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showWarningMessage(
+      'Project Eric scanKeyCodeAsMcp(): open a .ts / .js / .py file that imports the MCP SDK first.',
+    );
+    return;
+  }
+  const result = await scanKeyCodeAsMcp(editor.document);
+  if (!result) {
+    vscode.window.showInformationMessage(
+      'Project Eric scanKeyCodeAsMcp(): no rules available yet.',
+    );
+    return;
+  }
+  lastScan.set(result.uri, result);
+  findingsByUri.set(
+    result.uri,
+    result.findings.filter((f) => !suppressedFindings.has(f.id)),
+  );
+  diagnosticManager.update(editor.document.uri, result.findings);
+  statusBarItem.update(scoreFile(result));
+  treeProvider.refresh();
+  dashboard.pushUpdate();
+
+  const file = basenamePosix(editor.document.uri.fsPath || editor.document.uri.toString());
+  const total = result.findings.length;
+  if (total === 0) {
+    vscode.window.showInformationMessage(`scanKeyCodeAsMcp() · ${file} · clean (0 findings)`);
+    return;
+  }
+  const critical = result.findings.filter((f) => f.severity === 'critical').length;
+  const high = result.findings.filter((f) => f.severity === 'high').length;
+  const sev = [critical ? `${critical} critical` : null, high ? `${high} high` : null]
+    .filter(Boolean)
+    .join(', ');
+  const pick = await vscode.window.showWarningMessage(
+    `scanKeyCodeAsMcp() · ${file} · ${total} MCP finding${total === 1 ? '' : 's'}${sev ? ' (' + sev + ')' : ''}`,
+    'Open Problems',
+    'Open Dashboard',
+  );
+  if (pick === 'Open Problems') {
+    await vscode.commands.executeCommand('workbench.actions.view.problems');
+  } else if (pick === 'Open Dashboard') {
+    dashboard.show();
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-// OWASP Top 10 (2021) Categories
+// OWASP Top 10 (2026) Categories
 export const OWASP_CATEGORIES = [
   { id: 'A01', name: 'Broken Access Control', icon: 'ShieldOff' },
   { id: 'A02', name: 'Cryptographic Failures', icon: 'Lock' },

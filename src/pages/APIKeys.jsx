@@ -50,6 +50,7 @@ import {
   saveAIConfig,
   testAIConnection,
   hasAIKey,
+  detectProvider,
 } from '../services/aiService';
 
 const AIApiKeys = () => {
@@ -116,6 +117,8 @@ const AIApiKeys = () => {
   const [showAiKey, setShowAiKey] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
   const [aiTestResult, setAiTestResult] = useState(null);
+  // Shows a dismissable auto-detected badge when a key prefix matches a known provider
+  const [detectedProvider, setDetectedProvider] = useState(null);
 
   const persistAi = (next) => {
     const saved = saveAIConfig(next);
@@ -137,8 +140,27 @@ const AIApiKeys = () => {
   };
 
   const handleAiKeyChange = (e) => {
-    persistAi({ ...aiConfig, apiKey: e.target.value });
+    const rawKey = e.target.value;
+    persistAi({ ...aiConfig, apiKey: rawKey });
     setAiTestResult(null);
+    setDetectedProvider(null); // clear stale badge on each keystroke
+
+    // Auto-detect provider once the key is long enough to be identifiable
+    if (rawKey.length >= 6) {
+      const detected = detectProvider(rawKey);
+      if (detected) {
+        setDetectedProvider(detected);
+        // Only auto-switch if the detected provider is different from the current one
+        if (detected.provider !== aiConfig.provider) {
+          persistAi({
+            ...aiConfig,
+            apiKey: rawKey,
+            provider: detected.provider,
+            model: detected.model,
+          });
+        }
+      }
+    }
   };
 
   const handleTestConnection = async () => {
@@ -281,7 +303,7 @@ const AIApiKeys = () => {
         { name: 'Dependency Scanning', enabled: true },
       ],
       standards: [
-        'OWASP Top 10 (2021)',
+        'OWASP Top 10 (2026)',
         'CWE Top 25',
         'SANS Top 25',
         'PCI-DSS Compliance'
@@ -1060,7 +1082,8 @@ const AIApiKeys = () => {
           <div className="minimal-card p-6 mb-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">AI Provider</h2>
             <p className="text-sm text-slate-500 mb-5">
-              Pick a provider and enter the matching API key. Keys are stored locally in your browser and
+              Pick a provider and enter the matching API key. The provider and recommended model are
+              automatically detected when you paste your key. Keys are stored locally in your browser and
               sent only to the chosen provider.
             </p>
 
@@ -1113,6 +1136,14 @@ const AIApiKeys = () => {
                     placeholder={AI_PROVIDERS[aiConfig.provider].placeholder}
                     className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-700 dark:text-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none"
                   />
+                  {detectedProvider && (
+                    <div className="absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200">
+                        <Sparkles className="w-3 h-3" />
+                        Auto-detected: {AI_PROVIDERS[detectedProvider.provider]?.name}
+                      </span>
+                    </div>
+                  )}
                   <button
                     onClick={() => setShowAiKey((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600"

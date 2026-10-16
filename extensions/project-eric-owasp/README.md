@@ -11,6 +11,11 @@ A VS Code extension that scans your code against the **OWASP Top 10 (2021)** and
 
 It runs on **desktop VS Code**, **vscode.dev** (no install), and **GitHub Codespaces**.
 
+The scanner is a **function inside code-server** — `scanKeyCode(document)` — that reads the
+file you have open (your "key code") and returns a `ScanResult`. The previous
+"MCP Security Scanner" server-style flow is gone; everything happens inside
+the editor.
+
 ---
 
 ## Install
@@ -32,7 +37,8 @@ It runs on **desktop VS Code**, **vscode.dev** (no install), and **GitHub Codesp
 
 | Shortcut              | Command                                | What it does                                         |
 |-----------------------|----------------------------------------|------------------------------------------------------|
-| `Ctrl+Shift+S`        | `Project Eric: Scan Current File`      | Scan the file in the editor.                         |
+| `Ctrl+Shift+K`        | `Project Eric: Scan Key Code`          | **Recommended.** Runs `scanKeyCode()` on the file in the editor — the canonical in-code-server function. |
+| `Ctrl+Shift+S`        | `Project Eric: Scan Current File`      | Same as Scan Key Code (legacy alias).                |
 | `Ctrl+Shift+D`        | `Project Eric: Open Security Dashboard` | Open the webview dashboard.                          |
 | —                     | `Project Eric: Scan Workspace`        | Scan every supported file in the workspace.          |
 | —                     | `Project Eric: Toggle Auto-scan`       | Flip the `projectEric.autoScan` setting.             |
@@ -92,6 +98,63 @@ Grade thresholds:
 
 ---
 
+## As a function (no server)
+
+The scanner is also exported as a **single, dependency-free JavaScript file** that you can
+load from any code-server webview, drop into a user-script, or `require()` from Node:
+
+```
+dist/project-eric-scanner.js        ← IIFE bundle, full size, with source map
+dist/project-eric-scanner.min.js    ← IIFE bundle, minified (49 KB) — use this in code-server
+dist/project-eric-scanner.cjs.js    ← CommonJS bundle for Node consumers
+```
+
+### From the command palette
+
+```
+> Project Eric: Open Standalone Scanner (function)
+```
+
+Opens a side webview panel that loads the bundle and exposes `window.ProjectEric`.
+Click **Pull from active editor** to scan whatever you have open.
+
+### From the DevTools console
+
+Once the panel is open (or after dropping the bundle via a user-script), open DevTools
+(`F12` → Console) and run:
+
+```js
+ProjectEric.scan(code, 'javascript');          // run a scan
+ProjectEric.scanMcp(code);                     // force MCP rules
+ProjectEric.score(scanResult);                 // 0–100 + A–F
+ProjectEric.languages();                       // list supported languages
+ProjectEric.scan(findings.map(f => f.matchText).join('\n'), 'sql');  // chain it
+```
+
+### From your own code-server webview / user-script
+
+```html
+<script src="../extensions/project-eric-owasp/dist/project-eric-scanner.min.js"></script>
+<script>
+  const result = ProjectEric.scan(myCodeString, 'typescript');
+  console.log(result.findings);
+</script>
+```
+
+### From Node
+
+```js
+const eric = require('./dist/project-eric-scanner.cjs.js');
+const result = eric.scan(src, 'javascript');
+console.log(result.findings.length, 'findings');
+```
+
+This replaces the old "MCP Security Scanner" standalone React page. There is **no
+separate server** — the same OWASP pack and rule engine run inside code-server itself
+every time `scan()` is called.
+
+---
+
 ## Settings
 
 | Setting                         | Type      | Default | Notes                                        |
@@ -117,30 +180,40 @@ extensions/project-eric-owasp/
 ├── README.md                 ← you are here
 ├── CHANGELOG.md
 ├── data/
-│   ├── owasp-pack.json       ← OWASP categories + global rules
-│   └── languages/*.lang.json (inlined into owasp-pack.json for simplicity)
+│   ├── owasp-pack.json       ← OWASP categories + global rules + language packs
+│   └── owasp-severity.language-configuration.json
 ├── media/
-│   └── icon.svg              ← activity-bar icon
+│   ├── icon.svg              ← activity-bar icon
+│   └── standalone-scanner.css ← styles for the standalone scanner webview
 ├── scripts/
 │   ├── build-browser.js      ← bundle src/ → out/extension.web.js (for vscode.dev)
+│   ├── build-standalone.js   ← bundle src/standalone → dist/project-eric-scanner.{js,min.js,cjs.js}
 │   ├── test-scanner.js       ← smoke test for scanCode()
-│   └── test-entry.ts
-└── src/
-    ├── extension.ts          ← activate/deactivate, command registration
-    ├── types.ts              ← shared types
-    ├── util/
-    │   └── pathSafe.ts       ← tiny browser-safe path helpers (for vscode.dev)
-    ├── scanner/
-    │   ├── packLoader.ts     ← loads OWASP pack + language packs from data/
-    │   └── scanner.ts        ← regex rule engine + dedup + sort
-    ├── scoring/
-    │   └── scoreCalculator.ts← 0-100 score + grade bands + improvements list
-    ├── providers/
-    │   ├── statusBar.ts      ← live score in the bottom-left status bar
-    │   ├── securityTreeProvider.ts ← activity-bar tree view
-    │   └── dashboardWebview.ts     ← full-page dashboard
-    └── diagnostics/
-        └── diagnosticManager.ts    ← squigglies + Quick Fix + hover provider
+│   ├── smoke-standalone.js   ← smoke test for the standalone bundle
+│   └── verify-examples.js
+├── src/
+│   ├── extension.ts          ← activate/deactivate, command registration
+│   ├── standalone/
+│   │   └── projectEricStandalone.ts  ← entry point for window.ProjectEric
+│   ├── types.ts              ← shared types
+│   ├── util/
+│   │   └── pathSafe.ts       ← tiny browser-safe path helpers (for vscode.dev)
+│   ├── scanner/
+│   │   ├── packLoader.ts     ← loads OWASP pack + language packs from data/
+│   │   └── scanner.ts        ← regex rule engine + dedup + sort
+│   ├── scoring/
+│   │   └── scoreCalculator.ts← 0-100 score + grade bands + improvements list
+│   ├── providers/
+│   │   ├── statusBar.ts      ← live score in the bottom-left status bar
+│   │   ├── securityTreeProvider.ts ← activity-bar tree view
+│   │   ├── dashboardWebview.ts     ← full-page dashboard
+│   │   └── standaloneScannerWebview.ts ← side panel running ProjectEric.scan()
+│   └── diagnostics/
+│       └── diagnosticManager.ts    ← squigglies + Quick Fix + hover provider
+└── dist/
+    ├── project-eric-scanner.js     ← IIFE bundle, full size (drop-in <script>)
+    ├── project-eric-scanner.min.js ← IIFE bundle, minified (use this)
+    └── project-eric-scanner.cjs.js ← CommonJS bundle for Node
 ```
 
 ---
@@ -154,17 +227,26 @@ npm install
 # 2. type-check + bundle for desktop + browser
 npm run compile
 
-# 3. run the smoke test
+# 3. build the standalone bundle (used by DevTools console & user-scripts)
+npm run build:standalone
+
+# 4. do everything in one shot
+npm run build:all
+
+# 5. run the smoke tests (scanner + standalone bundle)
 npm run test
 
-# 4. watch mode
+# 6. watch mode
 npm run watch
 
-# 5. package as .vsix (requires `vsce`)
+# 7. package as .vsix (requires `vsce`)
 npm run package
 ```
 
-The output `out/extension.js` is the desktop build; `out/extension.web.js` is the browser build that vscode.dev uses (loaded via the `browser` field in `package.json`).
+The output `out/extension.js` is the desktop build; `out/extension.web.js` is the
+browser build that vscode.dev uses (loaded via the `browser` field in
+`package.json`). `dist/project-eric-scanner.min.js` is the bundled scanner that the
+standalone webview and any user-script consume.
 
 ---
 

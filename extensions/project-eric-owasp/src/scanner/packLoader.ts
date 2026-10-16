@@ -118,6 +118,30 @@ export function languageIdForFile(filePath: string, pack?: OwaspPack | null): st
   return null;
 }
 
+/**
+ * Map a file's *contents* to a language pack id. Useful for language
+ * packs that detect by content (e.g. MCP server code can live in
+ * `server.ts`, `tools.py`, etc.). The `mcp` pack ships with
+ * `matchPatterns` — any file whose contents hit one of those regexes
+ * is treated as MCP server code.
+ */
+export function languageIdForContent(text: string, pack?: OwaspPack | null): string | null {
+  const p = pack ?? packCache;
+  if (!p) return null;
+  for (const lang of p.languages) {
+    const matchers: string[] | undefined = (lang as unknown as { matchPatterns?: string[] }).matchPatterns;
+    if (!matchers || matchers.length === 0) continue;
+    for (const re of matchers) {
+      try {
+        if (new RegExp(re, 'g').test(text)) return lang.id;
+      } catch {
+        // bad regex in the pack — ignore this matcher
+      }
+    }
+  }
+  return null;
+}
+
 /** Pretty-print a category id like "A03" into "A03 — Injection". */
 export function categoryLabel(id: OwaspCategory, pack?: OwaspPack | null): string {
   const meta: OwaspCategoryMeta | undefined = (pack ?? packCache)?.categories?.[id];

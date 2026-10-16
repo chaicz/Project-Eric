@@ -5,11 +5,19 @@
  * OpenRouter models. API keys + provider + model are stored in localStorage
  * under `project-eric_ai_config` so they survive reloads.
  *
- * Latest models (Sep 2026):
- *   - openai    : gpt-4o (default), gpt-4.1, gpt-4.1-mini, o3, o4-mini
- *   - anthropic : claude-sonnet-4-5 (default), claude-opus-4-1
- *   - google    : gemini-2.5-pro (default), gemini-2.5-flash
- *   - openrouter: auto (default), lets users pick any model
+ * Latest models (Oct 2026, sourced from benchlm.ai / artificialanalysis.ai
+ * and the provider docs on 2026-10-15):
+ *   - openai    : gpt-6-astra (default), gpt-5.6-sol, gpt-5.5, gpt-5.4,
+ *                 gpt-5.1, gpt-5, o3, o1
+ *   - anthropic : claude-opus-5-5 (default), claude-fable-5-1, claude-sonnet-5,
+ *                 claude-haiku-4-5
+ *   - google    : gemini-4-argon (default), gemini-3.8-flash, gemini-3.5-flash,
+ *                 gemini-3.1-pro, gemini-3-pro, gemini-3.5-flash-lite,
+ *                 gemini-3.1-flash-lite
+ *   - openrouter: openai/gpt-6-astra (default), anthropic/claude-opus-5-5,
+ *                 google/gemini-4-argon, google/gemini-3.8-flash,
+ *                 meta-llama/llama-3.3-70b-instruct,
+ *                 deepseek/deepseek-chat-v3.1
  *
  * The module also exposes `generateFix` and `explainIssue` helpers that wrap
  * `callAI` with the security-aware system prompts used by the OWASP page and
@@ -25,48 +33,60 @@ export const AI_PROVIDERS = {
     name: 'OpenAI',
     placeholder: 'sk-...',
     endpoint: 'https://api.openai.com/v1/chat/completions',
-    defaultModel: 'gpt-4o',
+    defaultModel: 'gpt-6-astra',
     models: [
-      { id: 'gpt-4.1',         label: 'GPT-4.1 (latest flagship)' },
-      { id: 'gpt-4o',          label: 'GPT-4o (recommended)' },
-      { id: 'gpt-4.1-mini',    label: 'GPT-4.1 mini (fast, cheap)' },
-      { id: 'o3',              label: 'o3 (reasoning)' },
-      { id: 'o4-mini',         label: 'o4-mini (reasoning, fast)' },
+      { id: 'gpt-6-astra',    label: 'GPT-6 Astra (latest flagship)' },
+      { id: 'gpt-5.6-sol',    label: 'GPT-5.6 Sol (recommended)' },
+      { id: 'gpt-5.5',        label: 'GPT-5.5 (fast, balanced)' },
+      { id: 'gpt-5.4',        label: 'GPT-5.4 (mid-tier)' },
+      { id: 'gpt-5.1',        label: 'GPT-5.1 (previous generation)' },
+      { id: 'gpt-5',          label: 'GPT-5 (legacy)' },
+      { id: 'o3',             label: 'o3 (reasoning)' },
+      { id: 'o1',             label: 'o1 (reasoning, slower)' },
     ],
   },
   anthropic: {
     name: 'Anthropic',
     placeholder: 'sk-ant-...',
     endpoint: 'https://api.anthropic.com/v1/messages',
-    defaultModel: 'claude-sonnet-4-5',
+    defaultModel: 'claude-opus-5-5',
     models: [
-      { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5 (recommended)' },
-      { id: 'claude-opus-4-1',   label: 'Claude Opus 4.1 (most capable)' },
-      { id: 'claude-haiku-4-5',  label: 'Claude Haiku 4.5 (fastest)' },
+      { id: 'claude-opus-5-5',  label: 'Claude Opus 5.5 (recommended)' },
+      { id: 'claude-fable-5-1', label: 'Claude Fable 5.1 (most capable)' },
+      { id: 'claude-sonnet-5',  label: 'Claude Sonnet 5 (balanced)' },
+      { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (fastest)' },
     ],
   },
   google: {
     name: 'Google Gemini',
     placeholder: 'AIza...',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
-    defaultModel: 'gemini-2.5-pro',
+    defaultModel: 'gemini-4-argon',
     models: [
-      { id: 'gemini-2.5-pro',    label: 'Gemini 2.5 Pro (recommended)' },
-      { id: 'gemini-2.5-flash',  label: 'Gemini 2.5 Flash (fast)' },
-      { id: 'gemini-2.0-pro',    label: 'Gemini 2.0 Pro' },
+      { id: 'gemini-4-argon',        label: 'Gemini 4 Argon (recommended)' },
+      { id: 'gemini-3.8-flash',      label: 'Gemini 3.8 Flash (fast)' },
+      { id: 'gemini-3.5-flash',      label: 'Gemini 3.5 Flash' },
+      { id: 'gemini-3.1-pro',        label: 'Gemini 3.1 Pro (deep reasoning)' },
+      { id: 'gemini-3-pro',          label: 'Gemini 3 Pro' },
+      { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite (cheapest)' },
+      { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
     ],
   },
   openrouter: {
     name: 'OpenRouter',
     placeholder: 'sk-or-...',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    defaultModel: 'openai/gpt-4o',
+    defaultModel: 'openai/gpt-6-astra',
     models: [
-      { id: 'openai/gpt-4o',                          label: 'OpenAI GPT-4o' },
-      { id: 'anthropic/claude-sonnet-4-5',            label: 'Anthropic Claude Sonnet 4.5' },
-      { id: 'google/gemini-2.5-pro',                 label: 'Google Gemini 2.5 Pro' },
-      { id: 'meta-llama/llama-3.3-70b-instruct',     label: 'Meta Llama 3.3 70B' },
-      { id: 'deepseek/deepseek-chat-v3',             label: 'DeepSeek V3' },
+      { id: 'openai/gpt-6-astra',                      label: 'OpenAI GPT-6 Astra' },
+      { id: 'openai/gpt-5.6-sol',                      label: 'OpenAI GPT-5.6 Sol' },
+      { id: 'anthropic/claude-opus-5-5',               label: 'Anthropic Claude Opus 5.5' },
+      { id: 'anthropic/claude-fable-5-1',              label: 'Anthropic Claude Fable 5.1' },
+      { id: 'anthropic/claude-sonnet-5',               label: 'Anthropic Claude Sonnet 5' },
+      { id: 'google/gemini-4-argon',                   label: 'Google Gemini 4 Argon' },
+      { id: 'google/gemini-3.8-flash',                 label: 'Google Gemini 3.8 Flash' },
+      { id: 'meta-llama/llama-3.3-70b-instruct',       label: 'Meta Llama 3.3 70B' },
+      { id: 'deepseek/deepseek-chat-v3.1',             label: 'DeepSeek V3.1' },
     ],
   },
 };
@@ -82,6 +102,51 @@ const defaultConfig = () => {
   };
 };
 
+// --- Provider detection from API key string ------------------------------
+
+/**
+ * Inspect an API key string and return the provider ID it most likely belongs to,
+ * along with the recommended default model for that provider.
+ *
+ * Detection rules (checked in order):
+ *   Anthropic : key starts with 'sk-ant-'
+ *   OpenRouter: key starts with 'sk-or-'
+ *   Google    : key starts with 'AIza'
+ *   OpenAI    : key starts with 'sk-' (catch-all; safe because the others are
+ *               checked first and are mutually exclusive)
+ *   null      : unrecognised — let the user pick manually
+ */
+export const detectProvider = (key) => {
+  if (!key || typeof key !== 'string') return null;
+  const k = key.trim();
+  if (k.startsWith('sk-ant-'))     return { provider: 'anthropic', model: AI_PROVIDERS.anthropic.defaultModel };
+  if (k.startsWith('sk-or-'))      return { provider: 'openrouter', model: AI_PROVIDERS.openrouter.defaultModel };
+  if (k.startsWith('AIza'))        return { provider: 'google',     model: AI_PROVIDERS.google.defaultModel };
+  if (k.startsWith('sk-'))         return { provider: 'openai',    model: AI_PROVIDERS.openai.defaultModel };
+  return null; // unknown — user must select manually
+};
+
+// Models we previously shipped that have since been superseded. If the user
+// still has one of these in localStorage, migrate to the current default for
+// the matching provider so the dropdown always shows the latest flagship.
+const DEPRECATED_MODEL_IDS = new Set([
+  // OpenAI
+  'gpt-5', 'gpt-5-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o',
+  'o4-mini', 'o4-mini-high',
+  // Anthropic
+  'claude-sonnet-4-5', 'claude-sonnet-4-6', 'claude-opus-4-5',
+  'claude-opus-4-8', 'claude-opus-4-1',
+  // Google Gemini
+  'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite',
+  'gemini-2.0-pro', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash',
+  // OpenRouter prefixed
+  'openai/gpt-5', 'openai/gpt-4o', 'openai/gpt-4.1',
+  'anthropic/claude-sonnet-4-5', 'anthropic/claude-opus-4-5',
+  'google/gemini-2.5-pro', 'google/gemini-2.5-flash',
+  // DeepSeek
+  'deepseek/deepseek-chat-v3',
+]);
+
 export const getAIConfig = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -89,7 +154,22 @@ export const getAIConfig = () => {
     const parsed = JSON.parse(raw);
     // Backfill missing fields if a new provider was added since the last save.
     const base = defaultConfig();
-    return { ...base, ...parsed };
+    const merged = { ...base, ...parsed };
+
+    // Migrate deprecated model IDs to the new flagship for the active provider.
+    if (merged.model && DEPRECATED_MODEL_IDS.has(merged.model)) {
+      const fallback = AI_PROVIDERS[merged.provider]?.defaultModel;
+      if (fallback) merged.model = fallback;
+    }
+
+    // Also migrate if the stored model is no longer in the provider's list.
+    const providerModels = AI_PROVIDERS[merged.provider]?.models || [];
+    const stillValid = providerModels.some((m) => m.id === merged.model);
+    if (!stillValid) {
+      merged.model = AI_PROVIDERS[merged.provider]?.defaultModel || merged.model;
+    }
+
+    return merged;
   } catch {
     return defaultConfig();
   }

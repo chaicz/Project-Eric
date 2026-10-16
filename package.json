@@ -1,8 +1,8 @@
 {
   "name": "project-eric",
   "private": true,
-  "version": "1.0.0",
-  "description": "Project Eric — Security-First Web IDE with integrated OWASP Top 10 (2021) analysis.",
+  "version": "1.1.0",
+  "description": "Project Eric — Security-First Web IDE with integrated OWASP Top 10 (2026) analysis.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,8 +12,15 @@
     "ide:start": "powershell -ExecutionPolicy Bypass -File scripts/start-ide.ps1",
     "ide:stop": "powershell -ExecutionPolicy Bypass -File scripts/start-ide.ps1 -Stop",
     "ide:status": "powershell -ExecutionPolicy Bypass -File scripts/start-ide.ps1 -Status",
+    "run:project": "powershell -ExecutionPolicy Bypass -File scripts/run-project.ps1",
+    "run:project:no-yjs": "powershell -ExecutionPolicy Bypass -File scripts/run-project.ps1 -NoYjs",
+    "run:project:stop": "powershell -ExecutionPolicy Bypass -File scripts/run-project.ps1 -Stop",
+    "run:project:status": "powershell -ExecutionPolicy Bypass -File scripts/run-project.ps1 -Status",
     "yjs:start": "node extensions/eric-collab/scripts/yjs-server.js",
-    "yjs:dev": "cross-env PORT=1234 DATA_DIR=./.yjs-data node extensions/eric-collab/scripts/yjs-server.js"
+    "yjs:dev": "cross-env PORT=1234 DATA_DIR=./.yjs-data node extensions/eric-collab/scripts/yjs-server.js",
+    "owasp:package": "cd extensions/project-eric-owasp && npx vsce package -o ../../artifacts --allow-missing-repository",
+    "owasp:install-vscode": "powershell -Command \"& { $vsix = Get-ChildItem artifacts/*.vsix -ErrorAction SilentlyContinue | Select-Object -First 1; if ($vsix) { Start-Process 'code' -ArgumentList '--install-extension', $vsix.FullName } else { Write-Error 'Run npm run owasp:package first' } }\"",
+    "owasp:cs-install": "powershell -Command \"& { $vsix = Get-ChildItem artifacts/*.vsix -ErrorAction SilentlyContinue | Select-Object -First 1; if ($vsix) { $cs = 'C:\\tools\\code-server\\bin\\code-server.exe'; if (Test-Path $cs) { & $cs --install-extension $vsix.FullName } else { Write-Error 'code-server not installed. Run npm run ide:setup first.' } } else { Write-Error 'Run npm run owasp:package first.' } }\""
   },
   "dependencies": {
     "@react-three/drei": "^9.92.7",

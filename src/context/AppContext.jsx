@@ -10,6 +10,32 @@ export const useApp = () => {
   return context;
 };
 
+// ---------------------------------------------------------------------------
+// Latest OWASP scanner result — shared across the app so the scanner page
+// can hand off findings to the Analysis, Threats, and Reports pages. We
+// keep a single canonical shape (id, name, status, severity, cwe, evidence,
+// remediation) and let each consumer render it in its own style.
+// ---------------------------------------------------------------------------
+const SCAN_STORAGE_KEY = 'project-eric_last_scan';
+
+const readSavedScan = () => {
+  try {
+    const raw = localStorage.getItem(SCAN_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeSavedScan = (scan) => {
+  try {
+    if (scan) localStorage.setItem(SCAN_STORAGE_KEY, JSON.stringify(scan));
+    else localStorage.removeItem(SCAN_STORAGE_KEY);
+  } catch {
+    /* quota or privacy mode — ignore */
+  }
+};
+
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
@@ -41,6 +67,11 @@ export const AppProvider = ({ children }) => {
     return saved || '#3B82F6';
   });
 
+  // Latest OWASP scan result (set by OWASPScanner on completion).
+  // Persisted to localStorage so the destination pages can pick it up
+  // even on a hard reload.
+  const [lastScanResult, setLastScanResultState] = useState(() => readSavedScan());
+
   useEffect(() => {
     localStorage.setItem('project-eric_user', JSON.stringify(user));
   }, [user]);
@@ -52,6 +83,13 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('project-eric_accent', accentColor);
   }, [accentColor]);
+
+  useEffect(() => {
+    writeSavedScan(lastScanResult);
+  }, [lastScanResult]);
+
+  const setLastScanResult = (scan) => setLastScanResultState(scan);
+  const clearLastScanResult = () => setLastScanResultState(null);
 
   const login = (email, password, provider = null) => {
     // Mock login - in real app, this would be an API call
@@ -131,7 +169,10 @@ export const AppProvider = ({ children }) => {
     theme,
     setTheme,
     accentColor,
-    setAccentColor
+    setAccentColor,
+    lastScanResult,
+    setLastScanResult,
+    clearLastScanResult,
   };
 
   return (

@@ -70,6 +70,13 @@ extensions/vscode-cline/cline-main/
 extensions/cline.zip
 extensions/*.vsix
 
+# Packaged extension builds (output of `npm run owasp:package`)
+artifacts/
+
+# Local dev / runtime logs
+logs/
+*.err
+
 # Y.js runtime data — these are session-state files written by the collab
 # server at runtime. Never commit them.
 .yjs-data/

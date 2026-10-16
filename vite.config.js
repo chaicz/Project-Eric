@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import runProjectPlugin from './scripts/dev-server-plugin.js'
 
 // Project Eric — Vite config
 //
@@ -8,8 +9,13 @@ import react from '@vitejs/plugin-react'
 // source. Without this, Vite picks up the TypeScript config inside
 // `extensions/eric-collab/tsconfig.json` and forces a full reload +
 // clears cache, which has been breaking HMR (white screen on reload).
+//
+// The `runProjectPlugin` middleware is dev-only and exposes the
+// `/api/run-project*` endpoints that power the "Run Project" button on
+// the Live IDE page. It only attaches when Vite is running the dev
+// server (apply: 'serve' in the plugin) so production builds stay clean.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), runProjectPlugin()],
   server: {
     host: '127.0.0.1',
     port: 5173,

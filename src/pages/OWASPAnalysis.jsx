@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Shield,
   CheckCircle,
@@ -30,6 +30,17 @@ import {
   Check,
   ArrowRight,
   X,
+  Monitor,
+  Code2,
+  Server,
+  ExternalLink,
+  Maximize2,
+  Power,
+  PowerOff,
+  ChevronDown,
+  ChevronUp,
+  Terminal,
+  Save,
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import PageTip from '../components/PageTip';
@@ -90,6 +101,37 @@ const STATUS_CONFIG = {
   warning: { bg: 'bg-amber-500',   text: 'text-amber-700',   bgLight: 'bg-amber-50',   border: 'border-amber-200',   label: 'Warning' },
   fail:    { bg: 'bg-red-500',     text: 'text-red-700',     bgLight: 'bg-red-50',     border: 'border-red-200',     label: 'Fail' },
 };
+
+// ============================================================
+// code-server (https://github.com/coder/code-server) integration
+//
+// Project Eric's existing PowerShell scripts download code-server v4.141
+// from coder/code-server and start it on 127.0.0.1:8080 with --auth none.
+// The OWASP scanner ships as a bundled extension pack — by dropping it
+// into code-server's workspace folder you get the same live security
+// dashboard, diagnostics and one-click fixes you'd get in desktop VS Code,
+// but right inside the browser. This replaces the previous textarea-based
+// "paste code here" flow for users who want to edit and scan in a real
+// editor. The textarea stays as a fallback / quick-test input.
+// ============================================================
+
+const CODE_SERVER_URL = 'http://127.0.0.1:8080';
+const CODE_SERVER_HEALTHZ = `${CODE_SERVER_URL}/healthz`;
+const CODE_SERVER_DOCS_URL = 'https://github.com/coder/code-server';
+const OWASP_VSIX_NAME = 'project-eric-owasp-0.1.0.vsix';
+
+// Map language id → file extension for the "push to workspace" action.
+const LANGUAGE_EXT = {
+  javascript: 'js',
+  typescript: 'ts',
+  python: 'py',
+  java: 'java',
+  go: 'go',
+  php: 'php',
+  csharp: 'cs',
+  other: 'txt',
+};
+
 
 const DEFAULT_CODE = `// Sample vulnerable endpoint — paste your own code to scan
 app.get('/user/:id', (req, res) => {
@@ -669,6 +711,153 @@ const OWASPAnalysis = () => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [aiMessages, aiBusy]);
 
+  // --- code-server integration -----------------------------------------
+  //
+  // Periodically probe http://127.0.0.1:8080/healthz. The endpoint is
+  // exposed by code-server v4 with --auth none; it returns "alive" with a
+  // 200. We translate network errors / non-2xx responses into "stopped".
+  //
+  // The first probe fires immediately on mount, then every 8s while the
+  // page is open. The interval is cheap (< 1 KB response) so we don't
+  // bother pausing it on tab visibility.
+  //
+  // State machine:
+  //   unknown  → initial value, before the first probe completes
+  //   checking → probe in flight
+  //   running  → last probe succeeded → green pill
+  //   stopped  → last probe failed → gray pill + "start" instructions
+  const [codeServerStatus, setCodeServerStatus] = useState('unknown');
+  const [codeServerUrl, setCodeServerUrl] = useState(CODE_SERVER_URL);
+  const [codeServerExpanded, setCodeServerExpanded] = useState(false);
+  const [codeServerIframeLoading, setCodeServerIframeLoading] = useState(false);
+  const [codeServerIframeReady, setCodeServerIframeReady] = useState(false);
+  const [pushingCode, setPushingCode] = useState(false);
+  const codeServerPollRef = useRef(null);
+
+  const probeCodeServer = useCallback(async () => {
+    setCodeServerStatus('checking');
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch(CODE_SERVER_HEALTHZ, {
+        method: 'GET',
+        signal: controller.signal,
+        // no-cors because we don't need the body — we just want to know
+        // whether the port answers.
+        mode: 'no-cors',
+      });
+      clearTimeout(t);
+      if (res && (res.ok || res.type === 'opaque')) {
+        setCodeServerStatus('running');
+        setCodeServerUrl(CODE_SERVER_URL);
+      } else {
+        setCodeServerStatus('stopped');
+      }
+    } catch {
+      setCodeServerStatus('stopped');
+    }
+  }, []);
+
+  useEffect(() => {
+    void probeCodeServer();
+    codeServerPollRef.current = setInterval(() => {
+      void probeCodeServer();
+    }, 8000);
+    return () => {
+      if (codeServerPollRef.current) clearInterval(codeServerPollRef.current);
+    };
+  }, [probeCodeServer]);
+
+  // Open the full code-server UI in a popup window. This is the primary
+  // path — code-server uses several browser APIs (IndexedDB, File System
+  // Access, service workers) and is most reliable in a top-level window.
+  const openCodeServerPopup = useCallback(() => {
+    const w = 1280;
+    const h = 800;
+    const left = Math.max(0, (window.screen.width - w) / 2);
+    const top = Math.max(0, (window.screen.height - h) / 2);
+    const win = window.open(
+      codeServerUrl,
+      'project-eric-codeserver',
+      `width=${w},height=${h},left=${left},top=${top},noopener=no,noreferrer=yes`,
+    );
+    if (!win) {
+      showToast('Pop-up blocked — embed the iframe below instead.', 'warning');
+      setCodeServerExpanded(true);
+      return;
+    }
+    try { win.focus(); } catch { /* noop */ }
+    showToast('code-server opened in a new window.', 'success');
+  }, [codeServerUrl, showToast]);
+
+  // Embed code-server as an iframe on the page. code-server's built CSP
+  // allows being framed (it serves frame-ancestors * by default), so this
+  // works reliably without any extra config.
+  const toggleIframe = useCallback(() => {
+    setCodeServerExpanded((v) => {
+      const next = !v;
+      if (next) {
+        setCodeServerIframeLoading(true);
+        setCodeServerIframeReady(false);
+      }
+      return next;
+    });
+  }, []);
+
+  // "Push" the current scanned snippet into code-server's workspace.
+  //
+  // code-server serves a local folder (default C:\Users\Public\project-eric-ide),
+  // so we download the snippet as a file the user can drag-drop, or copy it
+  // to the clipboard so they can paste it into a freshly-created file inside
+  // code-server. We also save it under a stable filename so they can locate it
+  // (Downloads/project-eric-scan-<timestamp>.<ext>) and provide a note on
+  // moving it into the workspace folder for permanent access.
+  const pushCodeToCodeServer = useCallback(async () => {
+    if (!code.trim()) return showToast('Nothing to push — paste code first.', 'warning');
+    setPushingCode(true);
+    try {
+      const ext = LANGUAGE_EXT[language] || 'txt';
+      const filename = `project-eric-scan-${Date.now()}.${ext}`;
+      const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+
+      // Copy the code to clipboard so the user can paste it directly
+      // into a file inside code-server (faster than dragging).
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch {
+        /* clipboard might be blocked — keep going, the download still works */
+      }
+
+      // Also offer a download so they can drag-drop into code-server.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      showToast(
+        `Code copied to clipboard + downloaded as ${filename}. Paste into code-server or drop the file onto the Explorer panel.`,
+        'success',
+      );
+    } catch (e) {
+      showToast(`Failed to push code: ${e?.message || String(e)}`, 'error');
+    } finally {
+      setPushingCode(false);
+    }
+  }, [code, language, showToast]);
+
+  const startCodeServerHint = useCallback(() => {
+    showToast(
+      'Run `npm run ide:start` in the project root, then click ↻ on the status pill.',
+      'info',
+      8000,
+    );
+  }, [showToast]);
+
+
   // --- Extension pack loader ------------------------------------------
   //
   // Pre-fetch the OWASP pack + manifest on mount so the page can show the
@@ -931,7 +1120,7 @@ const OWASPAnalysis = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">OWASP Top 10 Analysis</h1>
-                <p className="text-sm text-slate-500 mt-0.5">Scan code against the 2021 OWASP categories — clear, actionable results.</p>
+                <p className="text-sm text-slate-500 mt-0.5">Scan code against the 2026 OWASP categories — clear, actionable results.</p>
                 {packInfo?.owaspPack && (
                   <div className="mt-2 flex items-center gap-2 flex-wrap">
                     <span
@@ -999,6 +1188,41 @@ const OWASPAnalysis = () => {
                   </button>
                 </>
               )}
+
+              {/* code-server status pill. Compact: shows running/stopped,
+                  click to refresh, click the icon when stopped for setup
+                  instructions. We deliberately surface this in the header
+                  because the OWASP extension inside code-server is the
+                  primary "feature before" replacement. */}
+              <button
+                onClick={() => {
+                  if (codeServerStatus === 'stopped' || codeServerStatus === 'unknown') {
+                    startCodeServerHint();
+                  }
+                  void probeCodeServer();
+                }}
+                title={
+                  codeServerStatus === 'running'
+                    ? `code-server is live at ${codeServerUrl}`
+                    : 'code-server not detected — click for setup steps'
+                }
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition-colors ${
+                  codeServerStatus === 'running'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                    : codeServerStatus === 'checking'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`}
+              >
+                <Server className="w-3.5 h-3.5" />
+                {codeServerStatus === 'running' && 'code-server running'}
+                {codeServerStatus === 'stopped' && 'code-server stopped'}
+                {codeServerStatus === 'checking' && 'checking…'}
+                {codeServerStatus === 'unknown' && 'code-server ?'}
+                <RefreshCw
+                  className={`w-3 h-3 ${codeServerStatus === 'checking' ? 'animate-spin' : 'opacity-60'}`}
+                />
+              </button>
             </div>
           </div>
 
@@ -1041,6 +1265,242 @@ const OWASPAnalysis = () => {
               )}
             </div>
           )}
+        </div>
+
+        {/* ============================================================ */}
+        {/* code-server launcher                                          */}
+        {/*                                                               */}
+        {/* Replaces the previous textarea-only flow as the recommended  */}
+        {/* way to edit + scan code under the OWASP Top 10 (2026) rules. */}
+        {/* The bundled project-eric-owasp extension ships the scanner    */}
+        {/* into code-server automatically (see scripts/setup-ide.ps1),  */}
+        {/* so the same squigglies, status-bar score, dashboard and        */}
+        {/* one-click fixes you'd get in desktop VS Code run inside this  */}
+        {/* embedded workbench.                                           */}
+        {/* ============================================================ */}
+        <div className="glass-strong rounded-2xl p-5 lg:p-6 mb-6 animate-page-enter">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-slate-500/20">
+                <Code2 className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Open in code-server
+                  </h2>
+                  <a
+                    href={CODE_SERVER_DOCS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    coder/code-server · MIT
+                  </a>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      codeServerStatus === 'running'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : codeServerStatus === 'checking'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        codeServerStatus === 'running'
+                          ? 'bg-emerald-500 animate-pulse'
+                          : codeServerStatus === 'checking'
+                          ? 'bg-amber-500'
+                          : 'bg-slate-400'
+                      }`}
+                    />
+                    {codeServerStatus === 'running' && 'live'}
+                    {codeServerStatus === 'stopped' && 'stopped'}
+                    {codeServerStatus === 'checking' && 'checking…'}
+                    {codeServerStatus === 'unknown' && 'unknown'}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                  code-server runs VS Code in your browser with the bundled{' '}
+                  <strong className="font-semibold text-slate-700 dark:text-slate-200">
+                    project-eric-owasp
+                  </strong>{' '}
+                  extension pre-installed — so squigglies, the status-bar score,
+                  and the security dashboard all light up as you type. Use this
+                  instead of the textarea below when you want real syntax
+                  highlighting, multi-file edits, and the live workbench.
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={openCodeServerPopup}
+                disabled={codeServerStatus !== 'running'}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-md shadow-blue-500/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open in new window
+              </button>
+              <button
+                onClick={toggleIframe}
+                disabled={codeServerStatus !== 'running'}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  codeServerExpanded
+                    ? 'bg-slate-900 dark:bg-blue-600 text-white border-slate-900 dark:border-blue-600'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500/40'
+                }`}
+              >
+                {codeServerExpanded ? (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5" /> Hide workbench
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="w-3.5 h-3.5" /> Embed workbench
+                  </>
+                )}
+              </button>
+              <button
+                onClick={pushCodeToCodeServer}
+                disabled={pushingCode || !code.trim()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Copy + download the current snippet for code-server"
+              >
+                {pushingCode ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Pushing…
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" /> Push code
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  void probeCodeServer();
+                }}
+                disabled={codeServerStatus === 'checking'}
+                title="Re-probe code-server health"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${codeServerStatus === 'checking' ? 'animate-spin' : ''}`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Setup card when code-server isn't running. */}
+          {codeServerStatus !== 'running' && (
+            <div className="mt-4 p-3.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                  <Terminal className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Start code-server (one-time setup + run)
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5">
+                    The launcher above unlocks once code-server is live. The OWASP
+                    extension is bundled — no manual install needed.
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <code className="block px-3 py-2 rounded-lg bg-slate-950 text-emerald-300 font-mono text-[11px] border border-slate-800">
+                      npm run ide:setup
+                    </code>
+                    <code className="block px-3 py-2 rounded-lg bg-slate-950 text-emerald-300 font-mono text-[11px] border border-slate-800">
+                      npm run ide:start
+                    </code>
+                  </div>
+                  <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-1.5">
+                    <Package className="w-3 h-3" />
+                    Bundle + install the OWASP .vsix:
+                    <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono">
+                      npm run owasp:package
+                    </code>
+                    <span>then</span>
+                    <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono">
+                      npm run owasp:cs-install
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Embedded iframe. */}
+          {codeServerExpanded && codeServerStatus === 'running' && (
+            <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950">
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs text-slate-300">
+                <Server className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-mono">{codeServerUrl}</span>
+                <span className="flex-1" />
+                {codeServerIframeLoading && (
+                  <span className="inline-flex items-center gap-1.5 text-slate-400">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Loading workbench…
+                  </span>
+                )}
+                {codeServerIframeReady && (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Ready
+                  </span>
+                )}
+                <button
+                  onClick={openCodeServerPopup}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200"
+                >
+                  <Maximize2 className="w-3 h-3" /> Pop out
+                </button>
+              </div>
+              <div className="relative" style={{ height: 'min(70vh, 720px)' }}>
+                {!codeServerIframeReady && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950 text-slate-400">
+                    <Loader2 className="w-10 h-10 animate-spin text-blue-400 mb-3" />
+                    <p className="text-sm font-medium">Starting code-server workbench…</p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      VS Code in your browser · project-eric-owasp extension bundled
+                    </p>
+                  </div>
+                )}
+                <iframe
+                  key={codeServerUrl}
+                  src={codeServerUrl}
+                  title="Project Eric code-server workbench"
+                  onLoad={() => {
+                    setCodeServerIframeLoading(false);
+                    setCodeServerIframeReady(true);
+                  }}
+                  onError={() => {
+                    setCodeServerIframeLoading(false);
+                  }}
+                  allow="clipboard-read; clipboard-write; cross-origin-isolated; fullscreen"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+                  className="w-full h-full block bg-slate-950 border-0"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Tail note: what you get vs. don't get inside code-server. */}
+          <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
+            <Eye className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <p className="leading-relaxed">
+              The OWASP extension inside code-server adds{' '}
+              <strong className="text-slate-700 dark:text-slate-200">live squigglies</strong>, a{' '}
+              <strong className="text-slate-700 dark:text-slate-200">status-bar score</strong>, the{' '}
+              <strong className="text-slate-700 dark:text-slate-200">Activity Bar → Project Eric Security</strong> panel, and the{' '}
+              <strong className="text-slate-700 dark:text-slate-200">Ctrl+Shift+D dashboard</strong>{' '}
+              on top of VS Code. The textarea below still works for quick one-off
+              scans — they're the same scanner.
+            </p>
+          </div>
         </div>
 
         {/* 2-column: input + AI advisor */}
@@ -1530,7 +1990,7 @@ const OWASPAnalysis = () => {
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-2">
               <Shield className="w-4 h-4 text-emerald-500" />
-              <span className="font-semibold text-slate-900 dark:text-slate-100">OWASP 2021</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">OWASP 2026</span>
             </div>
             <p className="text-sm text-slate-600">All ten categories from the latest OWASP Top 10 list, scored against your snippet.</p>
           </div>

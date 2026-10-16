@@ -1,7 +1,7 @@
 {
   "name": "project-eric-owasp",
   "displayName": "Project Eric — OWASP Security Scanner",
-  "description": "Scans your code against the OWASP Top 10 (2021), surfaces a security score, lists vulnerabilities, and offers one-click improvements. Works in vscode.dev, desktop VS Code, and GitHub Codespaces.",
+  "description": "Scans your code against the OWASP Top 10 (2026), surfaces a security score, lists vulnerabilities, and offers one-click improvements. Works in vscode.dev, desktop VS Code, and GitHub Codespaces.",
   "version": "0.1.0",
   "publisher": "project-eric",
   "license": "MIT",
@@ -31,12 +31,13 @@
   "bugs": {
     "url": "https://github.com/project-eric/project-eric-owasp/issues"
   },
-  "icon": "media/icon.svg",
+  "icon": "media/icon.png",
   "galleryBanner": {
     "color": "#0F172A",
     "theme": "dark"
   },
   "activationEvents": [
+    "onStartupFinished",
     "onLanguage:javascript",
     "onLanguage:typescript",
     "onLanguage:python",
@@ -51,9 +52,13 @@
     "onLanguage:html",
     "onLanguage:css",
     "onWorkspaceContains:**/*.{js,ts,py,java,php,go,rs,rb,sql,cpp,cs,html,css}",
+    "onCommand:projectEric.security.scanKeyCode",
+    "onCommand:projectEric.security.scanKeyCodeAsMcp",
+    "onCommand:projectEric.security.scanMcpServer",
     "onCommand:projectEric.security.scanFile",
     "onCommand:projectEric.security.scanWorkspace",
     "onCommand:projectEric.security.openDashboard",
+    "onCommand:projectEric.security.openStandaloneScanner",
     "onView:projectEric.securityView"
   ],
   "main": "./out/extension.js",
@@ -64,6 +69,27 @@
   ],
   "contributes": {
     "commands": [
+      {
+        "command": "projectEric.security.scanKeyCode",
+        "title": "Project Eric: Scan Key Code",
+        "shortTitle": "Scan Key Code",
+        "category": "Project Eric",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "projectEric.security.scanKeyCodeAsMcp",
+        "title": "Project Eric: Scan Key Code (MCP rules)",
+        "shortTitle": "Scan as MCP",
+        "category": "Project Eric",
+        "icon": "$(radio-tower)"
+      },
+      {
+        "command": "projectEric.security.openStandaloneScanner",
+        "title": "Project Eric: Open Standalone Scanner (function)",
+        "shortTitle": "Open Standalone Scanner",
+        "category": "Project Eric",
+        "icon": "$(beaker)"
+      },
       {
         "command": "projectEric.security.scanFile",
         "title": "Project Eric: Scan Current File",
@@ -113,7 +139,7 @@
         {
           "id": "projectEric.securityContainer",
           "title": "Project Eric Security",
-          "icon": "media/icon.svg"
+          "icon": "media/icon.png"
         }
       ]
     },
@@ -122,11 +148,50 @@
         {
           "id": "projectEric.securityView",
           "name": "Findings",
-          "icon": "media/icon.svg",
+          "icon": "media/icon.png",
           "contextualTitle": "Project Eric Security"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "projectEric.securityView",
+        "contents": "Welcome to Project Eric — OWASP Security Scanner\n\n[Project Eric: Scan Key Code](command:projectEric.security.scanKeyCode)\n[Project Eric: Scan Key Code (MCP rules)](command:projectEric.security.scanKeyCodeAsMcp)\n[Project Eric: Open Standalone Scanner](command:projectEric.security.openStandaloneScanner)\n[Project Eric: Open Security Dashboard](command:projectEric.security.openDashboard)\n[Project Eric: Scan Current File](command:projectEric.security.scanFile)\n[Project Eric: Scan Workspace](command:projectEric.security.scanWorkspace)\n\nPress Ctrl+Shift+K to scan the active file at any time.\n\nUse `Project Eric: Open Standalone Scanner` for the function-style webview that runs `ProjectEric.scan(code, language)` directly inside code-server."
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "projectEric.getStarted",
+        "title": "Project Eric — OWASP Security",
+        "description": "Scan your code against the OWASP Top 10 (2026) right inside code-server.",
+        "steps": [
+          {
+            "id": "projectEric.welcome",
+            "title": "scanKeyCode() — the function",
+            "description": "The scanner is now a function inside code-server, not a separate server. Press **Ctrl+Shift+K** with any file open, or click the shield in the activity bar to run it.\n\n[Project Eric: Scan Key Code](command:projectEric.security.scanKeyCode)",
+            "media": { "image": "media/icon.png", "altText": "Project Eric shield" }
+          },
+          {
+            "id": "projectEric.standalone",
+            "title": "Open the Standalone Scanner",
+            "description": "A code-server webview with a textarea and the bundled `ProjectEric.scan()` runtime. Paste code or pull from the active editor, then click **Scan**.\n\n[Project Eric: Open Standalone Scanner](command:projectEric.security.openStandaloneScanner)",
+            "media": { "image": "media/icon.png", "altText": "Project Eric scanner" }
+          },
+          {
+            "id": "projectEric.dashboard",
+            "title": "Open the Security Dashboard",
+            "description": "Per-file scores, OWASP coverage, and one-click improvements for the whole workspace.\n\n[Project Eric: Open Security Dashboard](command:projectEric.security.openDashboard)",
+            "media": { "image": "media/icon.png", "altText": "Project Eric dashboard" }
+          },
+          {
+            "id": "projectEric.workspace",
+            "title": "Scan the whole workspace",
+            "description": "Run a single scan over the workspace and surface every finding in the tree view.\n\n[Project Eric: Scan Workspace](command:projectEric.security.scanWorkspace)",
+            "media": { "image": "media/icon.png", "altText": "Project Eric workspace scan" }
+          }
+        ]
+      }
+    ],
     "menus": {
       "view/title": [
         {
@@ -163,6 +228,11 @@
         }
       ],
       "editor/context": [
+        {
+          "command": "projectEric.security.scanKeyCode",
+          "when": "editorLangId =~ /^(javascript|typescript|python|java|php|go|rust|ruby|sql|cpp|csharp|html|css)$/",
+          "group": "9_security"
+        },
         {
           "command": "projectEric.security.scanFile",
           "when": "editorLangId =~ /^(javascript|typescript|python|java|php|go|rust|ruby|sql|cpp|csharp|html|css)$/",
@@ -209,7 +279,13 @@
         },
         "projectEric.minSeverity": {
           "type": "string",
-          "enum": ["critical", "high", "medium", "low", "info"],
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info"
+          ],
           "default": "low",
           "description": "Minimum severity to surface as a diagnostic."
         },
@@ -217,9 +293,31 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"]
+            "enum": [
+              "A01",
+              "A02",
+              "A03",
+              "A04",
+              "A05",
+              "A06",
+              "A07",
+              "A08",
+              "A09",
+              "A10"
+            ]
           },
-          "default": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"],
+          "default": [
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A06",
+            "A07",
+            "A08",
+            "A09",
+            "A10"
+          ],
           "description": "OWASP Top 10 categories to scan."
         },
         "projectEric.languages": {
@@ -275,6 +373,18 @@
     },
     "keybindings": [
       {
+        "command": "projectEric.security.scanKeyCode",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "projectEric.security.scanMcpServer",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
         "command": "projectEric.security.scanFile",
         "key": "ctrl+shift+s",
         "mac": "cmd+shift+s",
@@ -289,15 +399,18 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && npm run build:standalone",
     "compile": "tsc -p tsconfig.json && node scripts/build-browser.js",
     "watch": "tsc -p tsconfig.json --watch",
     "lint": "eslint src --ext .ts",
-    "test": "node scripts/test-scanner.js && node scripts/verify-examples.js",
+    "test": "node scripts/test-scanner.js && node scripts/verify-examples.js && node scripts/smoke-standalone.js",
     "test:scanner": "node scripts/test-scanner.js",
     "test:examples": "node scripts/verify-examples.js",
+    "test:standalone": "node scripts/smoke-standalone.js",
     "package": "vsce package",
-    "build:web": "node scripts/build-browser.js"
+    "build:web": "node scripts/build-browser.js",
+    "build:standalone": "node scripts/build-standalone.js",
+    "build:all": "npm run compile && npm run build:standalone"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
@@ -306,5 +419,7 @@
     "esbuild": "^0.20.0",
     "typescript": "^5.3.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
 }

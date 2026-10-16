@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  AlertTriangle, 
-  Shield, 
+import {
+  AlertTriangle,
+  Shield,
   ExternalLink,
   Search,
   Clock,
@@ -13,11 +13,15 @@ import {
   RefreshCw,
   Server,
   Loader2,
+  X,
+  Sparkles,
 } from 'lucide-react';
 import { mockThreats } from '../utils/securityData';
 import { useToast } from '../components/Toast';
+import { useApp } from '../context/AppContext';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
+const AlertIcon = AlertTriangle;
 
 const SEVERITY_CONFIG = {
   critical: { color: 'bg-red-500', text: 'text-red-600', bg: 'bg-red-50', border: 'border-l-red-500', label: 'Critical' },
@@ -28,6 +32,7 @@ const SEVERITY_CONFIG = {
 
 const Threats = () => {
   const { showToast } = useToast();
+  const { lastScanResult, clearLastScanResult } = useApp();
   const [threats, setThreats] = useState(mockThreats);
   const [selectedSeverity, setSelectedSeverity] = useState('all');
   const [expandedThreat, setExpandedThreat] = useState(null);
@@ -43,6 +48,40 @@ const Threats = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Merge scanner findings into the threats feed so the latest scan
+  // result shows up alongside the curated threats. A scanner finding
+  // becomes a threat with a CWE id and a severity mapped from the
+  // detector's status.
+  useEffect(() => {
+    if (!lastScanResult) return;
+    setThreats((prev) => {
+      const existing = new Set(prev.map((t) => t.id));
+      const merged = [...prev];
+      lastScanResult.findings.forEach((f) => {
+        const id = `scanner-${f.id}`;
+        if (existing.has(id)) return;
+        const severity =
+          f.severity && f.severity !== 'info' ? f.severity :
+          f.status === 'fail' ? 'critical' :
+          f.status === 'warning' ? 'high' : 'medium';
+        merged.push({
+          id,
+          title: f.name,
+          severity,
+          cwe: f.cwe,
+          category: f.id,
+          description: f.description,
+          evidence: f.evidence,
+          remediation: f.remediation,
+          source: 'OWASP Scanner',
+          status: 'open',
+          fromScanner: true,
+        });
+      });
+      return merged;
+    });
+  }, [lastScanResult]);
 
   // Handle refresh
   const handleRefresh = async () => {
@@ -149,6 +188,62 @@ const Threats = () => {
           </button>
         </div>
       </div>
+
+      {/* Latest OWASP Scanner result — surfaced as a banner above the
+          live feed so the user can see the freshest scan is now part of
+          the threat stream. Clicking the link jumps back to the
+          scanner. */}
+      {lastScanResult && (
+        <div className="relative overflow-hidden rounded-2xl border border-rose-200/70 dark:border-rose-500/30 glass-strong p-4 sm:p-5 mb-6">
+          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br from-rose-500/20 to-amber-500/20 blur-2xl pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 bg-gradient-to-br ${
+              lastScanResult.score >= 85
+                ? 'from-emerald-500 to-teal-600'
+                : lastScanResult.score >= 65
+                ? 'from-amber-500 to-orange-600'
+                : 'from-rose-500 to-red-600'
+            }`}>
+              <AlertIcon className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
+                  From OWASP Scanner
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {lastScanResult.scannedAt ? new Date(lastScanResult.scannedAt).toLocaleString() : 'just now'}
+                </span>
+              </div>
+              <h2 className="mt-1.5 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+                New scanner findings merged into the feed
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+                Score {lastScanResult.score}/100 · {lastScanResult.summary} · {lastScanResult.totalIssues} issues across {lastScanResult.findings.length} OWASP categories. The findings now appear in the threat list below.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <a
+                href="/owasp"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Open scanner
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+              <button
+                type="button"
+                onClick={clearLastScanResult}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
+                aria-label="Dismiss latest scan"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Live Feed Banner */}
       <div className="bg-slate-900 dark:bg-slate-950 rounded-xl p-4 text-white flex items-center justify-between mb-6">

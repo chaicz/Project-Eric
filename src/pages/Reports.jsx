@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Download, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  FileText,
+  Download,
   Calendar,
   Filter,
   Search,
@@ -16,14 +16,20 @@ import {
   MoreHorizontal,
   Eye,
   X,
-  Loader2
+  Loader2,
+  Shield,
+  Sparkles,
+  ExternalLink,
+  Send,
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { useApp } from '../context/AppContext';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
 
 const Reports = () => {
   const { showToast } = useToast();
+  const { lastScanResult, clearLastScanResult } = useApp();
   const [mounted, setMounted] = useState(false);
   const [selectedType, setSelectedType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +40,32 @@ const Reports = () => {
     setMounted(true);
   }, []);
 
+  // Whenever a fresh OWASP scan lands, register it as a downloadable
+  // report in this page. The report has a date stamp, type, score, and
+  // the same `handleDownload` / `handlePreview` shapes used by the
+  // curated list, so the existing UI just works.
+  const scannerReports = useMemo(() => {
+    if (!lastScanResult) return [];
+    const scannedAt = lastScanResult.scannedAt ? new Date(lastScanResult.scannedAt) : new Date();
+    const dateStr = scannedAt.toISOString().split('T')[0];
+    const name = `OWASP Scanner Report · ${dateStr} · score ${lastScanResult.score}/100`;
+    return [{
+      id: 'scanner-report',
+      name,
+      type: 'owasp',
+      date: dateStr,
+      generatedAt: scannedAt.toLocaleString(),
+      size: `${Math.max(1, Math.round((lastScanResult.findings?.length || 1) * 12))} KB`,
+      status: 'completed',
+      score: lastScanResult.score,
+      summary: lastScanResult.summary,
+      totalIssues: lastScanResult.totalIssues,
+      findingCount: lastScanResult.findings.length,
+      fromScanner: true,
+      payload: lastScanResult,
+    }];
+  }, [lastScanResult]);
+
   // Handle preview
   const handlePreview = (report) => {
     showToast(`Opening preview for ${report.name}...`, 'info');
@@ -43,13 +75,24 @@ const Reports = () => {
   const handleDownload = (report) => {
     showToast(`Downloading ${report.name}...`, 'info');
     setTimeout(() => {
-      // Create mock PDF content
-      const content = `Report: ${report.name}\nDate: ${report.date}\nStatus: ${report.status}`;
-      const blob = new Blob([content], { type: 'text/plain' });
+      // Scanner-generated reports export the actual scan payload as
+      // JSON so the user can pipe it into a ticketing system or a
+      // GRC tool. Curated reports keep the original text dump.
+      let content;
+      let mime = 'text/plain';
+      let ext = 'txt';
+      if (report.fromScanner && report.payload) {
+        content = JSON.stringify(report.payload, null, 2);
+        mime = 'application/json';
+        ext = 'json';
+      } else {
+        content = `Report: ${report.name}\nDate: ${report.date}\nStatus: ${report.status}`;
+      }
+      const blob = new Blob([content], { type: mime });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${report.name.replace(/\s+/g, '-').toLowerCase()}.txt`;
+      a.download = `${report.name.replace(/\s+/g, '-').toLowerCase()}.${ext}`;
       a.click();
       URL.revokeObjectURL(url);
       showToast(`${report.name} downloaded!`);
@@ -203,7 +246,17 @@ const Reports = () => {
     { id: 'compliance', label: 'Compliance' },
   ];
 
-  const filteredReports = reports.filter(report => {
+  // Merge the scanner-generated report(s) into the curated list. We
+  // prepend them so they're easy to spot, and we filter out duplicates
+  // if a re-scan produces the same id.
+  const mergedReports = useMemo(() => {
+    if (!scannerReports.length) return reports;
+    const seen = new Set(reports.map((r) => r.id));
+    const extras = scannerReports.filter((r) => !seen.has(r.id));
+    return [...extras, ...reports];
+  }, [reports, scannerReports]);
+
+  const filteredReports = mergedReports.filter(report => {
     if (selectedType !== 'all' && report.type !== selectedType) return false;
     if (searchQuery && !report.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
@@ -263,6 +316,61 @@ const Reports = () => {
           </button>
         </div>
       </div>
+
+      {/* Latest OWASP Scanner result — surfaced as a banner that
+          links the freshest scan to a downloadable report. The actual
+          scanner-generated report is also injected into the list below. */}
+      {lastScanResult && (
+        <div className="relative overflow-hidden rounded-2xl border border-violet-200/70 dark:border-violet-500/30 glass-strong p-4 sm:p-5 mb-6">
+          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br from-violet-500/20 to-blue-500/20 blur-2xl pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 bg-gradient-to-br ${
+              lastScanResult.score >= 85
+                ? 'from-emerald-500 to-teal-600'
+                : lastScanResult.score >= 65
+                ? 'from-amber-500 to-orange-600'
+                : 'from-rose-500 to-red-600'
+            }`}>
+              <Send className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300">
+                  From OWASP Scanner
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {lastScanResult.scannedAt ? new Date(lastScanResult.scannedAt).toLocaleString() : 'just now'}
+                </span>
+              </div>
+              <h2 className="mt-1.5 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+                Latest scan: score {lastScanResult.score}/100 · {lastScanResult.summary}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+                {lastScanResult.totalIssues} issues across {lastScanResult.findings.length} OWASP categories. A ready-to-download report from this scan now appears in the list below.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <a
+                href="/owasp"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Open scanner
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+              <button
+                type="button"
+                onClick={clearLastScanResult}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
+                aria-label="Dismiss latest scan"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -351,17 +459,34 @@ const Reports = () => {
               </thead>
               <tbody>
                 {filteredReports.map((report) => (
-              <tr key={report.id}>
+              <tr key={report.id} className={report.fromScanner ? 'bg-violet-50/40 dark:bg-violet-500/5' : ''}>
                 <td>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-slate-600" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      report.fromScanner
+                        ? 'bg-gradient-to-br from-violet-500/20 to-blue-500/20'
+                        : 'bg-slate-100'
+                    }`}>
+                      {report.fromScanner
+                        ? <Shield className="w-5 h-5 text-violet-600" />
+                        : <FileText className="w-5 h-5 text-slate-600" />}
                     </div>
                     <div>
-                      <div className="font-medium text-slate-900 dark:text-slate-100">{report.name}</div>
-                      {report.pages > 0 && (
+                      <div className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        {report.name}
+                        {report.fromScanner && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700">
+                            Scanner
+                          </span>
+                        )}
+                      </div>
+                      {report.fromScanner ? (
+                        <div className="text-xs text-slate-500">
+                          {report.findingCount} OWASP categories · {report.totalIssues} issues
+                        </div>
+                      ) : report.pages > 0 ? (
                         <div className="text-xs text-slate-400">{report.pages} pages</div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </td>

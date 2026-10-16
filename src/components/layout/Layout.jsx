@@ -103,12 +103,20 @@ const NAV_ITEMS = [
   { path: '/analysis', label: 'Analysis', icon: ScanSearch },
   { path: '/threats', label: 'Threats', icon: AlertTriangle },
   { path: '/reports', label: 'Reports', icon: FileText },
-  { path: '/team', label: 'Team', icon: Users },
 ];
 
+// Tools nav. Most items are local React routes, but the IDE link needs
+// to open vscode.dev in a new tab (the user runs their actual development
+// work in that hosted environment; the React `IDEWorkspace` page is kept
+// around for direct deep-linking at `/ide`).
 const TOOLS_ITEMS = [
-  { path: '/ide', label: 'IDE', icon: Code2 },
-  { path: '/owasp-analysis', label: 'OWASP Analysis', icon: ShieldCheck },
+  {
+    label: 'IDE',
+    icon: Code2,
+    external: true,
+    href: 'https://vscode.dev/',
+  },
+  { path: '/owasp', label: 'OWASP Scanner', icon: ShieldCheck },
 ];
 
 const SYSTEM_ITEMS = [
@@ -282,22 +290,35 @@ const Layout = () => {
             </div>
           )}
 
-          {TOOLS_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                } ${collapsed ? 'justify-center' : ''}`
-              }
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
-            </NavLink>
-          ))}
+          {TOOLS_ITEMS.map((item) =>
+            item.external ? (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white ${collapsed ? 'justify-center' : ''}`}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              </a>
+            ) : (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center' : ''}`
+                }
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              </NavLink>
+            )
+          )}
         </div>
 
         {/* Divider */}

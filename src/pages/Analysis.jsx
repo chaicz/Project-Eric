@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ScanSearch, 
-  Shield, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  ScanSearch,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
   Clock,
   Filter,
   Download,
@@ -24,10 +24,13 @@ import {
   X,
   Loader2,
   Check,
-  Eye
+  Eye,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { mockVulnerabilities, OWASP_CATEGORIES, mockProjects } from '../utils/securityData';
 import { useToast } from '../components/Toast';
+import { useApp } from '../context/AppContext';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
 
@@ -209,8 +212,92 @@ const SEVERITY_CONFIG = {
   },
 };
 
+// Convert a scanner finding (status: pass | warning | fail, severity:
+// critical | high | medium | low | info) to the Analysis-page
+// vulnerability format so it can be rendered alongside the existing
+// list. Pure transform — keeps the original finding object intact and
+// only enriches the shape.
+const findingToVuln = (f) => ({
+  id: `scanner-${f.id}`,
+  title: f.name,
+  severity: f.severity && f.severity !== 'info' ? f.severity : 'medium',
+  category: f.id,
+  location: `Scanner · line ${(f.evidence?.[0]?.line ?? 0) + 1}`,
+  status: f.status === 'pass' ? 'fixed' : 'open',
+  description: f.description,
+  cwe: f.cwe,
+  evidence: f.evidence,
+  remediation: f.remediation,
+  fromScanner: true,
+});
+
+// LatestScanBanner — compact summary card shown at the top of the page
+// when a fresh scan result is available from the OWASPScanner.
+const LatestScanBanner = ({ scan, onDismiss }) => {
+  const failCount = scan.findings.filter((f) => f.status === 'fail').length;
+  const warnCount = scan.findings.filter((f) => f.status === 'warning').length;
+  const passCount = scan.findings.filter((f) => f.status === 'pass').length;
+  const scoreAccent =
+    scan.score >= 85
+      ? 'from-emerald-500 to-teal-600'
+      : scan.score >= 65
+      ? 'from-amber-500 to-orange-600'
+      : 'from-rose-500 to-red-600';
+  const scannedAt = scan.scannedAt ? new Date(scan.scannedAt) : new Date();
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-500/30 glass-strong p-4 sm:p-5">
+      <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 blur-2xl pointer-events-none" />
+      <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${scoreAccent} flex items-center justify-center shadow-lg flex-shrink-0`}>
+          <Sparkles className="w-7 h-7 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+              From OWASP Scanner
+            </span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {scannedAt.toLocaleString()}
+            </span>
+          </div>
+          <h2 className="mt-1.5 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+            Latest scan: score {scan.score}/100 · {scan.summary}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+            {scan.findings.length} categories checked · {failCount} failing · {warnCount} warnings · {passCount} passing
+            {' · '}
+            <span className="text-slate-500 dark:text-slate-400">{scan.totalIssues} total issues across {scan.findings.length} categories</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <a
+            href="/owasp"
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            Open scanner
+            <ExternalLink className="w-3 h-3 text-slate-400" />
+          </a>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
+              aria-label="Dismiss latest scan"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Analysis = () => {
   const { showToast } = useToast();
+  const { lastScanResult, clearLastScanResult } = useApp();
   const [selectedSeverity, setSelectedSeverity] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedVuln, setExpandedVuln] = useState(null);
@@ -225,6 +312,24 @@ const Analysis = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Whenever a new scan comes in from the OWASPScanner (via
+  // AppContext), merge its findings into the visible vulnerabilities
+  // list. Scanner entries are tagged `fromScanner: true` so we can
+  // avoid duplicates on re-renders and style them slightly differently.
+  useEffect(() => {
+    if (!lastScanResult) return;
+    setVulnerabilities((prev) => {
+      const existingIds = new Set(prev.map((v) => v.id));
+      const merged = [...prev];
+      lastScanResult.findings.forEach((f) => {
+        const id = `scanner-${f.id}`;
+        if (existingIds.has(id)) return; // already merged
+        merged.push(findingToVuln(f));
+      });
+      return merged;
+    });
+  }, [lastScanResult]);
 
   // Handle export
   const handleExport = () => {
@@ -290,14 +395,14 @@ const Analysis = () => {
   };
 
   const severityCounts = {
-    critical: mockVulnerabilities.filter(v => v.severity === 'critical').length,
-    high: mockVulnerabilities.filter(v => v.severity === 'high').length,
-    medium: mockVulnerabilities.filter(v => v.severity === 'medium').length,
-    low: mockVulnerabilities.filter(v => v.severity === 'low').length,
+    critical: vulnerabilities.filter(v => v.severity === 'critical').length,
+    high: vulnerabilities.filter(v => v.severity === 'high').length,
+    medium: vulnerabilities.filter(v => v.severity === 'medium').length,
+    low: vulnerabilities.filter(v => v.severity === 'low').length,
   };
 
   const getCategoryStats = (category) => {
-    return mockVulnerabilities.filter(v => v.category === category).length;
+    return vulnerabilities.filter(v => v.category === category).length;
   };
 
   const clearFilters = () => {
@@ -356,6 +461,20 @@ const Analysis = () => {
         </button>
       </AnimatedSection>
 
+      {/* Latest OWASP Scanner result — surfaced here so the user can
+          see how the scanner's findings map onto the Analysis view. We
+          pre-merge the scan findings into the vulnerabilities list and
+          also render a compact banner at the top with the score, summary
+          and a "dismiss" link. */}
+      {lastScanResult && (
+        <AnimatedSection delay={50} className="mb-6">
+          <LatestScanBanner
+            scan={lastScanResult}
+            onDismiss={clearLastScanResult}
+          />
+        </AnimatedSection>
+      )}
+
       {/* Progress Bar */}
       {isScanning && (
         <AnimatedCard className="glass-strong p-4 mb-6">
@@ -387,7 +506,7 @@ const Analysis = () => {
             }`}
           >
             <div className={`text-2xl font-bold transition-colors ${selectedSeverity === 'all' ? 'text-white' : 'text-slate-900 dark:text-slate-100 group-hover:text-blue-600'}`}>
-              {mockVulnerabilities.length}
+              {vulnerabilities.length}
             </div>
             <div className={`text-xs uppercase font-semibold mt-1 tracking-wider ${selectedSeverity === 'all' ? 'text-white/70' : 'text-slate-500'}`}>
               Total
@@ -432,7 +551,7 @@ const Analysis = () => {
               <Shield className="w-5 h-5 text-red-500" />
               OWASP Top 10
             </h2>
-            <span className="text-xs text-slate-400 font-mono">2021</span>
+            <span className="text-xs text-slate-400 font-mono">2026</span>
           </div>
           <div className="space-y-1">
             {OWASP_CATEGORIES.map((cat) => {

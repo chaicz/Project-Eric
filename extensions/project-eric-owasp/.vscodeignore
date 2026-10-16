@@ -1,7 +1,13 @@
 node_modules
-out
-dist
 .vscode-test
 *.vsix
 *.log
 .DS_Store
+out-test
+examples
+
+# Keep the dist/ folder — it contains the standalone scanner bundle
+# that the "Open Standalone Scanner" webview loads at runtime.
+# But don't ship anything we don't need.
+dist/**/*.map
+scripts

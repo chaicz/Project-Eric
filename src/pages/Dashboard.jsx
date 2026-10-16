@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import {
   Shield,
+  ShieldAlert,
   AlertTriangle,
   CheckCircle,
   TrendingUp,
@@ -27,6 +28,16 @@ import {
   Sparkles,
   ArrowUpRight,
   ChevronRight,
+  ShieldCheck,
+  Database,
+  Lock,
+  Globe,
+  UserX,
+  Settings,
+  Package,
+  Layout,
+  FileText,
+  Cpu,
 } from 'lucide-react';
 import { getSecurityStats, mockProjects, mockVulnerabilities, OWASP_CATEGORIES } from '../utils/securityData';
 import PageTip from '../components/PageTip';
@@ -674,6 +685,103 @@ const Dashboard = () => {
             </div>
           </AnimatedCard>
         </div>
+
+        {/* ============================================================
+            OWASP SCANNER FEATURE — prominent entry point on the main page
+            ============================================================ */}
+        <AnimatedSection delay={120}>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 dark:from-emerald-700 dark:via-teal-700 dark:to-blue-800 p-6 lg:p-7 shadow-2xl">
+            {/* Decorative grid + glow */}
+            <div className="absolute inset-0 opacity-[0.07]" style={{
+              backgroundImage: 'linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }} />
+            <div className="absolute -top-16 -right-16 w-72 h-72 bg-emerald-400/30 rounded-full blur-3xl" />
+            <div className="absolute -bottom-20 -left-12 w-72 h-72 bg-blue-400/30 rounded-full blur-3xl" />
+
+            {/* Floating shield silhouettes */}
+            <Shield className="absolute top-6 right-12 w-20 h-20 text-white/10 animate-float-shape-1 hidden lg:block" />
+            <ShieldCheck className="absolute bottom-6 right-40 w-14 h-14 text-white/10 animate-float-shape-2 hidden lg:block" />
+
+            <div className="relative grid lg:grid-cols-[1fr_auto] gap-6 items-center">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-semibold text-white mb-3">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>OWASP Top 10 · 2026</span>
+                  <span className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse" />
+                </div>
+                <h3 className="text-2xl lg:text-3xl font-bold text-white mb-2 tracking-tight">
+                  Scan your code or SQL for vulnerabilities
+                </h3>
+                <p className="text-emerald-50/90 text-sm lg:text-base max-w-2xl mb-5">
+                  Paste any snippet in 11 languages or any SQL dialect and we'll check it against
+                  every OWASP category — Injection, Cryptographic Failures, SSRF and more — with
+                  CWE references and remediation steps.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Link
+                    to="/owasp"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-slate-900 font-bold text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Open OWASP Scanner
+                  </Link>
+                  <Link
+                    to="/owasp-analysis"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/25 text-white font-semibold text-sm hover:bg-white/20 transition-all duration-200"
+                  >
+                    Full analysis
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right: OWASP category icons grid */}
+              <div className="grid grid-cols-5 gap-2 lg:gap-3 lg:max-w-md justify-end">
+                {[
+                  { Icon: ShieldAlert, label: 'Access',   rot: 'rotate-3' },
+                  { Icon: Lock,        label: 'Crypto',   rot: '-rotate-3' },
+                  { Icon: Database,    label: 'Inject',   rot: 'rotate-2' },
+                  { Icon: Layout,      label: 'Design',   rot: '-rotate-2' },
+                  { Icon: Settings,    label: 'Config',   rot: 'rotate-3' },
+                  { Icon: Package,     label: 'Deps',     rot: '-rotate-3' },
+                  { Icon: UserX,       label: 'Auth',     rot: 'rotate-2' },
+                  { Icon: FileCode,    label: 'Integ.',   rot: '-rotate-2' },
+                  { Icon: FileText,    label: 'Logs',     rot: 'rotate-3' },
+                  { Icon: Globe,       label: 'SSRF',     rot: '-rotate-3' },
+                ].map((c, i) => (
+                  <div
+                    key={i}
+                    className={`relative w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex flex-col items-center justify-center text-white hover:bg-white/25 hover:scale-110 transition-all duration-200 ${c.rot} hover:rotate-0 shadow-lg`}
+                    title={c.label}
+                  >
+                    <c.Icon className="w-5 h-5 lg:w-6 lg:h-6" />
+                    <span className="text-[9px] font-bold mt-1 opacity-90">{c.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom strip: scan modes */}
+            <div className="relative mt-6 pt-5 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { Icon: Cpu,        label: 'Code Mode',   hint: 'JS · TS · Python · Java · Go · C# · PHP · Ruby · Rust · C++' },
+                { Icon: Database,   label: 'SQL Mode',    hint: 'MySQL · PostgreSQL · T-SQL · SQLite · Oracle · generic' },
+                { Icon: Lock,       label: 'In-browser',  hint: 'Static analysis only — your code never leaves the device.' },
+              ].map((m) => (
+                <div key={m.label} className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white/15 backdrop-blur border border-white/25 flex items-center justify-center flex-shrink-0">
+                    <m.Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white">{m.label}</div>
+                    <div className="text-[11px] text-emerald-50/80 mt-0.5 leading-relaxed">{m.hint}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </AnimatedSection>
 
         {/* ============================================================
             TREND CHART + THREAT GAUGE

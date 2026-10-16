@@ -4,11 +4,12 @@
   "version": "1.1.0",
   "kind": "language+owasp-pack",
   "license": "Apache-2.0",
-  "description": "Language packs for the Project Eric web code editor, each enriched with an OWASP Top 10 (2021) ruleset. The pack is static-only: it never executes, transpiles or interprets the supplied source — it analyses text with regex patterns, maps findings to CWE ids and ships a per-category remediation.",
+  "description": "Language packs for the Project Eric web code editor, each enriched with an OWASP Top 10 (2026) ruleset. The pack is static-only: it never executes, transpiles or interprets the supplied source — it analyses text with regex patterns, maps findings to CWE ids and ships a per-category remediation.",
   "publisher": "secureide",
   "owasp": {
     "pack": "owasp-pack.json",
-    "version": "1.0.0",
+    "edition": "2026",
+    "version": "1.1.0",
     "categories": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"]
   },
   "extensions": [
@@ -32,5 +33,5 @@
     "language": "/extensions/{id}.lang.json"
   },
   "executionMode": "static-only",
-  "executionModeDescription": "This pack does NOT execute, transpile, link or interpret code. It performs regex-based static analysis against the OWASP Top 10 (2021), maps each finding to a CWE id, and provides a remediation hint per category. Patterns are deterministic and side-effect free."
+  "executionModeDescription": "This pack does NOT execute, transpile, link or interpret code. It performs regex-based static analysis against the OWASP Top 10 (2026), maps each finding to a CWE id, and provides a remediation hint per category. Patterns are deterministic and side-effect free."
 }

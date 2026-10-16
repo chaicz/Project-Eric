@@ -1,14 +1,14 @@
 {
-  "id": "owasp-top-10-2021",
-  "label": "OWASP Top 10 (2021)",
-  "version": "1.0.0",
+  "id": "owasp-top-10-2026",
+  "label": "OWASP Top 10 (2026)",
+  "version": "1.1.0",
   "schemaVersion": "1",
   "kind": "owasp-pack",
   "icon": "🛡️",
-  "description": "Static-analysis ruleset for the OWASP Top 10 (2021). Ships per-language regex patterns plus a remediation note for every category. The pack does NOT execute code — it analyses source text and surfaces findings with CWE mapping and a fix suggestion.",
+  "description": "Static-analysis ruleset for the OWASP Top 10 (2026 edition). Ships per-language regex patterns plus a remediation note for every category. The pack does NOT execute code — it analyses source text and surfaces findings with CWE mapping and a fix suggestion.",
   "homepage": "https://owasp.org/Top10/",
   "license": "Apache-2.0",
-  "publishDate": "2026-09-28",
+  "publishDate": "2026-10-15",
   "appliesTo": [
     "javascript", "typescript", "python", "java", "csharp",
     "go", "rust", "ruby", "php", "cpp", "html", "css", "sql"

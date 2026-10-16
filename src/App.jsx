@@ -25,6 +25,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import ForgotPassword from './pages/ForgotPassword';
 import AboutTeam from './pages/AboutTeam';
 import Sandbox from './pages/Sandbox';
+import OWASPScanner from './pages/OWASPScanner';
 import OWASPAnalysis from './pages/OWASPAnalysis';
 import IDEWorkspace from './pages/IDEWorkspace';
 import EricCollabLiteViewer from './pages/EricCollabLiteViewer';
@@ -132,6 +133,7 @@ function App() {
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/sandbox" element={<Sandbox />} />
                 <Route path="/owasp-analysis" element={<OWASPAnalysis />} />
+                <Route path="/owasp" element={<OWASPScanner />} />
                 <Route path="/ide" element={<IDEWorkspace />} />
               </Route>
 
