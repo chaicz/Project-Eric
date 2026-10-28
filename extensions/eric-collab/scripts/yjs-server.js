@@ -88,6 +88,7 @@ function loadDoc(name) {
     ydoc,
     awareness,
     conns: new Set(),
+    connClients: new Map(), // ws -> Set<awareness clientID>
     dirty: false,
     flushTimer: null,
     lastSave: 0,
@@ -117,6 +118,21 @@ function loadDoc(name) {
     for (const ws of entry.conns) {
       if (ws !== origin && ws.readyState === ws.OPEN) ws.send(msg);
     }
+  });
+
+  // Track which awareness client IDs belong to which socket, so we can
+  // drop a disconnected client's presence. Without this the room keeps
+  // showing ghosts: a user who closes the tab stays in the peer list
+  // until the awareness timeout (30s) elapses, and the extension's
+  // sidebar shows them as still present.
+  awareness.on('update', ({ added, updated }, origin) => {
+    if (!origin || !entry.conns.has(origin)) return;
+    let ids = entry.connClients.get(origin);
+    if (!ids) {
+      ids = new Set();
+      entry.connClients.set(origin, ids);
+    }
+    for (const id of added.concat(updated)) ids.add(id);
   });
 
   docs.set(name, entry);
@@ -162,8 +178,15 @@ setInterval(() => {
 const server = http.createServer((req, res) => {
   const parsed = new URL(req.url, `http://${req.headers.host}`);
   if (parsed.pathname === '/healthz') {
+    // `dataDir` is included so tests (and operators) can find where the
+    // room state is actually persisted instead of guessing the default.
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, rooms: docs.size, uptime: process.uptime() }));
+    res.end(JSON.stringify({
+      ok: true,
+      rooms: docs.size,
+      uptime: process.uptime(),
+      dataDir: DATA_DIR,
+    }));
     return;
   }
   if (parsed.pathname === '/rooms') {
@@ -243,16 +266,29 @@ wss.on('connection', (ws, req) => {
 
   ws.on('close', () => {
     entry.conns.delete(ws);
-    awarenessProtocol.removeAwarenessStates(
-      entry.awareness,
-      Array.from(entry.awareness.getStates().keys()).filter((cid) => {
-        // Drop the closed client's awareness state. The client id is
-        // stashed on the awareness meta when they send their first
-        // update, so we look it up by the awareness' clientID map.
-        return false; // no per-conn id mapping — leave awareness to its own gc
-      }),
-      ws
-    );
+    // Drop the awareness states this socket owned so the peer list in
+    // every client updates immediately instead of after the 30s
+    // awareness timeout.
+    const owned = entry.connClients.get(ws);
+    entry.connClients.delete(ws);
+    if (owned && owned.size > 0) {
+      // A client ID may already be claimed by another live socket (a
+      // reconnect reuses the same Y.Doc client ID). Only remove states
+      // that no other connection owns, otherwise we'd evict the peer
+      // who just reconnected.
+      const stillOwned = new Set();
+      for (const [, ids] of entry.connClients) {
+        for (const id of ids) stillOwned.add(id);
+      }
+      const removable = Array.from(owned).filter((id) => !stillOwned.has(id));
+      if (removable.length > 0) {
+        awarenessProtocol.removeAwarenessStates(
+          entry.awareness,
+          removable,
+          ws
+        );
+      }
+    }
   });
   ws.on('error', () => entry.conns.delete(ws));
 });

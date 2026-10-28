@@ -45,6 +45,7 @@ export interface UserPresence {
   cursorLine?: number;
   cursorChar?: number;
   filePath?: string;
+  fileUri?: string;
   joinedAt: number;
   synced: boolean;   // whether the user's local doc is in sync
 }

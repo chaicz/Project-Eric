@@ -20,6 +20,7 @@ import * as vscode from 'vscode';
 import type { CollabClient, ConnStep } from './collabClient';
 import type { CollabPermission, CollabState, UserPresence } from './types';
 import type { TunnelInfo } from './tunnelManager';
+import { readSessionState } from './sessionState';
 
 export interface SidebarViewState {
   sessionActive: boolean;
@@ -168,15 +169,27 @@ export class EricCollabViewProvider implements vscode.WebviewViewProvider {
     const collect = () => {
       const tunnelInfo = tunnel.getInfo();
       // Build the Lite Viewer URL from the current room + signaling
-      // server, so it always matches the active session.
+      // server, so it always matches the active session. When the base
+      // URL is the dashboard's Cloudflare tunnel, the realtime channel
+      // lives on the same public origin under `/collab-ws` — that is
+      // what makes a single link work on a phone.
       const liteViewerUrl: string | null = (() => {
         try {
           const cfg = vscode.workspace.getConfiguration('ericCollab');
-          const base = (cfg.get<string>('liteViewerUrl') || '').replace(/\/$/, '');
+          const configured = (cfg.get<string>('liteViewerUrl') || '').trim();
+          let base = configured.replace(/\/$/, '');
+          let server = client?.signalingServer || '';
+          if (!base) {
+            const shared = readSessionState();
+            if (shared.publicUrl) {
+              base = String(shared.publicUrl).replace(/\/$/, '');
+              server = `${base.replace(/^http/, 'ws')}/collab-ws`;
+            }
+          }
           if (!base || !client) return null;
           const params = new URLSearchParams({
             room: client.roomId,
-            server: client.signalingServer,
+            server: server || `${base.replace(/^http/, 'ws')}/collab-ws`,
           });
           return `${base}/viewer?${params.toString()}`;
         } catch {

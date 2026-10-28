@@ -64,6 +64,7 @@ export function presenceToUser(p: any): UserPresence | null {
     cursorLine: p.cursor?.anchor?.line,
     cursorChar: p.cursor?.head?.char,
     filePath: p.filePath,
+    fileUri: p.fileUri,
     joinedAt: p.joinedAt ?? Date.now(),
     synced: true,
   };

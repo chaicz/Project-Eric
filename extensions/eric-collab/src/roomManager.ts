@@ -12,6 +12,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import type { CollabRole, InviteLinkParts, RoomInfo } from './types';
+import { readSessionState } from './sessionState';
 
 const ROOM_ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L
 const ROOM_ID_LENGTH = 8;
@@ -40,11 +41,26 @@ function getDefaultSignalingServer(): string {
  * Yjs signaling server — no tunnel is required for it. The default
  * is empty (no Lite Viewer link), so existing invite flows are
  * unchanged unless the user explicitly configures a host.
+ *
+ * When the setting is empty we fall back to the Cloudflare tunnel that
+ * the dashboard opened (see scripts/cloudflared-tunnel.js). That tunnel
+ * exposes the Vite dev server, which serves the Lite Viewer at
+ * `/viewer` *and* proxies the Yjs relay at `/collab-ws`. So a guest
+ * needs exactly one public URL, and it works on any device.
  */
 function getLiteViewerBaseUrl(): string {
   const cfg = vscode.workspace.getConfiguration('ericCollab');
-  const v = cfg.get<string>('liteViewerUrl')?.trim() || '';
-  return v.replace(/\/$/, '');
+  const configured = (cfg.get<string>('liteViewerUrl') || '').trim();
+  if (configured) return configured.replace(/\/$/, '');
+
+  // Fall back to the dashboard's tunnel origin.
+  try {
+    const shared = readSessionState();
+    if (shared.publicUrl) return String(shared.publicUrl).replace(/\/$/, '');
+  } catch {
+    /* state file unreadable — fall through */
+  }
+  return '';
 }
 
 /** Build the local code-server origin (e.g. http://127.0.0.1:8080). */
@@ -87,14 +103,16 @@ export function buildInviteUrl(
     return `${o.replace(/\/$/, '')}/?${params.toString()}`;
   };
 
-  // Lite Viewer URL — tunnel-independent. Only included if the user
-  // has configured a public base URL for the viewer.
+  // Lite Viewer URL — tunnel-independent *in spirit*, but it still needs a
+  // reachable signaling server. When the base URL is the dashboard's
+  // Cloudflare tunnel, the realtime channel is served from the SAME
+  // public origin under `/collab-ws`, so one URL is all a guest needs.
   const liteBase = getLiteViewerBaseUrl();
   let liteViewerUrl: string | undefined;
   if (liteBase) {
     const params = new URLSearchParams({
       room: roomId,
-      server,
+      server: `${liteBase.replace(/^http/, 'ws')}/collab-ws`,
     });
     liteViewerUrl = `${liteBase}/viewer?${params.toString()}`;
   }

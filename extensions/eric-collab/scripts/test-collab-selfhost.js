@@ -174,7 +174,25 @@ async function run() {
   console.log('\n7. Persistence: state is on disk');
   // The server debounces writes by 1s, so wait for a flush.
   await sleep(1500);
-  const dataDir = path.resolve(__dirname, '..', '.yjs-data');
+  // The data dir is set by whoever started the server (run-project.ps1
+  // points it at <project root>/.yjs-data), so ask the server instead of
+  // assuming the default next to this script.
+  let dataDir = path.resolve(__dirname, '..', '.yjs-data');
+  try {
+    const http = require('http');
+    const httpBase = SIGNALING.replace(/\/ws\/?$/, '').replace(/^wss?:\/\//, 'http://');
+    const body = await new Promise((res, rej) => {
+      const req = http.get(httpBase + '/healthz', (r) => {
+        let b = '';
+        r.on('data', (c) => (b += c));
+        r.on('end', () => res(b));
+      });
+      req.on('error', rej);
+      req.setTimeout(3000, () => req.destroy(new Error('healthz timeout')));
+    });
+    const parsed = JSON.parse(body);
+    if (parsed.dataDir) dataDir = parsed.dataDir;
+  } catch { /* fall back to the default path */ }
   const file = path.join(dataDir, ROOM_ID + '.bin');
   record('room state persisted to disk', fs.existsSync(file),
     file + (fs.existsSync(file) ? ` (${fs.statSync(file).size} bytes)` : ' — file missing'));

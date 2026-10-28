@@ -15,6 +15,10 @@ import type {
   UserPresence,
 } from './types';
 import { presenceToUser } from './userPresence';
+import {
+  diffHunks,
+  planLocalEdit,
+} from './textSync';
 
 /**
  * Default WebRTC signaling servers used by y-webrtc for peer discovery.
@@ -37,6 +41,25 @@ interface SharedBinding {
   doc: vscode.TextDocument;
   yText: Y.Text;
   binding: vscode.Disposable[];
+  /**
+   * The document content as of the last change event we processed.
+   *
+   * VS Code reports a change as a range relative to the document as it
+   * was *before* the change. This field lets us recover that "before"
+   * state exactly, which is what the diff-based bridge needs to tell a
+   * user's keystroke apart from a change that arrived over the wire.
+   */
+  lastDocText: string;
+  /**
+   * Serialises document writes.
+   *
+   * Two overlapping `applyEdit` calls would each be computed against a
+   * document state that the other one had already invalidated, which is
+   * exactly how the document ends up with a duplicated tail. Chaining
+   * the writes keeps the "compute the patch" and "apply the patch"
+   * steps atomic with respect to each other.
+   */
+  writeQueue: Promise<void>;
 }
 
 /**
@@ -93,10 +116,6 @@ export class CollabClient extends EventEmitter {
     permission: CollabPermission;
   };
   private bindings: Map<string, SharedBinding> = new Map();
-  // Per-URI counter of pending remote applies. A non-zero count means
-  // the next onDidChangeTextDocument for that URI is the echo of OUR
-  // own applyEdit and should be ignored (don't loop it back into yText).
-  private pendingApplies: Map<string, number> = new Map();
 
   // Synced CRDT maps. Created in connect().
   private metaMap: Y.Map<unknown> | null = null;        // { hostUserId }
@@ -306,12 +325,15 @@ export class CollabClient extends EventEmitter {
         // Re-bind every open document so it gets the synced content.
         for (const doc of vscode.workspace.textDocuments) {
           if (this.bindings.has(doc.uri.toString())) {
-            this.pushYTextToDoc(this.bindings.get(doc.uri.toString())!);
+            this.enqueueSyncDoc(this.bindings.get(doc.uri.toString())!);
           } else {
             this.bindDocument(doc);
           }
         }
         this.markStep('docs', 'ok');
+        // Publish the file the host is actually looking at, so guests
+        // land on the right document instead of an arbitrary bound one.
+        this.publishActiveEditor();
       }
     });
 
@@ -319,16 +341,13 @@ export class CollabClient extends EventEmitter {
     // initial sync AND after the user opened a new file. Without this,
     // a guest who joins mid-edit and then opens a new tab would see
     // the empty local version, not the synced yText content.
-    this.ydoc.on('afterTransaction', (tr: Y.Transaction) => {
-      if (tr.local) return; // our own changes are already applied
-      for (const binding of this.bindings.values()) {
-        const remote = binding.yText.toString();
-        const local = binding.doc.getText();
-        if (remote !== local) {
-          this.pushYTextToDoc(binding);
-        }
-      }
-    });
+    //
+    // NOTE: this used to live on `ydoc.on('afterTransaction')`, which
+    // fired for *every* transaction in the document — including ones
+    // that had nothing to do with a shared text. It has moved into the
+    // per-binding yText observer (see `bindDocument`), so a change to
+    // one shared file no longer triggers a full-document comparison on
+    // every other bound file.
 
     // Initial check in case the kicked map was already populated.
     this.checkKicked();
@@ -381,7 +400,6 @@ export class CollabClient extends EventEmitter {
       binding.binding.forEach((d) => d.dispose());
     }
     this.bindings.clear();
-    this.pendingApplies.clear();
     if (this.provider) {
       try {
         this.provider.disconnect();
@@ -438,33 +456,74 @@ export class CollabClient extends EventEmitter {
   /**
    * Bind an open VS Code document to its corresponding Y.Text (creates
    * one if missing). The yText ↔ document bridge is the source of the
-   * "I have to refresh to see changes" bug — see `applyYChangesToDoc`
-   * for the corrected implementation.
+   * "I have to refresh to see changes" bug — see `applyDocChangeToY`
+   * and `syncDocNow` for the corrected implementation.
    */
+  /**
+   * Is this a document worth sharing with the room?
+   *
+   * VS Code opens a lot of *internal* text documents that are not real
+   * files: the Source Control input box (`scm0/input`), the Git output
+   * view, debug consoles, search results, and so on. They are ordinary
+   * `TextDocument`s, so without a filter they get bound to the shared
+   * CRDT and published as the host's "active file" — which then becomes
+   * the file every guest opens in the Lite Viewer. The guest ends up
+   * staring at an empty SCM input box instead of the code.
+   *
+   * Only real, addressable documents are shareable: files on disk
+   * (`file:`), files served by a remote host (`vscode-remote:`), and
+   * untitled scratch buffers (`untitled:`).
+   */
+  static isShareableDocument(doc: vscode.TextDocument): boolean {
+    const scheme = doc.uri.scheme;
+    return scheme === 'file' || scheme === 'vscode-remote' || scheme === 'untitled';
+  }
+
   bindDocument(doc: vscode.TextDocument): void {
+    // Internal documents (SCM input, output view, …) are never shared.
+    if (!CollabClient.isShareableDocument(doc)) return;
     const key = doc.uri.toString();
     if (this.bindings.has(key)) {
       // Re-binding (e.g. after the user re-opened a document). Make
       // sure the doc reflects the latest yText content.
-      this.pushYTextToDoc(this.bindings.get(key)!);
+      this.enqueueSyncDoc(this.bindings.get(key)!);
       return;
     }
 
     const yText = this.ydoc.getText('doc:' + key);
 
+    const binding: SharedBinding = {
+      uri: key,
+      doc,
+      yText,
+      binding: [],
+      lastDocText: doc.getText(),
+      writeQueue: Promise.resolve(),
+    };
+
     const fromDoc = vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.uri.toString() !== key) return;
-      if (!this.bindings.has(key)) return;
-      // If this change is the echo of our own applyYChangesToDoc /
-      // pushYTextToDoc, ignore it so it doesn't loop back into yText.
-      if (this.consumePendingApply(key)) return;
+      const b = this.bindings.get(key);
+      if (!b) return;
+
+      const current = b.doc.getText();
+      const previous = b.lastDocText;
+      b.lastDocText = current;
+
+      // The document already matches the shared text — this change was
+      // either our own write coming back, or a remote change that has
+      // already been applied to the Y.Text. Either way there is
+      // nothing to push.
+      if (current === b.yText.toString()) return;
+
       // Viewers are read-only: revert their local edit by replacing
       // the doc content with the authoritative yText content.
       if (this.getLocalPermission() === 'viewer') {
-        this.revertDocToYText(this.bindings.get(key)!);
+        this.revertDocToYText(b);
         return;
       }
-      this.applyDocChangesToY(e.contentChanges, yText);
+
+      this.applyDocChangeToY(b, previous, current);
     });
 
     const fromY = (() => {
@@ -473,24 +532,22 @@ export class CollabClient extends EventEmitter {
         // this client — that case is already covered by the doc→Y
         // bridge. We only need to apply remote changes here.
         if (transaction.local) return;
-        this.applyYChangesToDoc(event, doc);
+        const current = this.bindings.get(key);
+        if (!current) return;
+        this.enqueueSyncDoc(current);
       };
       yText.observe(handler);
       return new vscode.Disposable(() => yText.unobserve(handler));
     })();
 
-    this.bindings.set(key, {
-      uri: key,
-      doc,
-      yText,
-      binding: [fromDoc, fromY],
-    });
+    binding.binding = [fromDoc, fromY];
+    this.bindings.set(key, binding);
 
     // Sync up the doc with whatever the CRDT already has. This is
     // essential for late joiners: by the time bindDocument runs, the
     // initial sync may have populated yText with the host's content.
     if (yText.length > 0) {
-      this.pushYTextToDoc(this.bindings.get(key)!);
+      this.enqueueSyncDoc(binding);
     } else if (doc.getText().length > 0) {
       // yText is empty — push the local content so the host's peers
       // can see this file.
@@ -498,6 +555,10 @@ export class CollabClient extends EventEmitter {
         yText.insert(0, doc.getText());
       }, 'local-init');
     }
+
+    // Publish the file the local user is working on so peers (and the
+    // Lite Viewer) can locate the matching shared document.
+    this.publishActiveFile(doc);
 
     this.emit('textSynced', key);
   }
@@ -532,23 +593,76 @@ export class CollabClient extends EventEmitter {
    * the file is new to the room.
    */
   shareCurrentDocument(doc: vscode.TextDocument): void {
+    if (!CollabClient.isShareableDocument(doc)) return;
     const key = doc.uri.toString();
     const yText = this.ydoc.getText('doc:' + key);
     if (yText.length === 0 && doc.getText().length > 0) {
+      // Seed the shared text with the local content. Inserting the
+      // whole document in one go is deliberate here — this is a
+      // one-time initialisation, not an edit, and a diff-based splice
+      // against an empty Y.Text would produce the same result at a
+      // fraction of the cost.
       this.ydoc.transact(() => {
         yText.insert(0, doc.getText());
       }, 'local-init');
     }
+    // Sharing a file is also a signal that this is the file the user
+    // wants guests to look at — publish it so the Lite Viewer can jump
+    // straight to it.
+    this.publishActiveFile(doc);
   }
 
   /** Publish cursor position so other collaborators see it. */
   setLocalCursor(doc: vscode.TextDocument, selection: vscode.Selection): void {
     if (!this.awareness) return;
+    if (!CollabClient.isShareableDocument(doc)) return;
     this.awareness.setLocalStateField('cursor', {
       anchor: { line: selection.anchor.line, char: selection.anchor.character },
       head: { line: selection.active.line, char: selection.active.character },
     });
+    this.publishActiveFile(doc);
+  }
+
+  /**
+   * Publish which file the local user has open.
+   *
+   * Two fields are needed, and they are NOT interchangeable:
+   *   • `filePath` — the human-readable path (doc.fileName). Used for
+   *     display ("hello.js") and as a fallback for peers that don't
+   *     know about URIs.
+   *   • `fileUri`  — the canonical `doc.uri.toString()`. This is the
+   *     exact string the Y.Text key is derived from
+   *     (`'doc:' + uri`), so a remote peer can look up the shared
+   *     document by key without guessing how the URI was encoded.
+   *
+   * The Lite Viewer used to rebuild the key from `filePath`, which
+   * produced a different key than the extension's (URI vs path), so it
+   * never found the host's document. `fileUri` removes that guesswork.
+   */
+  publishActiveFile(doc: vscode.TextDocument): void {
+    if (!this.awareness) return;
+    // Never point the room at an internal document. If the user just
+    // clicked into the Source Control input box, the previously shared
+    // file stays published — the guest keeps reading real code.
+    if (!CollabClient.isShareableDocument(doc)) return;
     this.awareness.setLocalStateField('filePath', doc.fileName);
+    this.awareness.setLocalStateField('fileUri', doc.uri.toString());
+  }
+
+  /**
+   * Publish the editor the user is actually looking at.
+   *
+   * Binding order alone doesn't tell you which file the host cares
+   * about — `vscode.workspace.textDocuments` is unordered, and the
+   * "last bound document wins" rule published whichever file happened
+   * to sort last. The active editor is the authoritative answer, so
+   * publish that explicitly.
+   */
+  publishActiveEditor(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+    this.publishActiveFile(editor.document);
+    this.setLocalCursor(editor.document, editor.selection);
   }
 
   /** Update the local user's display name (broadcasts to all peers). */
@@ -675,131 +789,109 @@ export class CollabClient extends EventEmitter {
   // ---------------------------------------------------------------
 
   /**
-   * Apply a remote yText delta to the VS Code document.
+   * Translate a local document change into the equivalent Y.Text edit.
    *
-   * This is the function the original implementation got wrong in two
-   * ways that caused the "must refresh to see changes" behaviour:
+   * VS Code reports changes as offsets into the document *before* the
+   * change, while the Y.Text may have moved on since (a remote peer
+   * could have inserted text earlier in the file). Replaying the raw
+   * offsets against the Y.Text would then write to the wrong place —
+   * and if the offset happened to be at the end of the file, it would
+   * append a duplicate.
    *
-   *   1. It returned early if the doc was not in a *visible editor*,
-   *      so any change to a background tab was silently dropped.
-   *   2. It iterated the delta in reverse but accumulated the cursor
-   *      forward, producing nonsense positions.
-   *
-   * The fix is to (1) apply the edit to the document model regardless
-   * of editor visibility, and (2) convert the delta to absolute
-   * positions and apply the resulting ops from end → start so earlier
-   * positions remain valid.
+   * So instead of replaying offsets we diff the content: the change is
+   * expressed as "the document went from A to B", and we compute the
+   * splice that turns the Y.Text's current content into B. The splice
+   * is applied to the Y.Text, and both sides end up holding B.
    */
-  private applyYChangesToDoc(
-    event: Y.YTextEvent,
-    doc: vscode.TextDocument
+  private applyDocChangeToY(
+    binding: SharedBinding,
+    previousDocText: string,
+    currentDocText: string
   ): void {
-    type Op = { start: number; end: number; text: string | null };
-    const ops: Op[] = [];
-    let cursor = 0;
-    for (const d of event.delta) {
-      if (d.retain != null) {
-        cursor += d.retain;
-      } else if (d.delete != null) {
-        ops.push({ start: cursor, end: cursor + d.delete, text: null });
-        // Advance cursor past the deleted region in the OLD document.
-        cursor += d.delete;
-      } else if (d.insert != null) {
-        const t = (d.insert as string) || '';
-        ops.push({ start: cursor, end: cursor, text: t });
-        // Cursor does not advance for inserts (old-doc coordinates).
-      }
-    }
-    if (ops.length === 0) return;
-
-    // Apply end → start so earlier positions remain valid as the doc
-    // mutates.
-    const edit = new vscode.WorkspaceEdit();
-    for (let i = ops.length - 1; i >= 0; i--) {
-      const op = ops[i];
-      if (op.text !== null) {
-        edit.insert(doc.uri, doc.positionAt(op.start), op.text);
-      } else {
-        edit.delete(
-          doc.uri,
-          new vscode.Range(
-            doc.positionAt(op.start),
-            doc.positionAt(op.end)
-          )
-        );
-      }
+    const yContent = binding.yText.toString();
+    if (currentDocText === yContent) {
+      // Already consistent — nothing to push.
+      return;
     }
 
-    // Mark this URI as having a pending apply so the resulting
-    // onDidChangeTextDocument echo is ignored.
-    this.incrementPendingApply(doc.uri.toString());
-    void vscode.workspace.applyEdit(edit);
+    // Map the edit through whatever remote changes have landed in the
+    // shared text since the document was last in sync with it. This is
+    // what keeps a concurrent edit made elsewhere in the file from
+    // being overwritten.
+    const ops = planLocalEdit(yContent, previousDocText, currentDocText);
+    if (ops.length === 0) {
+      return;
+    }
+
+    this.ydoc.transact(() => {
+      // Apply from last to first: deleting and inserting shifts the
+      // offsets of everything after it, so the later operations have
+      // to land before the earlier ones move them.
+      for (let i = ops.length - 1; i >= 0; i--) {
+        const op = ops[i];
+        if (op.deleteCount > 0) {
+          binding.yText.delete(op.start, op.deleteCount);
+        }
+        if (op.text.length > 0) {
+          binding.yText.insert(op.start, op.text);
+        }
+      }
+    }, 'local-edit');
+
+    // The Y.Text now holds the document's content, but a remote change
+    // may have arrived in the same window. Queue a doc sync so the
+    // document ends up holding the merged result.
+    this.enqueueSyncDoc(binding);
   }
 
   /**
-   * Replace the document's content with the yText content (used during
-   * initial sync and when reverting a viewer's local edit).
+   * Queue a "make the document match the Y.Text" step.
+   *
+   * Writes are serialised through `binding.writeQueue`: VS Code applies
+   * edits asynchronously, and two overlapping `applyEdit` calls would
+   * each be computed against a document state the other had already
+   * invalidated.
    */
-  private pushYTextToDoc(binding: SharedBinding): void {
-    const yContent = binding.yText.toString();
-    const dContent = binding.doc.getText();
-    if (yContent === dContent) return;
+  private enqueueSyncDoc(binding: SharedBinding): void {
+    binding.writeQueue = binding.writeQueue
+      .then(() => this.syncDocNow(binding))
+      .catch(() => { /* a failed write is retried by the next change */ });
+  }
 
-    const fullRange = new vscode.Range(
-      binding.doc.positionAt(0),
-      binding.doc.positionAt(Math.max(1, dContent.length))
-    );
+  /** The actual "document := Y.Text" step. Runs on the write queue. */
+  private async syncDocNow(binding: SharedBinding): Promise<void> {
+    const target = binding.yText.toString();
+    const current = binding.doc.getText();
+    if (current === target) {
+      return;
+    }
+
+    // Diff the two contents and apply only the regions that actually
+    // differ. A whole-document replacement would lose the cursor
+    // position and, for large files, is expensive.
+    const hunks = diffHunks(current, target);
+    if (hunks.length === 0) return;
+
     const edit = new vscode.WorkspaceEdit();
-    edit.replace(binding.doc.uri, fullRange, yContent);
-    this.incrementPendingApply(binding.uri);
-    void vscode.workspace.applyEdit(edit);
+    for (const hunk of hunks) {
+      const startPos = binding.doc.positionAt(hunk.aStart);
+      const endPos = binding.doc.positionAt(hunk.aEnd);
+      edit.replace(
+        binding.doc.uri,
+        new vscode.Range(startPos, endPos),
+        target.slice(hunk.bStart, hunk.bEnd)
+      );
+    }
+
+    await vscode.workspace.applyEdit(edit);
   }
 
   /** Replace the document's content with the yText content (viewer revert). */
   private revertDocToYText(binding: SharedBinding): void {
-    this.pushYTextToDoc(binding);
+    this.enqueueSyncDoc(binding);
     void vscode.window.showWarningMessage(
       'Eric Collab: viewers are read-only — your edit was reverted.'
     );
-  }
-
-  private incrementPendingApply(uri: string): void {
-    this.pendingApplies.set(uri, (this.pendingApplies.get(uri) || 0) + 1);
-  }
-
-  /**
-   * Returns true if the caller should ignore this change event because
-   * it was caused by a previous applyEdit from this client.
-   */
-  private consumePendingApply(uri: string): boolean {
-    const count = this.pendingApplies.get(uri) || 0;
-    if (count <= 0) return false;
-    if (count === 1) this.pendingApplies.delete(uri);
-    else this.pendingApplies.set(uri, count - 1);
-    return true;
-  }
-
-  private applyDocChangesToY(
-    changes: readonly vscode.TextDocumentContentChangeEvent[],
-    yText: Y.Text
-  ): void {
-    this.ydoc.transact(() => {
-      // Apply in reverse so positions don't shift.
-      const sorted = [...changes].sort(
-        (a, b) =>
-          b.rangeOffset + b.rangeLength - (a.rangeOffset + a.rangeLength)
-      );
-      for (const change of sorted) {
-        const retain = change.rangeOffset;
-        if (retain > yText.length) continue;
-        if (change.rangeLength > 0) {
-          yText.delete(retain, change.rangeLength);
-        }
-        if (change.text.length > 0) {
-          yText.insert(retain, change.text);
-        }
-      }
-    });
   }
 
   private setState(state: CollabState): void {
@@ -810,19 +902,36 @@ export class CollabClient extends EventEmitter {
   private emitPresence(): void {
     if (!this.awareness) return;
     const states = this.awareness.getStates();
-    const users: UserPresence[] = [];
+    // One entry per *user*, not per awareness state. The same user can
+    // legitimately have several awareness states in a room: every
+    // code-server window that ever ran the extension keeps broadcasting
+    // its state until the relay expires it, and they all share the same
+    // persisted `userId`. Counting states would report one person as
+    // three or four users. When a user has several states, keep the
+    // most informative one — the one that published a `fileUri` (the
+    // active file) beats a bare state.
+    const byUser = new Map<string, UserPresence>();
     for (const [clientId, state] of states.entries()) {
       const u = presenceToUser(state);
-      if (u) {
-        // Fill in the permission from our Y.Map snapshot if the
-        // awareness state didn't include it yet (it does once
-        // refreshLocalPermission runs).
-        if (!u.permission) {
-          u.permission = this.getUserPermission(u.userId);
-        }
-        users.push(u);
+      if (!u) continue;
+      // Fill in the permission from our Y.Map snapshot if the
+      // awareness state didn't include it yet (it does once
+      // refreshLocalPermission runs).
+      if (!u.permission) {
+        u.permission = this.getUserPermission(u.userId);
       }
+      const existing = byUser.get(u.userId);
+      if (!existing) {
+        byUser.set(u.userId, u);
+        continue;
+      }
+      const better = (a: UserPresence, b: UserPresence) => {
+        if (!!a.fileUri !== !!b.fileUri) return !!a.fileUri;
+        if (!!a.filePath !== !!b.filePath) return !!a.filePath;
+        return (a.joinedAt ?? 0) >= (b.joinedAt ?? 0);
+      };
+      if (better(u, existing)) byUser.set(u.userId, u);
     }
-    this.emit('presenceChange', users);
+    this.emit('presenceChange', Array.from(byUser.values()));
   }
 }

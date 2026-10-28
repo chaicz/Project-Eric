@@ -24,6 +24,12 @@ import {
 } from './roomManager';
 import { TunnelManager, TunnelState, TunnelInfo } from './tunnelManager';
 import { ensureLocalUser, type LocalUserContext } from './userPresence';
+import {
+  readSessionState,
+  writeSessionState,
+  clearSessionState,
+  consumeStartRequest,
+} from './sessionState';
 import { EricCollabViewProvider, type SidebarViewState } from './sidebarView';
 import type { CollabPermission, UserPresence } from './types';
 
@@ -354,6 +360,14 @@ export async function activate(context: vscode.ExtensionContext) {
       client.bindDocument(doc);
     }
   });
+  // Switching tabs changes which file the host is "working on" — the
+  // guests' Lite Viewer follows the host's active editor, so it has to
+  // be republished on every editor switch.
+  const onActiveEditorChange = vscode.window.onDidChangeActiveTextEditor((editor) => {
+    if (client && client.state === 'connected' && editor) {
+      client.publishActiveFile(editor.document);
+    }
+  });
   const onDocClose = vscode.workspace.onDidCloseTextDocument((doc) => {
     if (client) {
       client.unbindDocument(doc.uri);
@@ -377,6 +391,7 @@ export async function activate(context: vscode.ExtensionContext) {
     onEditorChange,
     onDocOpen,
     onDocClose,
+    onActiveEditorChange,
     statusBar,
     {
       dispose: () => {
@@ -406,6 +421,54 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await maybeAutoJoinFromUrl();
   await maybeReconnectPersistedSession();
+
+  // ---- Bridge with the dashboard's Collaboration page -------------------
+  //
+  // The dashboard (Vite dev server) cannot call VS Code commands, so it
+  // writes a `startRequested` flag into the shared session file instead.
+  // We poll for it here and act on it, which makes the dashboard's
+  // "Start session" button work with a single click.
+  //
+  // The same file also carries the Cloudflare tunnel origin, which we
+  // publish back into the dashboard so it can build the share link.
+  const bridgeTimer = setInterval(() => {
+    try {
+      if (consumeStartRequest()) {
+        outputChannel?.appendLine(
+          '[Eric Collab] dashboard requested a session — starting one.'
+        );
+        void startSession();
+      }
+      const state = readSessionState();
+      const origin = tunnel.getPublicUrl() || client?.publicOrigin || null;
+      if (origin && state.publicUrl !== origin) {
+        writeSessionState({ publicUrl: origin });
+      }
+
+      // Publish the live session so the dashboard always shows the real
+      // room code. Without this the Collaboration page stays blank
+      // whenever the session was started somewhere else — most often
+      // when the extension auto-reconnects to the room it persisted
+      // from the previous run, and the dashboard's own "Start session"
+      // button then hits the "a session is already active" guard and
+      // never publishes anything.
+      if (client && client.state !== 'idle' && client.roomId) {
+        if (state.roomId !== client.roomId || state.role !== 'host') {
+          writeSessionState({
+            roomId: client.roomId,
+            signalingServer: client.signalingServer,
+            role: 'host',
+            startedAt: state.startedAt || Date.now(),
+          });
+        }
+      }
+    } catch (e: any) {
+      outputChannel?.appendLine(
+        `[Eric Collab] dashboard bridge error: ${e?.message || e}`
+      );
+    }
+  }, 2000);
+  context.subscriptions.push({ dispose: () => clearInterval(bridgeTimer) });
 
   outputChannel?.appendLine('[Eric Collab] ready.');
 }
@@ -447,7 +510,21 @@ function detectLocalPort(): number {
 
 async function startSession(): Promise<void> {
   if (client && client.state !== 'idle') {
-    vscode.window.showInformationMessage('A session is already active.');
+    // A session is already running (most often the one the extension
+    // restored from the previous run). The dashboard asked for a
+    // session, so publish what is actually live instead of bailing
+    // out — otherwise the Collaboration page would sit on "not
+    // started" while a perfectly good room is open.
+    writeSessionState({
+      roomId: client.roomId,
+      signalingServer: client.signalingServer,
+      role: 'host',
+      startedAt: readSessionState().startedAt || Date.now(),
+    });
+    outputChannel?.appendLine(
+      `[Eric Collab] dashboard requested a session, but room ${client.roomId} is already active — published it instead.`
+    );
+    pushSidebarState();
     return;
   }
   const roomId = generateRoomId();
@@ -472,6 +549,15 @@ async function startSession(): Promise<void> {
     signalingServer: infoNoTunnel.signalingServer,
     publicOrigin: undefined,
     role: 'host',
+  });
+  // Publish the session so the dashboard's Collaboration page can show
+  // the room code and build the share link without the user having to
+  // copy it by hand.
+  writeSessionState({
+    roomId,
+    signalingServer: infoNoTunnel.signalingServer,
+    role: 'host',
+    startedAt: Date.now(),
   });
   await copyInvite();
   pushSidebarState();
@@ -561,6 +647,9 @@ function leaveSession(): void {
   void vscode.commands.executeCommand('setContext', 'ericCollab.active', false);
   void vscode.commands.executeCommand('setContext', 'ericCollab.tunnelUp', false);
   void clearPersistedSession();
+  // Tell the dashboard the session is over so its Collaboration page
+  // stops advertising a room code that no longer exists.
+  clearSessionState();
   vscode.window.showInformationMessage(`Eric Collab: left room ${room}.`);
   outputChannel?.appendLine(`[Eric Collab] left room ${room}`);
   pushSidebarState();
@@ -703,11 +792,21 @@ function pushSidebarState(): void {
     signalingServer: client?.signalingServer || defaultSig,
     publicUrl: client?.publicOrigin ?? tunnel.getPublicUrl() ?? null,
     liteViewerUrl: (() => {
-      const base = (cfg.get<string>('liteViewerUrl') || '').replace(/\/$/, '');
+      const cfg = vscode.workspace.getConfiguration('ericCollab');
+      const configured = (cfg.get<string>('liteViewerUrl') || '').trim();
+      let base = configured.replace(/\/$/, '');
+      let server = client?.signalingServer || '';
+      if (!base) {
+        const shared = readSessionState();
+        if (shared.publicUrl) {
+          base = String(shared.publicUrl).replace(/\/$/, '');
+          server = `${base.replace(/^http/, 'ws')}/collab-ws`;
+        }
+      }
       if (!base || !client) return null;
       const params = new URLSearchParams({
         room: client.roomId,
-        server: client.signalingServer,
+        server: server || `${base.replace(/^http/, 'ws')}/collab-ws`,
       });
       return `${base}/viewer?${params.toString()}`;
     })(),

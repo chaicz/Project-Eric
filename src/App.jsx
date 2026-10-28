@@ -29,6 +29,7 @@ import OWASPScanner from './pages/OWASPScanner';
 import OWASPAnalysis from './pages/OWASPAnalysis';
 import IDEWorkspace from './pages/IDEWorkspace';
 import EricCollabLiteViewer from './pages/EricCollabLiteViewer';
+import Collab from './pages/Collab';
 
 // Components
 import Layout from './components/layout/Layout';
@@ -135,6 +136,7 @@ function App() {
                 <Route path="/owasp-analysis" element={<OWASPAnalysis />} />
                 <Route path="/owasp" element={<OWASPScanner />} />
                 <Route path="/ide" element={<IDEWorkspace />} />
+                <Route path="/collab" element={<Collab />} />
               </Route>
 
               {/* Public Pages */}
