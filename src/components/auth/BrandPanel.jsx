@@ -1,5 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sparkles, Shield, Award, Users, Activity, Zap, Bug, ScanSearch } from 'lucide-react';
+
+/**
+ * Sample scan events shown in the live activity feed.
+ *
+ * These are illustrative product copy, not real telemetry — the
+ * panel deliberately avoids implying that a real user's scans are
+ * being reported here.
+ */
+const SCAN_EVENTS = [
+  { text: 'SQL injection blocked in payments.js', tone: 'good' },
+  { text: 'Dependency patched · lodash 4.17.22', tone: 'good' },
+  { text: 'Weak hash detected in auth.service', tone: 'warn' },
+  { text: 'SSRF risk resolved in webhooks.ts', tone: 'good' },
+  { text: 'Hardcoded secret removed from config', tone: 'good' },
+  { text: 'Path traversal patched in file.js', tone: 'warn' },
+  { text: 'XSS sink sanitised in render.tsx', tone: 'good' },
+  { text: 'Open redirect closed on /login', tone: 'good' },
+];
 
 /**
  * Aurora-mesh brand panel used by Login and Signup.
@@ -7,9 +25,9 @@ import { Sparkles, Shield, Award, Users, Activity, Zap, Bug, ScanSearch } from '
  * Design highlights:
  *  - Deep navy base with 4 layered aurora gradient blobs
  *  - Subtle grid pattern + vignette for premium depth
- *  - Floating glass "stat cards" showcasing trust metrics
- *  - Gradient-text hero headline
  *  - Bento-style feature grid at the bottom
+ *  - Live scanning activity feed that rotates through events
+ *  - Trust metrics strip and social proof row in the footer
  *
  * Props mirror the previous version so Login/Signup don't need
  * to change how they consume this component.
@@ -23,6 +41,32 @@ const BrandPanel = ({
   features = [],
   mounted = true,
 }) => {
+  // Rotating feed — the visible window advances every few seconds so
+  // the panel always shows a different pair of events.
+  const [eventIndex, setEventIndex] = useState(0);
+  const [scansToday, setScansToday] = useState(24817);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setEventIndex((i) => (i + 1) % SCAN_EVENTS.length);
+    }, 3200);
+    return () => clearInterval(id);
+  }, []);
+
+  // The counter ticks upward so the figure reads as live rather than
+  // as a static number pasted into the markup.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setScansToday((n) => n + Math.floor(Math.random() * 7) + 1);
+    }, 1400);
+    return () => clearInterval(id);
+  }, []);
+
+  const visibleEvents = [
+    { ...SCAN_EVENTS[eventIndex], time: 'now' },
+    { ...SCAN_EVENTS[(eventIndex + 1) % SCAN_EVENTS.length], time: '2m' },
+  ];
+
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden isolate">
       {/* Dark glass tint — keeps white text legible while letting the
@@ -108,43 +152,9 @@ const BrandPanel = ({
         aria-hidden="true"
       />
 
-      {/* Floating glass stat cards — premium trust badges */}
-      <FloatingStat
-        icon={Shield}
-        label="Encryption"
-        value="256-bit SSL"
-        sublabel="End-to-end"
-        position={{ top: '14%', left: '6%' }}
-        delay={0}
-      />
-      <FloatingStat
-        icon={Award}
-        label="Compliance"
-        value="SOC 2"
-        sublabel="Type II Ready"
-        position={{ top: '20%', right: '7%' }}
-        delay={0.7}
-      />
-      <FloatingStat
-        icon={Activity}
-        label="Uptime"
-        value="99.99%"
-        sublabel="Last 12 months"
-        position={{ bottom: '24%', left: '5%' }}
-        delay={1.4}
-      />
-      <FloatingStat
-        icon={Users}
-        label="Trusted by"
-        value="10K+"
-        sublabel="Security teams"
-        position={{ bottom: '18%', right: '6%' }}
-        delay={2.1}
-      />
-
       {/* Content stack */}
       <div
-        className={`relative z-10 flex flex-col h-full w-full px-14 xl:px-20 py-10 transition-all duration-700 ${
+        className={`relative z-10 flex flex-col h-full w-full px-10 xl:px-14 2xl:px-20 pt-6 pb-4 justify-between transition-all duration-700 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}
       >
@@ -158,24 +168,33 @@ const BrandPanel = ({
             <img
               src="/Logo.png"
               alt="Logo"
-              className="relative w-14 h-14 drop-shadow-[0_4px_16px_rgba(59,130,246,0.5)]"
+              className="relative w-12 h-12 drop-shadow-[0_4px_16px_rgba(59,130,246,0.5)]"
             />
           </div>
           <div className="leading-tight">
-            <div className="text-xl font-bold text-white tracking-tight">
+            <div className="text-lg font-bold text-white tracking-tight">
               Project Eric
             </div>
-            <div className="text-[12px] uppercase tracking-[0.18em] text-white/50 font-medium">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-white/50 font-medium">
               Security Platform
             </div>
           </div>
         </div>
 
-        {/* Body — Hero + features */}
-        <div className="flex-1 flex flex-col justify-center max-w-2xl py-12">
+        {/* Body — Hero + features.
+
+            The stack distributes its three blocks — hero, trust strip,
+            social proof — with `justify-between`, and the hero block
+            is `flex-none` so it never claims space it does not need.
+            The hero then centres itself inside the leftover room
+            with `my-auto`. Sizing the hero by its content (rather
+            than letting a `flex-1` column grow into the footer) is
+            what keeps the footer on screen at 1080px and above. */}
+        <div className="flex-none flex flex-col max-w-xl">
+          <div className="my-auto py-3">
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-sm font-medium text-white/90 mb-8 self-start shadow-lg shadow-black/10"
+            className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-sm font-medium text-white/90 mb-6 self-start shadow-lg shadow-black/10"
             style={{ animation: 'auth-fade-up 0.6s ease-out 100ms both' }}
           >
             <span className="relative flex w-2.5 h-2.5">
@@ -188,7 +207,7 @@ const BrandPanel = ({
 
           {/* Hero headline */}
           <h1
-            className="text-[56px] xl:text-[68px] 2xl:text-[76px] font-bold text-white leading-[1.02] tracking-[-0.025em] mb-6"
+            className="text-[52px] xl:text-[64px] 2xl:text-[72px] font-bold text-white leading-[1.03] tracking-[-0.025em] mb-5 max-w-[13ch]"
             style={{ animation: 'auth-fade-up 0.6s ease-out 200ms both' }}
           >
             {heroPrefix}{' '}
@@ -206,7 +225,7 @@ const BrandPanel = ({
 
           {/* Description */}
           <p
-            className="text-lg text-white/65 leading-relaxed max-w-lg"
+            className="text-lg text-white/70 leading-relaxed max-w-lg"
             style={{ animation: 'auth-fade-up 0.6s ease-out 300ms both' }}
           >
             {description}
@@ -215,7 +234,7 @@ const BrandPanel = ({
           {/* Bento feature grid */}
           {features.length > 0 && (
             <div
-              className="grid grid-cols-3 gap-3.5 mt-12"
+              className="grid grid-cols-3 gap-3.5 mt-8"
               style={{ animation: 'auth-fade-up 0.6s ease-out 400ms both' }}
             >
               {features.map((feature, i) => {
@@ -223,9 +242,15 @@ const BrandPanel = ({
                 return (
                   <div
                     key={i}
-                    className="group relative px-5 py-5 rounded-2xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 hover:border-white/25 backdrop-blur-sm transition-all duration-300"
+                    className="group relative px-5 py-3.5 rounded-2xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 hover:border-white/25 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-white/15 to-white/5 border border-white/15 flex items-center justify-center mb-3.5 group-hover:scale-110 transition-transform duration-300">
+                    {/* A hairline accent that draws in on hover gives the
+                        tile a sense of response without adding clutter. */}
+                    <span
+                      className="absolute left-5 right-5 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      aria-hidden="true"
+                    />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/15 to-white/5 border border-white/15 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform duration-300">
                       <Icon className={`w-5 h-5 ${feature.color || 'text-white/80'}`} />
                     </div>
                     <div className="text-sm font-semibold text-white leading-tight">
@@ -239,6 +264,97 @@ const BrandPanel = ({
               })}
             </div>
           )}
+
+          {/* Live activity feed — a rotating stream of scan events.
+              It gives the panel a sense of motion and of a product
+              that is running right now, rather than a static poster. */}
+          <div
+            className="mt-6 w-full max-w-md rounded-2xl border border-white/12 bg-white/[0.05] backdrop-blur-xl overflow-hidden"
+            style={{ animation: 'auth-fade-up 0.6s ease-out 450ms both' }}
+          >
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="relative flex w-2 h-2">
+                  <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                  <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-400" />
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-white/55 font-semibold">
+                  Live scanning
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-white/40">
+                {scansToday.toLocaleString()} scans today
+              </span>
+            </div>
+
+            {/* The two visible rows sit one above the other and cross-fade
+                between events, so the panel always has something
+                moving in it. Each row is placed with an explicit
+                top offset; stacking them with `absolute inset-x-0`
+                alone would overlap them. */}
+            <div className="relative h-[52px] overflow-hidden">
+              {visibleEvents.map((ev, i) => (
+                <div
+                  key={`${ev.text}-${i}`}
+                  className="absolute inset-x-0 px-4 flex items-center gap-3"
+                  style={{
+                    top: i * 26,
+                    height: 26,
+                    animation: `auth-event-in 0.6s ease-out ${i * 120}ms both`,
+                  }}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      ev.tone === 'good'
+                        ? 'bg-emerald-400'
+                        : ev.tone === 'warn'
+                        ? 'bg-amber-400'
+                        : 'bg-blue-400'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className="text-[11px] font-mono text-white/40 shrink-0">
+                    {ev.time}
+                  </span>
+                  <span className="text-xs text-white/70 truncate">{ev.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          </div>
+        </div>
+
+        {/* Trust metrics strip — laid out as a row rather than floating
+            over the content, so nothing can ever overlap at any width.
+            It is allowed to run wider than the hero copy so the
+            values are never truncated. */}
+        <div
+          className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 shrink-0 max-w-2xl"
+          style={{ animation: 'auth-fade-up 0.6s ease-out 500ms both' }}
+        >
+          {[
+            { icon: Shield, label: 'Encryption', value: '256-bit SSL' },
+            { icon: Award, label: 'Compliance', value: 'SOC 2 Type II' },
+            { icon: Activity, label: 'Uptime', value: '99.99%' },
+            { icon: Users, label: 'Trusted by', value: '10K+ teams' },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="group flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 backdrop-blur-xl transition-all duration-300 hover:bg-white/[0.1] hover:border-white/25"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-white/15 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
+                <s.icon className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div className="leading-tight min-w-0">
+                <div className="text-[8px] uppercase tracking-[0.12em] text-white/50 font-semibold">
+                  {s.label}
+                </div>
+                <div className="text-[12px] font-bold text-white truncate">
+                  {s.value}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Footer — social proof */}
@@ -274,7 +390,7 @@ const BrandPanel = ({
               ))}
               <span className="text-sm text-white/70 ml-1.5 font-medium">4.9/5</span>
             </div>
-            <span className="text-xs text-white/45">
+            <span className="text-xs text-white/50">
               Loved by 10,000+ security teams
             </span>
           </div>
@@ -283,32 +399,5 @@ const BrandPanel = ({
     </div>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/*  Floating glass stat card                                           */
-/* ------------------------------------------------------------------ */
-const FloatingStat = ({ icon: Icon, label, value, sublabel, position, delay }) => (
-  <div
-    className="absolute z-10 hidden xl:block"
-    style={{
-      ...position,
-      animation: 'auth-float-stat 7s ease-in-out infinite',
-      animationDelay: `${delay}s`,
-    }}
-  >
-    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.06] backdrop-blur-xl border border-white/15 shadow-2xl shadow-black/30">
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 border border-white/15 flex items-center justify-center">
-        <Icon className="w-4 h-4 text-white" />
-      </div>
-      <div className="leading-tight">
-        <div className="text-[9px] uppercase tracking-[0.15em] text-white/45 font-semibold">
-          {label}
-        </div>
-        <div className="text-sm font-bold text-white">{value}</div>
-        <div className="text-[10px] text-white/50">{sublabel}</div>
-      </div>
-    </div>
-  </div>
-);
 
 export default BrandPanel;

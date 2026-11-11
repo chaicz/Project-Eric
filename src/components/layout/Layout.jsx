@@ -16,7 +16,6 @@ import {
   Users,
   Key,
   ClipboardList,
-  Plug,
   Home,
   X,
   HelpCircle,
@@ -28,9 +27,21 @@ import {
   Rocket,
   Sparkles,
   ShieldCheck,
+  Server,
 } from 'lucide-react';
 import { useToast } from '../Toast';
 import ThemeToggle from './ThemeToggle';
+import { dashboardAPI } from '../../services/api';
+import {
+  buildWorkbenchUrl,
+  getCodeServerStatus,
+  getUserWorkspace,
+  getUserWorkbenchStatus,
+  launchUserWorkbench,
+  startCodeServer,
+  waitForCodeServer,
+} from '../../services/codeServer';
+import { applyAccentColor, DEFAULT_ACCENT } from '../../utils/accentColor';
 
 // Animated Background Component
 const AnimatedBackground = () => (
@@ -100,33 +111,57 @@ const OutletWrapper = () => {
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/analysis', label: 'Analysis', icon: ScanSearch },
-  { path: '/threats', label: 'Threats', icon: AlertTriangle },
-  { path: '/reports', label: 'Reports', icon: FileText },
+  { path: '/security', label: 'Security', icon: ShieldCheck },
+  { path: '/team', label: 'Team', icon: Users },
 ];
 
-// Tools nav. Most items are local React routes, but the IDE link needs
-// to open vscode.dev in a new tab (the user runs their actual development
-// work in that hosted environment; the React `IDEWorkspace` page is kept
-// around for direct deep-linking at `/ide`).
+// Tools nav. Most items are local React routes. The Code Server entry
+// is an action rather than a link: it launches the real coder/code-server
+// workbench, starting it first if it is not already listening on port
+// 8080.
+const CODE_SERVER_URL = 'http://127.0.0.1:8080';
+
 const TOOLS_ITEMS = [
   {
-    label: 'IDE',
-    icon: Code2,
-    external: true,
-    href: 'https://vscode.dev/',
+    label: 'Code Server',
+    icon: Server,
+    action: 'code-server',
   },
   { path: '/owasp', label: 'OWASP Scanner', icon: ShieldCheck },
 ];
 
+// Render a short loading card inside the freshly opened popup so the user
+// sees something meaningful while code-server boots. The popup starts on
+// `about:blank`, which is same-origin, so we can write into it directly.
+const writeLauncherCard = (win, message, detail) => {
+  if (!win || win.closed) return;
+  try {
+    win.document.title = 'Project Eric — code-server';
+    win.document.body.innerHTML = `
+      <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;height:100vh;margin:0;
+                  display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  gap:14px;background:#0b1220;color:#e2e8f0;text-align:center;padding:24px">
+        <div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#2563eb,#06b6d4);
+                    display:flex;align-items:center;justify-content:center;font-size:22px">&#60;/&gt;</div>
+        <div style="font-size:15px;font-weight:600">${message}</div>
+        <div style="font-size:12px;color:#94a3b8;max-width:420px;line-height:1.5">${detail || ''}</div>
+        <div style="width:220px;height:4px;border-radius:999px;background:#1e293b;overflow:hidden">
+          <div style="width:40%;height:100%;border-radius:999px;background:linear-gradient(90deg,#2563eb,#06b6d4);
+                      animation:ericSlide 1.1s ease-in-out infinite"></div>
+        </div>
+      </div>
+      <style>@keyframes ericSlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}</style>`;
+  } catch {
+    /* the popup already navigated away — nothing to paint */
+  }
+};
+
 const SYSTEM_ITEMS = [
-  { path: '/api-keys', label: 'AI API Keys', icon: Bot },
   { path: '/audit-logs', label: 'Audit Logs', icon: ClipboardList },
-  { path: '/integrations', label: 'Integrations', icon: Plug },
 ];
 
 const Layout = () => {
-  const { user, logout, theme, setTheme, accentColor } = useApp();
+  const { user, logout, resolvedTheme, setTheme, accentColor } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -137,25 +172,60 @@ const Layout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // The account's own alerts. The list used to be a fixed set of demo
+  // entries, so a brand-new account was told about a SQL injection in a
+  // project it does not own. The API owns the list now.
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const data = await dashboardAPI.getNotifications();
+      const list = Array.isArray(data?.notifications) ? data.notifications : [];
+      setNotifications(list);
+      setUnreadCount(typeof data?.unread === 'number' ? data.unread : list.filter((n) => !n.read).length);
+    } catch {
+      // The backend is unreachable. An empty list is the honest answer:
+      // there is nothing to report.
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  // Refresh the bell whenever the window regains focus, so a scan that
+  // finished in another tab shows up without a manual reload.
+  useEffect(() => {
+    const onFocus = () => loadNotifications();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadNotifications]);
+
   // Initialize dark mode + accent color from localStorage on mount (before paint to avoid flash)
   useEffect(() => {
     const savedTheme = localStorage.getItem('project-eric_theme') || 'light';
     if (savedTheme === 'dark') {
       document.documentElement.classList.add('dark');
     }
-    const savedAccent = localStorage.getItem('project-eric_accent') || '#3B82F6';
-    document.documentElement.style.setProperty('--accent-color', savedAccent);
+    const savedAccent = localStorage.getItem('project-eric_accent') || DEFAULT_ACCENT;
+    applyAccentColor(savedAccent);
   }, []);
 
-  // Keep <html> in sync if theme changes from elsewhere
+  // Keep <html> in sync if theme changes from elsewhere.
+  // `resolvedTheme` is used rather than `theme`, so the 'system'
+  // option keeps following the operating system instead of being
+  // forced back to light.
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
+    document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+  }, [resolvedTheme]);
 
   // Keep <html> accent custom property in sync if accent changes elsewhere
   useEffect(() => {
     if (accentColor) {
-      document.documentElement.style.setProperty('--accent-color', accentColor);
+      applyAccentColor(accentColor);
     }
   }, [accentColor]);
 
@@ -177,22 +247,182 @@ const Layout = () => {
   // transition begins the moment the user presses the button. The
   // existing `html.theme-transition` rule in index.css animates all
   // colors over 300ms for a smooth blend across every surface.
+  //
+  // With the 'system' theme selected the toggle switches to the
+  // opposite of what is on screen, which turns the choice into an
+  // explicit one rather than fighting the operating system.
   const toggleDarkMode = useCallback(() => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
+    const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
     const root = document.documentElement;
     root.classList.add('theme-transition');
     root.classList.toggle('dark', newTheme === 'dark');
     setTheme(newTheme);
-    localStorage.setItem('project-eric_theme', newTheme);
     // Drop the helper class after the animation so it doesn't affect
     // normal hover/focus transitions.
     setTimeout(() => root.classList.remove('theme-transition'), 350);
-  }, [theme, setTheme]);
+  }, [resolvedTheme, setTheme]);
 
-  const handleLogout = () => {
-    logout();
+  // Signing out has to finish *before* the navigation.
+  //
+  // `logout()` is asynchronous: it calls the API, clears the token and
+  // drops the user. Navigating to /login before that happened left the
+  // session state saying "signed in", so the auth guard bounced the
+  // browser back to /dashboard, and the cleared session then pushed it
+  // to /landing — the visitor ended up on the marketing page instead of
+  // the sign-in page.
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
+
+  // ---- Launch the coder/code-server workbench ----------------------------
+  //
+  // The sidebar entry is the app's shortcut into the real editor. It
+  // talks to the workbench through `src/services/codeServer.js`: we probe
+  // the health endpoint, and — while the Vite dev server is running — we
+  // can start code-server on demand through scripts/start-ide.ps1.
+  //
+  // The workbench belongs to the signed-in account. The API owns that
+  // mapping (it is stored in MySQL), so we ask it which workspace to
+  // open and let the dev middleware bring that account's instance up.
+  // When the API or the middleware cannot be reached we fall back to the
+  // shared workbench, still opening the account's folder in it.
+  //
+  // The popup is opened synchronously so the browser's pop-up blocker
+  // sees a user gesture. While code-server boots we paint a loading card
+  // into that window instead of leaving a blank page behind.
+  const [codeServerState, setCodeServerState] = useState('idle'); // idle | starting
+
+  const handleOpenCodeServer = useCallback(async () => {
+    if (codeServerState !== 'idle') return;
+    setCodeServerState('starting');
+
+    const win = window.open('about:blank', 'eric-code-server');
+    if (win) {
+      writeLauncherCard(win, 'Connecting to code-server…', CODE_SERVER_URL);
+    }
+
+    try {
+      // ---- The account's own workspace ----------------------------------
+      const account = await getUserWorkspace();
+      const workspaceName = account?.workspace?.name || null;
+      const workspacePath = account?.workspace?.path || null;
+
+      if (workspaceName) {
+        writeLauncherCard(
+          win,
+          'Starting your workbench…',
+          `Project Eric is opening the IDE workspace that belongs to ${account?.user?.name || 'your account'}.`
+        );
+
+        const launched = await launchUserWorkbench({ workspaceName });
+
+        if (launched.ok) {
+          // The instance may still be booting — poll until it answers.
+          let ready = false;
+          for (let i = 0; i < 60 && !ready; i++) {
+            const state = await getUserWorkbenchStatus({ workspaceName });
+            ready = state.running;
+            if (!ready) {
+              await new Promise((r) => setTimeout(r, 1000));
+              writeLauncherCard(win, 'Starting your workbench…', 'Waiting for your workbench to answer.');
+            }
+          }
+
+          if (ready) {
+            const target = buildWorkbenchUrl({
+              url: launched.url || account?.workspace?.codeServerUrl,
+              folder: workspacePath,
+            });
+            if (win) {
+              win.location.href = target;
+            } else {
+              showToast('Pop-up blocked — opening code-server in this tab instead.', 'warning');
+              window.location.href = target;
+            }
+            showToast('Your code-server workbench is open.', 'success');
+            return;
+          }
+        }
+
+        // The per-account instance could not be started (no dev server,
+        // or code-server is not installed). Fall through to the shared
+        // workbench below, still on the account's folder.
+        writeLauncherCard(
+          win,
+          'Connecting to code-server…',
+          'Opening the shared workbench on your account folder.'
+        );
+      }
+
+      // ---- Shared workbench (fallback) -----------------------------------
+      let status = await getCodeServerStatus();
+
+      if (!status.running) {
+        if (!status.managed) {
+          // Production build — there is no dev middleware to launch it for us.
+          showToast(
+            'code-server is not running. Start it with `npm run ide:start`, then click Code Server again.',
+            'warning',
+            9000
+          );
+          win?.close();
+          return;
+        }
+
+        writeLauncherCard(
+          win,
+          'Starting code-server…',
+          'Project Eric is launching the workbench from coder/code-server. This takes a few seconds.'
+        );
+        showToast('Starting code-server — this takes a few seconds…', 'info');
+
+        const started = await startCodeServer();
+        if (!started.ok) {
+          showToast(started.error || 'Could not start code-server.', 'error', 10000);
+          win?.close();
+          return;
+        }
+
+        const up = await waitForCodeServer({
+          timeoutMs: 60000,
+          onTick: () =>
+            writeLauncherCard(win, 'Starting code-server…', 'Waiting for the workbench to answer on port 8080.'),
+        });
+
+        if (!up) {
+          showToast(
+            'code-server did not come up in time. Check C:\\tools\\code-server\\logs\\code-server.log.',
+            'error',
+            12000
+          );
+          win?.close();
+          return;
+        }
+
+        status = await getCodeServerStatus();
+      }
+
+      // Open the workbench with the Project Eric workspace already loaded
+      // in the Explorer. The account's own folder wins when we know it.
+      const target = buildWorkbenchUrl({
+        folder: workspacePath || status.workspace,
+      });
+
+      if (win) {
+        win.location.href = target;
+      } else {
+        showToast('Pop-up blocked — opening code-server in this tab instead.', 'warning');
+        window.location.href = target;
+      }
+      showToast('code-server opened.', 'success');
+    } catch (err) {
+      showToast(err?.message || 'Could not open code-server.', 'error', 10000);
+      win?.close();
+    } finally {
+      setCodeServerState('idle');
+    }
+  }, [codeServerState, showToast]);
 
   const getBreadcrumbs = () => {
     const paths = location.pathname.split('/').filter(Boolean);
@@ -203,14 +433,34 @@ const Layout = () => {
     }));
   };
 
-  const notifications = [
-    { id: 1, title: 'Critical vulnerability found', message: 'SQL Injection in /api/users', time: '2 min ago', unread: true, type: 'error' },
-    { id: 2, title: 'Scan completed', message: 'Project "E-Commerce API" analysis done', time: '15 min ago', unread: true, type: 'success' },
-    { id: 3, title: 'New threat intelligence', message: 'Log4j variant detected in wild', time: '1 hour ago', unread: false, type: 'warning' },
-    { id: 4, title: 'Team member invited', message: 'sarah@company.com joined Team', time: '2 hours ago', unread: false, type: 'info' },
-  ];
+  // "2 min ago" style stamps for the bell and the dropdown.
+  const relativeTime = (value) => {
+    if (!value) return '';
+    const then = new Date(value.replace(' ', 'T'));
+    if (Number.isNaN(then.getTime())) return String(value);
+    const seconds = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return then.toLocaleDateString();
+  };
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const markAllNotificationsRead = async () => {
+    if (unreadCount === 0) return;
+    // Update the list locally first so the badge clears at once, then
+    // confirm it with the server.
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+    try {
+      await dashboardAPI.markAllNotificationsRead();
+    } catch {
+      loadNotifications();
+    }
+  };
 
   const SidebarContent = ({ collapsed = false, onClose = null }) => (
     <div className="flex flex-col h-full">
@@ -253,7 +503,7 @@ const Layout = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    ? 'eric-nav-active'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 } ${collapsed ? 'justify-center' : ''}`
               }
@@ -269,7 +519,7 @@ const Layout = () => {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                  ? 'eric-nav-active'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               } ${collapsed ? 'justify-center' : ''}`
             }
@@ -302,6 +552,21 @@ const Layout = () => {
                 <item.icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
               </a>
+            ) : item.action === 'code-server' ? (
+              <button
+                key={item.label}
+                onClick={handleOpenCodeServer}
+                disabled={codeServerState !== 'idle'}
+                title={`Open the coder/code-server workbench (${CODE_SERVER_URL}) — starts it if it is not already running`}
+                className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white disabled:opacity-60 disabled:cursor-wait ${collapsed ? 'justify-center' : ''}`}
+              >
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${codeServerState !== 'idle' ? 'animate-pulse' : ''}`} />
+                {!collapsed && (
+                  <span className="text-sm font-medium">
+                    {codeServerState !== 'idle' ? 'Starting…' : item.label}
+                  </span>
+                )}
+              </button>
             ) : (
               <NavLink
                 key={item.path}
@@ -309,7 +574,7 @@ const Layout = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                     isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+                      ? 'eric-nav-active-gradient'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                   } ${collapsed ? 'justify-center' : ''}`
                 }
@@ -336,10 +601,13 @@ const Layout = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              // The path is matched exactly so the entry only lights up on
+              // its own page rather than on every nested route below it.
+              end
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    ? 'eric-nav-active'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 } ${collapsed ? 'justify-center' : ''}`
               }
@@ -360,7 +628,7 @@ const Layout = () => {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                  ? 'eric-nav-active'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               } ${collapsed ? 'justify-center' : ''}`
             }
@@ -382,10 +650,10 @@ const Layout = () => {
         {/* Keyboard Shortcuts Hint — pinned to bottom of the sidebar */}
         {!collapsed && (
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm">
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-800 dark:to-indigo-900/40 rounded-xl p-4 border border-slate-100 dark:border-slate-700/50">
+            <div className="eric-accent-soft rounded-xl p-4 border border-slate-100 dark:border-slate-700/50">
               <div className="flex items-center gap-2 mb-3">
-                <Keyboard className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">Keyboard Shortcuts</span>
+                <Keyboard className="w-4 h-4 eric-accent-text" />
+                <span className="text-xs font-semibold eric-accent-text">Keyboard Shortcuts</span>
               </div>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
@@ -459,8 +727,12 @@ const Layout = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Minimal Header */}
-        <header className="h-14 glass-header flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10">
+        {/* Minimal Header
+            The header sits above the click-outside overlay (z-20) so the
+            dropdowns it holds stay clickable. The overlay used to be above
+            the header, which made "Mark all read" and the other dropdown
+            buttons unclickable. */}
+        <header className="h-14 glass-header flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
           {/* Left: Menu & Breadcrumbs */}
           <div className="flex items-center gap-4">
             <button
@@ -515,7 +787,7 @@ const Layout = () => {
               </button>
 
               {searchOpen && (
-                <div className="absolute right-0 top-full mt-2 w-96 glass-strong rounded-xl z-50 animate-scale-in">
+                <div className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-slate-900 rounded-xl z-50 animate-scale-in border border-slate-200 dark:border-slate-700/60 shadow-xl">
                   <div className="p-3 border-b border-slate-100">
                     <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg">
                       <Search className="w-4 h-4 text-slate-400" />
@@ -529,11 +801,11 @@ const Layout = () => {
                   </div>
                   <div className="p-2">
                     <div className="px-3 py-2 text-xs font-medium text-slate-400 uppercase">Quick Links</div>
-                    <button onClick={() => { navigate('/analysis'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                    <button onClick={() => { navigate('/security?tab=findings'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
                       <ScanSearch className="w-5 h-5 text-blue-500" />
                       <div className="text-left">
-                        <div className="text-sm font-medium text-slate-700">Go to Analysis</div>
-                        <div className="text-xs text-slate-400">View code security analysis</div>
+                        <div className="text-sm font-medium text-slate-700">View Findings</div>
+                        <div className="text-xs text-slate-400">Full OWASP security analysis</div>
                       </div>
                     </button>
                     <button onClick={() => { navigate('/sandbox'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
@@ -543,14 +815,14 @@ const Layout = () => {
                         <div className="text-xs text-slate-400">Start coding securely</div>
                       </div>
                     </button>
-                    <button onClick={() => { navigate('/threats'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                    <button onClick={() => { navigate('/security?tab=threats'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
                       <AlertTriangle className="w-5 h-5 text-red-500" />
                       <div className="text-left">
                         <div className="text-sm font-medium text-slate-700">View Threats</div>
                         <div className="text-xs text-slate-400">Check security vulnerabilities</div>
                       </div>
                     </button>
-                    <button onClick={() => { navigate('/reports'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                    <button onClick={() => { navigate('/security?tab=reports'); setSearchOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
                       <FileText className="w-5 h-5 text-emerald-500" />
                       <div className="text-left">
                         <div className="text-sm font-medium text-slate-700">Generate Report</div>
@@ -576,7 +848,7 @@ const Layout = () => {
               </button>
 
               {helpOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 glass-strong rounded-xl z-50 animate-scale-in">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 rounded-xl z-50 animate-scale-in border border-slate-200 dark:border-slate-700/60 shadow-xl">
                   <div className="p-4 border-b border-slate-100">
                     <h3 className="font-semibold text-slate-900">Help & Support</h3>
                   </div>
@@ -620,7 +892,7 @@ const Layout = () => {
             </div>
 
             {/* Theme Toggle — illustrated day/night switch */}
-            <ThemeToggle theme={theme} onToggle={toggleDarkMode} />
+            <ThemeToggle theme={resolvedTheme} onToggle={toggleDarkMode} />
 
             {/* Notifications */}
             <div className="relative dropdown-container">
@@ -640,18 +912,38 @@ const Layout = () => {
               </button>
               
               {notificationsOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 glass-strong rounded-xl z-50 animate-scale-in border border-slate-200 dark:border-slate-700/60">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl z-50 animate-scale-in border border-slate-200 dark:border-slate-700/60 shadow-xl">
                   <div className="p-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
                     <h3 className="font-semibold text-slate-900 dark:text-slate-100">Notifications</h3>
-                    <button className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                    <button
+                      onClick={markAllNotificationsRead}
+                      disabled={unreadCount === 0}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-40 disabled:cursor-default"
+                    >
                       Mark all read
                     </button>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 && (
+                      <div className="p-6 text-center">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">You are all caught up</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                          Alerts about your scans and findings show up here.
+                        </p>
+                      </div>
+                    )}
                     {notifications.map((notif) => (
                       <div
                         key={notif.id}
-                        className={`p-4 border-b border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors ${notif.unread ? 'bg-blue-50/60 dark:bg-blue-500/10' : ''}`}
+                        onClick={() => {
+                          if (notif.read) return;
+                          setNotifications((prev) =>
+                            prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+                          );
+                          setUnreadCount((c) => Math.max(0, c - 1));
+                          dashboardAPI.markNotificationRead(notif.id).catch(() => loadNotifications());
+                        }}
+                        className={`p-4 border-b border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors ${!notif.read ? 'bg-blue-50/60 dark:bg-blue-500/10' : ''}`}
                       >
                         <div className="flex items-start gap-3">
                           <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
@@ -663,7 +955,7 @@ const Layout = () => {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">{notif.title}</p>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{notif.message}</p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{notif.time}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{relativeTime(notif.createdAt)}</p>
                           </div>
                         </div>
                       </div>
@@ -699,7 +991,7 @@ const Layout = () => {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 glass-strong rounded-xl z-50 animate-scale-in">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl z-50 animate-scale-in border border-slate-200 dark:border-slate-700/60 shadow-xl">
                   <div className="p-4 border-b border-slate-100">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
@@ -758,10 +1050,12 @@ const Layout = () => {
         </main>
       </div>
 
-      {/* Click outside to close dropdowns */}
+      {/* Click outside to close dropdowns. It sits below the header
+          (z-30) so it catches clicks on the page content without
+          covering the dropdowns themselves. */}
       {notificationsOpen && (
         <div
-          className="fixed inset-0 z-30"
+          className="fixed inset-0 z-20"
           onClick={() => {
             setNotificationsOpen(false);
           }}

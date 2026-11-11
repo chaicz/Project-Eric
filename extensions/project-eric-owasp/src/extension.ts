@@ -98,7 +98,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Use createTreeView so the activity bar shield entry stays visible.
     // registerTreeDataProvider alone would auto-mount the view into the
     // Explorer secondary side bar instead of the dedicated
-    // projectEric.securityContainer activity bar entry.
+    // projectEricSecurityContainer activity bar entry.
     vscode.window.createTreeView('projectEric.securityView', {
       treeDataProvider: treeProvider,
       showCollapseAll: true,
@@ -177,19 +177,51 @@ async function loadPacks(context: vscode.ExtensionContext): Promise<void> {
   ingestPack(pack);
 
   // Per-language packs.
+  //
+  // Most languages ship as a separate file under `data/languages/`, and
+  // that file replaces the stub entry the manifest carries. A language
+  // whose rules are already inline in the manifest — `mcp` is the one
+  // today — has no file, so the manifest entry is kept as it is.
+  //
+  // Reading a file that does not exist used to be logged as
+  // "Skipped language pack <id>", which read as a defect even though
+  // the pack itself was loaded. The file is now optional: it is only
+  // read when it is there, and the inline entry is what survives.
+  const loadedFromFile: string[] = [];
+  const loadedInline: string[] = [];
+
   for (const lang of pack.languages) {
+    const file = ['data', 'languages', `${lang.id}.lang.json`];
+    const exists = await extensionFileExists(context, file);
+    if (!exists) {
+      // No separate file: the manifest entry is the pack.
+      if (!(lang.rules || []).length) {
+        outputChannel.appendLine(`Skipped language pack ${lang.id}: no rules in the manifest and no ${lang.id}.lang.json file`);
+      } else {
+        loadedInline.push(lang.id);
+      }
+      continue;
+    }
     try {
-      const txt = await readExtensionFile(context, ['data', 'languages', `${lang.id}.lang.json`]);
+      const txt = await readExtensionFile(context, file);
       const parsed = parseLanguagePack(txt);
       // Replace the stub entry from the manifest with the full pack.
       const idx = pack.languages.findIndex((l) => l.id === lang.id);
       if (idx >= 0) pack.languages[idx] = parsed;
+      loadedFromFile.push(lang.id);
     } catch (err) {
       outputChannel.appendLine(`Skipped language pack ${lang.id}: ${String(err)}`);
     }
   }
   ingestPack(pack);
-  outputChannel.appendLine(`Loaded OWASP pack with ${pack.globalRules.length} global rules + ${pack.languages.length} language packs`);
+
+  // Report what was actually loaded, so a pack that fell back to the
+  // manifest stub is visible in the log rather than only implied by a
+  // rule count.
+  outputChannel.appendLine(
+    `Loaded OWASP pack with ${pack.globalRules.length} global rules + ${pack.languages.length} language packs` +
+      ` (${loadedFromFile.length} from data/languages, ${loadedInline.length} inline)`
+  );
 }
 
 /**
@@ -202,6 +234,24 @@ async function readExtensionFile(context: vscode.ExtensionContext, parts: string
   const uri = vscode.Uri.file(filePath);
   const bytes = await vscode.workspace.fs.readFile(uri);
   return new TextDecoder().decode(bytes);
+}
+
+/**
+ * Is there a file at this path inside the extension?
+ *
+ * `vscode.workspace.fs.stat` throws when the file is not there, which
+ * is the answer this is looking for. Anything else — a host that cannot
+ * stat, a permission problem — is reported as "not there" as well, so
+ * the caller falls back to the manifest entry instead of failing.
+ */
+async function extensionFileExists(context: vscode.ExtensionContext, parts: string[]): Promise<boolean> {
+  try {
+    const filePath = joinPosix(context.extensionPath, ...parts);
+    await vscode.workspace.fs.stat(vscode.Uri.file(filePath));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,147 @@
+{
+  "id": "css",
+  "label": "CSS",
+  "extensions": [
+    "css",
+    "scss"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A03-CSS-001",
+      "name": "Injection — CSS expression() (legacy IE)",
+      "summary": "4 patterns match injection in CSS.",
+      "description": "Remove IE-era expression() and -moz-binding. Use modern CSS. Never @import a javascript: URL. Use a strict Content-Security-Policy that blocks script-src inline.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "CSS expression() (legacy IE)",
+          "regex": "expression\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "CSS behavior:url (legacy IE)",
+          "regex": "behavior\\s*:\\s*url\\(",
+          "flags": "g"
+        },
+        {
+          "description": "-moz-binding (legacy Firefox)",
+          "regex": "-moz-binding\\s*:",
+          "flags": "g"
+        },
+        {
+          "description": "@import url(javascript:...)",
+          "regex": "@import\\s+url\\(\\s*['\"]?javascript:",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Remove IE-era expression() and -moz-binding. Use modern CSS. Never @import a javascript: URL. Use a strict Content-Security-Policy that blocks script-src inline.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-CSS-002",
+      "name": "Security Misconfiguration — @import from external URL",
+      "summary": "@import from external URL detected in CSS source.",
+      "description": "Self-host CSS to avoid CSS-based exfiltration via @import. Use subresource integrity (SRI) on any external stylesheet.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "@import from external URL",
+          "regex": "@import\\s+url\\(\\s*['\"]?https?://",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Self-host CSS to avoid CSS-based exfiltration via @import. Use subresource integrity (SRI) on any external stylesheet.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    }
+  ]
+}

@@ -19,6 +19,17 @@ export class StandaloneScannerWebview {
   public static readonly viewType = 'projectEric.standaloneScanner';
   private panel: vscode.WebviewPanel | null = null;
 
+  /**
+   * The most recently focused text editor.
+   *
+   * `vscode.window.activeTextEditor` is undefined while a webview panel
+   * holds focus, which is exactly the moment the user clicks "Pull from
+   * active editor" — so reading it directly always returned "no active
+   * editor". We therefore remember the last real editor and fall back
+   * to it when no editor is currently active.
+   */
+  private lastTextEditor: vscode.TextEditor | undefined;
+
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   show(): void {
@@ -26,6 +37,15 @@ export class StandaloneScannerWebview {
       this.panel.reveal();
       return;
     }
+
+    // Seed the tracker with whatever is open right now, then keep it
+    // current for the lifetime of the panel.
+    this.lastTextEditor = vscode.window.activeTextEditor;
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) {
+        this.lastTextEditor = editor;
+      }
+    });
     this.panel = vscode.window.createWebviewPanel(
       StandaloneScannerWebview.viewType,
       'Project Eric — Scan Key Code',
@@ -262,7 +282,9 @@ ProjectEric.languages()                             // list detected languages</
 
   private async handleMessage(msg: { type?: string }): Promise<void> {
     if (!msg || msg.type !== 'pullActiveEditor') return;
-    const editor = vscode.window.activeTextEditor;
+    // Prefer the live active editor; fall back to the last one we saw,
+    // because focusing this webview clears `activeTextEditor`.
+    const editor = vscode.window.activeTextEditor ?? this.lastTextEditor;
     if (!editor) {
       this.panel?.webview.postMessage({ type: 'activeEditorContent', text: null });
       return;

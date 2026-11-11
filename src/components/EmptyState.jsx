@@ -12,7 +12,7 @@ import { Inbox } from 'lucide-react';
  *     title="No vulnerabilities to fix"
  *     description="Once you run your first scan, findings will appear here with remediation steps."
  *     primaryCta={{ label: "Run a scan", onClick: handleScan }}
- *     secondaryCta={{ label: "Import project", href: "/integrations" }}
+ *     secondaryCta={{ label: "Run a scan", href: "/owasp" }}
  *   />
  */
 const EmptyState = ({

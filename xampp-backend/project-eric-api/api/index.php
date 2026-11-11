@@ -32,12 +32,36 @@ $routes = [
     'auth/logout' => 'auth/logout.php',
     'auth/forgot-password' => 'auth/forgot-password.php',
     'auth/reset-password' => 'auth/reset-password.php',
-    
+    'auth/change-password' => 'auth/change-password.php',
+    'auth/onboarding' => 'auth/onboarding.php',
+
     // Public routes
     'features' => 'features/index.php',
     'team' => 'team/index.php',
     'landing' => 'landing.php',
-    
+
+    // Authenticated data routes
+    'dashboard' => 'dashboard.php',
+    'projects' => 'projects/index.php',
+    'vulnerabilities' => 'vulnerabilities/index.php',
+    'threats' => 'threats/index.php',
+    'scans' => 'scans/index.php',
+    'workspace' => 'workspace/index.php',
+    'notifications' => 'notifications.php',
+    'api-keys' => 'api-keys.php',
+    'audit-logs' => 'audit-logs.php',
+    'integrations' => 'integrations.php',
+    'settings' => 'settings.php',
+    'two-factor' => 'two-factor.php',
+    'profile' => 'profile.php',
+    'profile/avatar' => 'profile-avatar.php',
+    'team/members' => 'team/members.php',
+    // Temporary PDF reports. `reports/download` is handled by the same
+    // file — it detects the download by the `?token=` query so the link
+    // can be opened in a plain browser tab without a JWT header.
+    'reports' => 'reports.php',
+    'reports/download' => 'reports.php',
+
     // API Info
     '' => 'info.php',
     'info' => 'info.php',

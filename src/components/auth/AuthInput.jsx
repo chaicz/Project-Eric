@@ -39,18 +39,29 @@ const AuthInput = ({
   // When the input is at rest, the label should sit where the input text
   // starts (pl-12 = 48px, just past the 20px icon at left-4). When floated
   // up, it sits on the border at left-3 so the small label stays compact.
-  const restLeft = Icon ? 'left-12' : 'left-4';
+  //
+  // The horizontal offset must be decided in exactly one place. Emitting a
+  // base `left-3` and then appending `left-12` puts both utilities in the
+  // class list, and Tailwind resolves the winner by stylesheet order rather
+  // than class order — `left-3` won and the label landed on top of the
+  // leading icon, striking through the first characters of every field.
+  // So each branch below carries its own complete `left-*` value and the
+  // shared class string never sets one.
   const labelFloat = isFloating
     ? '-top-2 left-3 text-[11px] font-semibold px-1.5'
-    : `top-1/2 -translate-y-1/2 text-[15px] font-medium ${restLeft}`;
+    : `top-1/2 -translate-y-1/2 text-[15px] font-medium ${
+        Icon ? 'left-12' : 'left-4'
+      }`;
 
   const labelColor = hasError
-    ? 'text-red-500'
+    ? 'text-red-600'
     : focused
     ? 'text-indigo-600'
-    : 'text-slate-500';
+    : 'text-slate-600';
 
-  const labelBg = isFloating ? 'bg-white/80 backdrop-blur-sm' : 'bg-transparent';
+  // The floated label sits on the field's own surface, so it must match
+  // that surface or a visible seam appears across the border.
+  const labelBg = isFloating ? 'bg-white' : 'bg-transparent';
 
   return (
     <div
@@ -66,7 +77,7 @@ const AuthInput = ({
         {label && (
           <label
             htmlFor={id}
-            className={`absolute left-3 z-10 pointer-events-none transition-all duration-200 ease-out rounded ${labelFloat} ${labelColor} ${labelBg}`}
+            className={`absolute z-10 pointer-events-none transition-all duration-200 ease-out rounded ${labelFloat} ${labelColor} ${labelBg}`}
           >
             {label}
           </label>
@@ -77,7 +88,7 @@ const AuthInput = ({
           <Icon
             className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200 ${
               hasError
-                ? 'text-red-400'
+                ? 'text-red-500'
                 : focused
                 ? 'text-indigo-500'
                 : 'text-slate-400'
@@ -95,12 +106,12 @@ const AuthInput = ({
           autoComplete={autoComplete}
           className={`w-full ${
             Icon ? 'pl-12' : 'pl-4'
-          } ${rightAccessory ? 'pr-12' : 'pr-4'} pt-5 pb-3 rounded-xl border bg-white/70 backdrop-blur-sm text-slate-900 text-[15px] placeholder-slate-400 outline-none transition-all duration-200 ${
+          } ${rightAccessory ? 'pr-12' : 'pr-4'} pt-5 pb-3 rounded-xl border bg-white text-slate-900 text-[15px] placeholder-slate-400 outline-none transition-all duration-200 ${
             hasError
-              ? 'border-red-300/80 ring-2 ring-red-100/70 bg-red-50/70'
+              ? 'border-red-400 ring-2 ring-red-100 bg-red-50/60'
               : focused
-              ? 'border-indigo-400 ring-4 ring-indigo-100/70 shadow-[0_4px_18px_-6px_rgba(99,102,241,0.35)] bg-white/85'
-              : 'border-white/60 hover:border-white/80 shadow-[0_2px_8px_-3px_rgba(15,23,42,0.06)]'
+              ? 'border-indigo-500 ring-4 ring-indigo-100/80 shadow-[0_4px_18px_-6px_rgba(99,102,241,0.35)]'
+              : 'border-slate-300 hover:border-slate-400 shadow-[0_2px_8px_-3px_rgba(15,23,42,0.06)]'
           }`}
           placeholder={focused ? placeholder : ''}
         />
@@ -134,7 +145,7 @@ const AuthInput = ({
 
       {/* Error message */}
       {hasError && errorMessage && (
-        <p className="text-xs text-red-500 flex items-center gap-1.5 pl-1">
+        <p className="text-xs text-red-600 flex items-center gap-1.5 pl-1 font-medium">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -145,6 +156,7 @@ const AuthInput = ({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="shrink-0"
           >
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>

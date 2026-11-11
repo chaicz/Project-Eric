@@ -1,0 +1,229 @@
+{
+  "id": "sql",
+  "label": "SQL",
+  "extensions": [
+    "sql"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A03-SQL-001",
+      "name": "Injection — SQL EXEC/EXECUTE (dynamic SQL)",
+      "summary": "7 patterns match injection in SQL.",
+      "description": "The A03 detector matched source patterns associated with Injection.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "SQL EXEC/EXECUTE (dynamic SQL)",
+          "regex": "\\bEXEC\\s*\\(|\\bEXECUTE\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "xp_cmdshell (RCE from SQL Server)",
+          "regex": "xp_cmdshell\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "Dynamic SQL via concatenation",
+          "regex": "['\"][^'\"]*(?:SELECT|INSERT|UPDATE|DELETE)[^'\"]*['\"]\\s*\\+\\s*@?\\w+",
+          "flags": "g"
+        },
+        {
+          "description": "sp_executesql (review inputs)",
+          "regex": "\\bsp_executesql\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "Dynamic identifier / statement interpolation",
+          "regex": "\\|\\|\\s*\\(?\\s*(?:SELECT|INSERT|UPDATE|DELETE|UNION|WITH)\\b",
+          "flags": "g"
+        },
+        {
+          "description": "String concatenation via || operator",
+          "regex": "['\"]\\s*\\|\\|\\s*['\"]",
+          "flags": "g"
+        },
+        {
+          "description": "Interpolated ORDER BY / GROUP BY / table name",
+          "regex": "\\b(?:ORDER\\s+BY|GROUP\\s+BY|LIMIT|OFFSET|TABLE)\\s+(?:'[^']*'\\s*\\|\\||\\|\\|\\s*'[^']*'|@?\\w+\\s*\\|\\|)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Review the highlighted code for Injection.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-SQL-002",
+      "name": "Security Misconfiguration — GRANT ALL — overly permissive",
+      "summary": "2 patterns match security misconfiguration in SQL.",
+      "description": "Apply least-privilege: GRANT only the specific privileges a role needs (SELECT, INSERT) on the specific tables. Avoid GRANT ALL. Use a separate read-only role for analytics.",
+      "severity": "high",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "GRANT ALL — overly permissive",
+          "regex": "\\bGRANT\\s+(?:ALL|ALL PRIVILEGES)\\b",
+          "flags": "g"
+        },
+        {
+          "description": "Default credential literal",
+          "regex": "\\b(?:admin|root|sa)\\s*[:=]\\s*['\"](?:admin|root|toor|password|changeme)['\"]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Apply least-privilege: GRANT only the specific privileges a role needs (SELECT, INSERT) on the specific tables. Avoid GRANT ALL. Use a separate read-only role for analytics.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-SQL-003",
+      "name": "Identification and Authentication Failures — PASSWORD literal in DDL",
+      "summary": "PASSWORD literal in DDL detected in SQL source.",
+      "description": "Hash passwords with bcrypt/argon2 at the application layer; never store plaintext in SQL.",
+      "severity": "high",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "PASSWORD literal in DDL",
+          "regex": "PASSWORD\\s*=\\s*['\"][^'\"]*['\"]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Hash passwords with bcrypt/argon2 at the application layer; never store plaintext in SQL.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    }
+  ]
+}

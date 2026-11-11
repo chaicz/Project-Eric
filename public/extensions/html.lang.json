@@ -20,9 +20,10 @@
       "patterns": [
         { "regex": "<meta[^>]+http-equiv\\s*=\\s*['\"]X-Frame-Options['\"]", "weight": -1, "label": "X-Frame-Options meta (good practice)" },
         { "regex": "<meta[^>]+http-equiv\\s*=\\s*['\"]Content-Security-Policy['\"]", "weight": -2, "label": "CSP meta tag (good practice)" },
+        { "regex": "<html\\b(?![^]*Content-Security-Policy)", "flags": "gi", "weight": 2, "label": "No Content-Security-Policy" },
         { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO" }
       ],
-      "remediation": "Set CSP, X-Frame-Options, X-Content-Type-Options headers in HTTP responses (or via meta). Restrict CORS to explicit origins."
+      "remediation": "Set CSP, X-Frame-Options, X-Content-Type-Options headers in HTTP responses (or via meta). Restrict CORS to explicit origins. A page with no Content-Security-Policy has no browser-side defence against injected script — send it as an HTTP header, which is stronger than a meta tag."
     }
   },
   "owaspRemediation": {

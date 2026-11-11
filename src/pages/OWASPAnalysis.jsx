@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import PageTip from '../components/PageTip';
+import { CODE_SERVER_EMBED_PATH } from '../services/codeServer';
 import {
   callAI,
   hasAIKey,
@@ -172,14 +173,21 @@ const findMatches = (code, re) => {
   // Returns [{ line: 1-based line number, snippet }] for every match.
   const lines = LINE_INDEX(code);
   const out = [];
+  // A regex without the "g" flag restarts at index 0 on every exec(),
+  // so the loop below would keep returning the same match and never
+  // finish — the scan hung the whole page. Match against a global copy
+  // so a caller that forgot the flag still gets every match on the line.
+  const global = re.global
+    ? re
+    : new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     // Reset lastIndex for safety (we pass /g flags).
-    re.lastIndex = 0;
+    global.lastIndex = 0;
     let m;
-    while ((m = re.exec(line)) !== null) {
+    while ((m = global.exec(line)) !== null) {
       out.push({ line: i + 1, snippet: line.trim().slice(0, 160) });
-      if (m.index === re.lastIndex) re.lastIndex++; // avoid infinite loops on zero-width matches
+      if (m.index === global.lastIndex) global.lastIndex++; // avoid infinite loops on zero-width matches
     }
   }
   return out;
@@ -349,7 +357,7 @@ const detectA04_InsecureDesign = (code) => {
     // Heuristics: auth/rate-limit hints, generous comments about "TODO".
     const rateLimitHints = /\b(rate[_-]?limit|throttle|express[_-]?rate[_-]?limit|slow[_-]?down)\b/i;
     const authFlow = /\b(login|signin|sign[-_]?in|authenticate|verifyToken|jwt|bcrypt)\b/i;
-    const todoless = /\b(TODO|FIXME|XXX|HACK)\b.*?(?:auth|password|security|crypto)/i;
+    const todoless = /\b(TODO|FIXME|XXX|HACK)\b[^\n]{0,80}?(?:auth|password|security|crypto|secret|sanitize|escape)/gi;
 
     const hasRateLimit = rateLimitHints.test(code);
     const hasAuth = authFlow.test(code);
@@ -733,6 +741,13 @@ const OWASPAnalysis = () => {
   const [codeServerIframeReady, setCodeServerIframeReady] = useState(false);
   const [pushingCode, setPushingCode] = useState(false);
   const codeServerPollRef = useRef(null);
+
+  // The iframe is pointed at the dev server's same-origin proxy rather
+  // than at code-server's own port. A cross-origin frame would render
+  // fine, but the page could not reach into it — which rules out
+  // relaying a guest's mouse and keyboard input into the workbench.
+  // See CODE_SERVER_EMBED_PATH in services/codeServer.js.
+  const codeServerEmbedUrl = `${CODE_SERVER_EMBED_PATH}/`;
 
   const probeCodeServer = useCallback(async () => {
     setCodeServerStatus('checking');
@@ -1347,6 +1362,7 @@ const OWASPAnalysis = () => {
               <button
                 onClick={toggleIframe}
                 disabled={codeServerStatus !== 'running'}
+                data-testid="owasp-embed-workbench"
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   codeServerExpanded
                     ? 'bg-slate-900 dark:bg-blue-600 text-white border-slate-900 dark:border-blue-600'
@@ -1438,7 +1454,7 @@ const OWASPAnalysis = () => {
             <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950">
               <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs text-slate-300">
                 <Server className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-mono">{codeServerUrl}</span>
+                <span className="font-mono">{codeServerEmbedUrl}</span>
                 <span className="flex-1" />
                 {codeServerIframeLoading && (
                   <span className="inline-flex items-center gap-1.5 text-slate-400">
@@ -1470,9 +1486,10 @@ const OWASPAnalysis = () => {
                   </div>
                 )}
                 <iframe
-                  key={codeServerUrl}
-                  src={codeServerUrl}
+                  key={codeServerEmbedUrl}
+                  src={codeServerEmbedUrl}
                   title="Project Eric code-server workbench"
+                  data-testid="owasp-workbench-frame"
                   onLoad={() => {
                     setCodeServerIframeLoading(false);
                     setCodeServerIframeReady(true);

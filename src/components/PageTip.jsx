@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Lightbulb, X } from 'lucide-react';
 
 /**
@@ -16,6 +17,13 @@ import { Lightbulb, X } from 'lucide-react';
  *     body="Click 'Run New Scan' to start a full OWASP audit. Filter results by severity or OWASP category."
  *     cta={{ label: "Read docs", href: "..." }}
  *   />
+ *
+ * The CTA href is interpreted automatically:
+ *   - a value starting with a single "/" is treated as an internal route
+ *     and rendered with React Router's <Link> (client-side navigation)
+ *   - anything else (or `external: true`) renders a plain <a>, opening
+ *     in a new tab when external
+ *   - when `onClick` is supplied it wins and the link is hijacked instead
  */
 const PageTip = ({
   pageId,
@@ -56,22 +64,57 @@ const PageTip = ({
         <div className="flex-1 min-w-0">
           <h4 className={`text-sm font-semibold mb-1 text-slate-900 dark:text-slate-100`}>{title}</h4>
           <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{body}</p>
-          {cta && (
-            <a
-              href={cta.href}
-              target={cta.external ? '_blank' : undefined}
-              rel={cta.external ? 'noopener noreferrer' : undefined}
-              onClick={(e) => {
-                if (cta.onClick) {
-                  e.preventDefault();
-                  cta.onClick();
-                }
-              }}
-              className={`inline-flex items-center gap-1 text-sm font-semibold mt-2 underline underline-offset-2 hover:no-underline ${accent.text}`}
-            >
-              {cta.label} →
-            </a>
-          )}
+          {cta && (() => {
+            // Decide which element to render up-front:
+            //   - an onClick handler  → a plain <a> we hijack (used for
+            //     things like "Take the tour" that aren't real routes)
+            //   - an external URL     → a plain <a target="_blank">
+            //   - an internal route   → React Router <Link>, so the app
+            //     performs a client-side transition instead of a full page
+            //     reload (which would discard in-memory app state and skip
+            //     the page-transition animation).
+            const isInternal = !cta.external && /^\/(?!\/)/.test(cta.href || '');
+            const className = `inline-flex items-center gap-1 text-sm font-semibold mt-2 underline underline-offset-2 hover:no-underline ${accent.text}`;
+            const content = (
+              <>
+                {cta.label} →
+              </>
+            );
+
+            if (cta.onClick) {
+              return (
+                <a
+                  href={cta.href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    cta.onClick();
+                  }}
+                  className={className}
+                >
+                  {content}
+                </a>
+              );
+            }
+
+            if (isInternal) {
+              return (
+                <Link to={cta.href} className={className}>
+                  {content}
+                </Link>
+              );
+            }
+
+            return (
+              <a
+                href={cta.href}
+                target={cta.external ? '_blank' : undefined}
+                rel={cta.external ? 'noopener noreferrer' : undefined}
+                className={className}
+              >
+                {content}
+              </a>
+            );
+          })()}
         </div>
         {dismissible && (
           <button

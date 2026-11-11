@@ -16,6 +16,9 @@ const BALL = 24; // celestial body diameter
 const PAD = (H - BALL) / 2; // vertical padding
 
 const ThemeToggle = ({ theme, onToggle }) => {
+  // `theme` is the theme that is actually on screen. With the
+  // 'system' option selected the AppContext resolves it to light or
+  // dark, so the toggle always shows the real state.
   const isDark = theme === 'dark';
 
   // Position of the celestial body. Left for dark (moon), right for light (sun).

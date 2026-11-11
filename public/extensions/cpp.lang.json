@@ -11,7 +11,7 @@
     "A02": {
       "patterns": [
         { "regex": "MD5_Init\\s*\\(|SHA1_Init\\s*\\(|EVP_md5\\(\\)|EVP_sha1\\(\\)", "weight": 3, "label": "OpenSSL weak hash API" },
-        { "regex": "\\bgets\\s*\\(|\\bstrcpy\\s*\\(|\\bsprintf\\s*\\(", "weight": 3, "label": "Unsafe C string function (gets/strcpy/sprintf)" }
+        { "regex": "\\bgets\\s*\\(|\\bstrcpy\\s*\\(|\\bstrcat\\s*\\(|\\bsprintf\\s*\\(", "weight": 3, "label": "Unsafe C string function (gets/strcpy/strcat/sprintf)" }
       ],
       "remediation": "Use SHA-256 / SHA-3 via `EVP_sha256()`. Replace gets/strcpy/sprintf with fgets/strlcpy/snprintf or std::string (Rust) / std::array<char,N>."
     },

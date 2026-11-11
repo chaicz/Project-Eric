@@ -89,6 +89,21 @@ export const listLanguages = async () => {
 
 const splitLines = (code) => String(code || '').split('\n');
 
+/**
+ * The 1-based line number of a character offset in the source.
+ *
+ * @param {string} code
+ * @param {number} offset
+ * @returns {number}
+ */
+const lineAtOffset = (code, offset) => {
+  let line = 1;
+  for (let i = 0; i < offset && i < code.length; i++) {
+    if (code[i] === '\n') line++;
+  }
+  return line;
+};
+
 const lineNumber = (lines, snippet) => {
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes(snippet)) return i + 1;
@@ -110,37 +125,134 @@ const detectCategory = (category, code, langPack) => {
     const langId = langPack?.id || 'javascript';
     const rules = category.patterns || {};
     // Merge "_all" + per-language patterns.
-    const merged = [...(rules._all || []), ...(rules[langId] || [])];
+    let merged = [...(rules._all || []), ...(rules[langId] || [])];
     // Some language files also embed their own A0x rules in
     // langPack.owaspRules[category.id].patterns. Merge those in too.
     const langOverrides = langPack?.owaspRules?.[category.id]?.patterns;
     if (Array.isArray(langOverrides)) merged.push(...langOverrides);
 
+    // The same rule is often shipped twice — once in the shared OWASP
+    // pack and once in the language file. Counting both would report
+    // every finding twice and double the score, so keep one copy of
+    // each distinct pattern.
+    const seen = new Set();
+    merged = merged.filter((rule) => {
+      if (seen.has(rule.regex)) return false;
+      seen.add(rule.regex);
+      return true;
+    });
+
     const lines = splitLines(code);
 
-    let total = 0;
-    let score = 0;
-    const evidence = [];
+    // Collect every match first, then count distinct source locations.
+    //
+    // The same flaw is often described by more than one rule: the
+    // shared pack ships a generic `md5(...)` pattern and the language
+    // file ships a PHP-specific one, so a single `md5($_POST[...])`
+    // would be counted twice — inflating both the issue count and the
+    // score. Matches that land on the same line and the same span are
+    // therefore collapsed into one finding, and the strongest weight
+    // wins.
+    const hits = [];
 
     for (const rule of merged) {
       let re;
       try {
-        re = new RegExp(rule.regex, 'g');
+        // A rule may carry its own flags (e.g. "gi" for credential
+        // literals, which must also match `$apiToken`). Always keep
+        // "g" so every match on the line is collected.
+        const flags = rule.flags || 'g';
+        re = new RegExp(rule.regex, flags.includes('g') ? flags : flags + 'g');
       } catch {
         continue; // skip invalid patterns
       }
+
+      // A rule marked `multiline` is matched against the whole file
+      // instead of one line at a time. Some questions cannot be
+      // answered from a single line — "does this route check the
+      // caller's permissions before it returns the record?" spans the
+      // whole closure — and a line-by-line matcher can never fire them.
+      if (rule.multiline) {
+        re.lastIndex = 0;
+        let m;
+        while ((m = re.exec(code)) !== null) {
+          const startLine = lineAtOffset(code, m.index);
+          hits.push({
+            line: startLine,
+            start: m.index,
+            end: m.index + m[0].length,
+            weight: Number(rule.weight) || 1,
+            label: rule.label || '',
+          });
+          if (m.index === re.lastIndex) re.lastIndex++;
+        }
+        continue;
+      }
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         re.lastIndex = 0;
         let m;
         while ((m = re.exec(line)) !== null) {
-          total += 1;
-          score += Number(rule.weight) || 1;
-          evidence.push({ line: i + 1, snippet: snippetOf(line) });
+          hits.push({
+            line: i + 1,
+            start: m.index,
+            end: m.index + m[0].length,
+            weight: Number(rule.weight) || 1,
+            label: rule.label || '',
+          });
           if (m.index === re.lastIndex) re.lastIndex++;
         }
       }
     }
+
+    // Collapse matches that describe the same flaw. Matches whose spans
+    // overlap on the same line are one finding; the longest span wins.
+    const byLocation = new Map();
+    for (const hit of hits) {
+      const key = `${hit.line}:${hit.start}:${hit.end}`;
+      const existing = byLocation.get(key);
+      if (!existing) {
+        byLocation.set(key, { ...hit });
+      } else {
+        existing.weight = Math.max(existing.weight, hit.weight);
+        if (!existing.label && hit.label) existing.label = hit.label;
+      }
+    }
+
+    const unique = [];
+    for (const hit of byLocation.values()) {
+      const overlapping = unique.filter(
+        (other) =>
+          other.line === hit.line &&
+          other.start < hit.end &&
+          hit.start < other.end,
+      );
+      if (overlapping.length === 0) {
+        unique.push(hit);
+        continue;
+      }
+      const longest = overlapping.reduce(
+        (best, other) =>
+          (other.end - other.start) > (best.end - best.start) ? other : best,
+        overlapping[0],
+      );
+      const index = unique.indexOf(longest);
+      unique.splice(index, 1);
+      if ((hit.end - hit.start) > (longest.end - longest.start)) {
+        unique.push(hit);
+      } else {
+        longest.weight = Math.max(longest.weight, hit.weight);
+        unique.push(longest);
+      }
+    }
+
+    const total = unique.length;
+    const score = unique.reduce((sum, hit) => sum + hit.weight, 0);
+    const evidence = unique.map((hit) => ({
+      line: hit.line,
+      snippet: snippetOf(lines[hit.line - 1]),
+    }));
 
     // Trim the evidence list to a sane size.
     const trimmedEvidence = evidence.slice(0, 8);

@@ -1,3 +1,5 @@
+import { readUserScoped, writeUserScoped } from '../utils/userStorage';
+
 /**
  * AI Service
  * -----------------------------------------------------------------------------
@@ -89,6 +91,29 @@ export const AI_PROVIDERS = {
       { id: 'deepseek/deepseek-chat-v3.1',             label: 'DeepSeek V3.1' },
     ],
   },
+  grok: {
+    name: 'Grok (x.ai)',
+    placeholder: 'xk-...',
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    defaultModel: 'grok-3',
+    models: [
+      { id: 'grok-3',      label: 'Grok 3 (latest flagship)' },
+      { id: 'grok-3-beta', label: 'Grok 3 Beta' },
+      { id: 'grok-2',      label: 'Grok 2 (previous generation)' },
+      { id: 'grok-beta',   label: 'Grok Beta' },
+    ],
+  },
+  cursor: {
+    name: 'Cursor',
+    placeholder: 'cursor-...',
+    endpoint: 'https://api.cursor.com/v1/chat/completions',
+    defaultModel: 'cursor-base',
+    models: [
+      { id: 'cursor-base',   label: 'Cursor Base' },
+      { id: 'cursor-pro',   label: 'Cursor Pro' },
+      { id: 'cursor-alpha', label: 'Cursor Alpha (experimental)' },
+    ],
+  },
 };
 
 // --- Config persistence -------------------------------------------------------
@@ -108,21 +133,26 @@ const defaultConfig = () => {
  * Inspect an API key string and return the provider ID it most likely belongs to,
  * along with the recommended default model for that provider.
  *
- * Detection rules (checked in order):
- *   Anthropic : key starts with 'sk-ant-'
- *   OpenRouter: key starts with 'sk-or-'
- *   Google    : key starts with 'AIza'
- *   OpenAI    : key starts with 'sk-' (catch-all; safe because the others are
- *               checked first and are mutually exclusive)
- *   null      : unrecognised — let the user pick manually
+ * Detection rules (checked in order — cursor must come before xk because some
+ * test keys may coincidentally contain 'xk' elsewhere):
+ *   Cursor     : key starts with 'cursor-'
+ *   Anthropic  : key starts with 'sk-ant-'
+ *   OpenRouter : key starts with 'sk-or-'
+ *   Grok       : key starts with 'xk-'
+ *   Google     : key starts with 'AIza'
+ *   OpenAI     : key starts with 'sk-' (catch-all; safe because the others are
+ *                checked first and are mutually exclusive)
+ *   null       : unrecognised — let the user pick manually
  */
 export const detectProvider = (key) => {
   if (!key || typeof key !== 'string') return null;
   const k = key.trim();
-  if (k.startsWith('sk-ant-'))     return { provider: 'anthropic', model: AI_PROVIDERS.anthropic.defaultModel };
-  if (k.startsWith('sk-or-'))      return { provider: 'openrouter', model: AI_PROVIDERS.openrouter.defaultModel };
-  if (k.startsWith('AIza'))        return { provider: 'google',     model: AI_PROVIDERS.google.defaultModel };
-  if (k.startsWith('sk-'))         return { provider: 'openai',    model: AI_PROVIDERS.openai.defaultModel };
+  if (k.startsWith('cursor-'))   return { provider: 'cursor',     model: AI_PROVIDERS.cursor.defaultModel };
+  if (k.startsWith('sk-ant-'))   return { provider: 'anthropic',  model: AI_PROVIDERS.anthropic.defaultModel };
+  if (k.startsWith('sk-or-'))    return { provider: 'openrouter', model: AI_PROVIDERS.openrouter.defaultModel };
+  if (k.startsWith('xk-'))       return { provider: 'grok',       model: AI_PROVIDERS.grok.defaultModel };
+  if (k.startsWith('AIza'))      return { provider: 'google',     model: AI_PROVIDERS.google.defaultModel };
+  if (k.startsWith('sk-'))       return { provider: 'openai',    model: AI_PROVIDERS.openai.defaultModel };
   return null; // unknown — user must select manually
 };
 
@@ -149,9 +179,11 @@ const DEPRECATED_MODEL_IDS = new Set([
 
 export const getAIConfig = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultConfig();
-    const parsed = JSON.parse(raw);
+    // The config holds the account's own API key, so it is scoped to the
+    // signed-in account — a shared browser must not hand one person's key
+    // to the next person who signs in.
+    const parsed = readUserScoped(STORAGE_KEY, null);
+    if (!parsed) return defaultConfig();
     // Backfill missing fields if a new provider was added since the last save.
     const base = defaultConfig();
     const merged = { ...base, ...parsed };
@@ -177,7 +209,7 @@ export const getAIConfig = () => {
 
 export const saveAIConfig = (config) => {
   const merged = { ...defaultConfig(), ...config };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  writeUserScoped(STORAGE_KEY, merged);
   return merged;
 };
 
@@ -333,9 +365,11 @@ export const callAI = async (messages, opts = {}) => {
   switch (provider) {
     case 'openai':
     case 'openrouter':
-      return provider === 'openai'
-        ? postOpenAI({ apiKey, model, messages: fullMessages, temperature, maxTokens, signal })
-        : postOpenRouter({ apiKey, model, messages: fullMessages, temperature, maxTokens, signal });
+    case 'grok':
+    case 'cursor':
+      // All four use OpenAI-compatible /chat/completions — grok and cursor
+      // use postOpenAI directly (no extra OpenRouter headers).
+      return postOpenAI({ apiKey, model, messages: fullMessages, temperature, maxTokens, signal });
     case 'anthropic':
       return postAnthropic({
         apiKey,

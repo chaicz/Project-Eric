@@ -20,7 +20,7 @@
     "A02": {
       "patterns": [
         { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" },
         { "regex": "\\bhttp://[^\\s'\"`]+", "weight": 1, "label": "Plain http:// URL" },
         { "regex": "\\bMath\\.random\\s*\\(", "weight": 1, "label": "Non-cryptographic randomness" }
       ],
@@ -33,7 +33,7 @@
         { "regex": "\\.innerHTML\\s*=", "weight": 2, "label": "innerHTML assignment" },
         { "regex": "document\\.write(?:ln)?\\s*\\(", "weight": 2, "label": "document.write sink" },
         { "regex": "\\b(?:db|conn|knex|sequelize)\\.(?:query|execute|raw)\\s*\\([^,)]*\\+", "weight": 4, "label": "Query built with concatenation" },
-        { "regex": "\\bchild_process\\b|\\bexecSync\\s*\\(|\\bspawn\\s*\\(", "weight": 3, "label": "child_process / execSync / spawn" }
+        { "regex": "\\b(?:exec|execSync)\\s*\\(\\s*(?:`[^`]*\\$\\{|['\"][^'\"]*['\"]\\s*\\+)|\\bspawn(?:Sync)?\\s*\\([^)]*shell\\s*:\\s*true", "weight": 3, "label": "child_process / execSync / spawn" }
       ],
       "remediation": "Use parameterised queries, never concatenate user input into SQL. Avoid eval / new Function. Sanitise HTML or use safe DOM APIs (textContent) instead of innerHTML."
     },

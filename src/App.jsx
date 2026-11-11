@@ -9,15 +9,12 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
-import Analysis from './pages/Analysis';
-import Threats from './pages/Threats';
+import Security from './pages/Security';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
-import Reports from './pages/Reports';
 import Team from './pages/Team';
 import APIKeys from './pages/APIKeys';
 import AuditLogs from './pages/AuditLogs';
-import Integrations from './pages/Integrations';
 import Notifications from './pages/Notifications';
 import Onboarding from './pages/Onboarding';
 import TermsOfService from './pages/TermsOfService';
@@ -29,7 +26,6 @@ import OWASPScanner from './pages/OWASPScanner';
 import OWASPAnalysis from './pages/OWASPAnalysis';
 import IDEWorkspace from './pages/IDEWorkspace';
 import EricCollabLiteViewer from './pages/EricCollabLiteViewer';
-import Collab from './pages/Collab';
 
 // Components
 import Layout from './components/layout/Layout';
@@ -119,24 +115,27 @@ function App() {
                 </ProtectedRoute>
               }>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/analysis" element={<Analysis />} />
-                <Route path="/threats" element={<Threats />} />
+                {/* The security workspace. It absorbed the old Analysis,
+                    Threats and Reports pages, so each of those paths
+                    still lands on the right view — the `tab` query
+                    parameter picks which one. */}
+                <Route path="/security" element={<Security />} />
+                <Route path="/analysis" element={<Navigate to="/security?tab=findings" replace />} />
+                <Route path="/threats" element={<Navigate to="/security?tab=threats" replace />} />
+                <Route path="/reports" element={<Navigate to="/security?tab=reports" replace />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/profile" element={<Profile />} />
 
                 {/* New Pages */}
-                <Route path="/reports" element={<Reports />} />
                 <Route path="/team" element={<Team />} />
                 <Route path="/about-team" element={<AboutTeam />} />
                 <Route path="/api-keys" element={<APIKeys />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route path="/integrations" element={<Integrations />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/sandbox" element={<Sandbox />} />
                 <Route path="/owasp-analysis" element={<OWASPAnalysis />} />
                 <Route path="/owasp" element={<OWASPScanner />} />
                 <Route path="/ide" element={<IDEWorkspace />} />
-                <Route path="/collab" element={<Collab />} />
               </Route>
 
               {/* Public Pages */}

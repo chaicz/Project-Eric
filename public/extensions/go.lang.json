@@ -17,15 +17,16 @@
     },
     "A02": {
       "patterns": [
-        { "regex": "crypto/(?:md5|sha1)", "weight": 3, "label": "crypto/md5 or crypto/sha1 import" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+        { "regex": "crypto/(?:md5|sha1)\\b(?!\\d)", "weight": 3, "label": "crypto/md5 or crypto/sha1 import" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "[\"']math/rand[\"']|\\bmath/rand\\.", "weight": 3, "label": "math/rand used for a security value" }
       ],
-      "remediation": "Use `golang.org/x/crypto/bcrypt` for passwords. Use `crypto/rand` for tokens. Move secrets to env / Vault."
+      "remediation": "Use `golang.org/x/crypto/bcrypt` for passwords. Use `crypto/rand` for tokens. Move secrets to env / Vault. `math/rand` is a predictable PRNG — never use it for tokens, nonces or passwords."
     },
     "A03": {
       "patterns": [
         { "regex": "fmt\\.Sprintf\\s*\\(\\s*['\"][^'\"]*?(?:SELECT|INSERT|UPDATE|DELETE)", "weight": 4, "label": "fmt.Sprintf into SQL" },
-        { "regex": "exec\\.Command\\s*\\(", "weight": 3, "label": "exec.Command shell" }
+        { "regex": "exec\\.Command\\(\\s*[\"'](?:sh|bash|zsh|cmd|powershell|shell)[\"']|exec\\.Command\\([^)]*\\+", "weight": 3, "label": "exec.Command through a shell" }
       ],
       "remediation": "Use `db.Query(\"SELECT … WHERE id = ?\", id)` with `?` placeholders. Pass argv lists to `exec.Command`; avoid `sh -c`."
     },

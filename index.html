@@ -15,8 +15,15 @@
     <script>
       (function () {
         try {
-          var t = localStorage.getItem('project_eric_theme');
-          if (t === 'dark') document.documentElement.classList.add('dark');
+          // The key the app writes ('project-eric_theme'), not
+          // 'project_eric_theme' — the old spelling never matched, so
+          // the saved theme was ignored here.
+          var t = localStorage.getItem('project-eric_theme');
+          var dark = t === 'dark';
+          if (t === 'system' && window.matchMedia) {
+            dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }
+          if (dark) document.documentElement.classList.add('dark');
         } catch (e) {}
       })();
     </script>

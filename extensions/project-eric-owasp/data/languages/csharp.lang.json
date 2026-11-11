@@ -1,0 +1,361 @@
+{
+  "id": "csharp",
+  "label": "C#",
+  "extensions": [
+    "cs"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-CSHARP-001",
+      "name": "Broken Access Control — ASP.NET route with {id}",
+      "summary": "2 patterns match broken access control in C#.",
+      "description": "Apply `[Authorize]` per controller / per action. Add ownership checks in the service or use resource-based authorization handlers.",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "ASP.NET route with {id}",
+          "regex": "\\[Http(Get|Post|Put|Delete)[\"']?\\s*\\([^)]*\\{(?:id|userId)[^}]*\\}",
+          "flags": "g"
+        },
+        {
+          "description": "Controller action takes id",
+          "regex": "public\\s+async\\s+Task<.*?>\\s+\\w+\\s*\\([^)]*int\\s+(?:id|userId)[^)]*\\)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Apply `[Authorize]` per controller / per action. Add ownership checks in the service or use resource-based authorization handlers.",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-CSHARP-002",
+      "name": "Cryptographic Failures — System.Security.Cryptography weak hash",
+      "summary": "4 patterns match cryptographic failures in C#.",
+      "description": "Use `SHA256.Create()` or `SHA512.Create()` for general hashing, BCrypt.Net / Argon2 for passwords. Move secrets to env / Azure Key Vault.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "System.Security.Cryptography weak hash",
+          "regex": "\\b(?:MD5|SHA1|SHA1Managed)\\.Create\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "MD5 namespace usage",
+          "regex": "\\bSystem\\.Security\\.Cryptography\\.MD5\\b",
+          "flags": "g"
+        },
+        {
+          "description": "MD5CryptoServiceProvider",
+          "regex": "MD5CryptoServiceProvider\\b",
+          "flags": "g"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use `SHA256.Create()` or `SHA512.Create()` for general hashing, BCrypt.Net / Argon2 for passwords. Move secrets to env / Azure Key Vault.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-CSHARP-003",
+      "name": "Injection — SqlCommand built with concatenation",
+      "summary": "2 patterns match injection in C#.",
+      "description": "Use `SqlCommand` with `Parameters.AddWithValue(...)`. Replace `Process.Start(string)` with `Process.Start(new ProcessStartInfo { FileName = …, Arguments = … })` (no shell).",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "SqlCommand built with concatenation",
+          "regex": "\\bnew\\s+SqlCommand\\s*\\(\\s*['\"][^'\"]*\\+",
+          "flags": "g"
+        },
+        {
+          "description": "Process.Start shell",
+          "regex": "Process\\.Start\\s*\\(\\s*['\"]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Use `SqlCommand` with `Parameters.AddWithValue(...)`. Replace `Process.Start(string)` with `Process.Start(new ProcessStartInfo { FileName = …, Arguments = … })` (no shell).",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-CSHARP-004",
+      "name": "Security Misconfiguration — Wildcard ACAO header",
+      "summary": "Wildcard ACAO header detected in C# source.",
+      "description": "Restrict CORS via `services.AddCors(o => o.AddPolicy(...))` to explicit origins. Set `ASPNETCORE_ENVIRONMENT=Production`.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "Wildcard ACAO header",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Restrict CORS via `services.AddCors(o => o.AddPolicy(...))` to explicit origins. Set `ASPNETCORE_ENVIRONMENT=Production`.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-CSHARP-005",
+      "name": "Identification and Authentication Failures — Equals on password",
+      "summary": "Equals on password detected in C# source.",
+      "description": "Use BCrypt.Net / Argon2. Use `CryptographicOperations.FixedTimeEquals` for compare. Enforce MFA.",
+      "severity": "high",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "Equals on password",
+          "regex": "\\b(?:==|Equals)\\s*\\(\\s*[\"']?(?:password|passwd|pwd)[\"']?",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Use BCrypt.Net / Argon2. Use `CryptographicOperations.FixedTimeEquals` for compare. Enforce MFA.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-CSHARP-006",
+      "name": "Security Logging and Monitoring Failures — Console.WriteLine",
+      "summary": "Console.WriteLine detected in C# source.",
+      "description": "Use `ILogger<T>` with structured logging (Serilog / NLog). Log auth, admin and data-modification events with user id and IP.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "Console.WriteLine",
+          "regex": "Console\\.Write(?:Line)?\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Use `ILogger<T>` with structured logging (Serilog / NLog). Log auth, admin and data-modification events with user id and IP.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    }
+  ]
+}

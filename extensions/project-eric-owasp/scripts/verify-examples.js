@@ -167,7 +167,6 @@ const esbuild = require('esbuild');
       'TS-A03-001': 'Zod schema replaces any-typed user data.',
     },
     'secure/sql-secure.sql': {
-      'SQL-A03-001': 'rule regex has an optional-quote bug; benign SELECT/FROM usage.',
       'A04-001': 'the word "resolve" near a list of items triggers TODO/XXX alternative.',
     },
     'secure/php-secure.php': {

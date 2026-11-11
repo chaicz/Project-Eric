@@ -428,6 +428,101 @@ export const SANDBOX_BRIDGE_ONLY = `<script>
 </script>`;
 
 // ---------------------------------------------------------------------------
+// Local asset inlining
+// ---------------------------------------------------------------------------
+//
+// The preview runs inside an iframe whose document is set through
+// `srcdoc`. A `srcdoc` iframe has no URL of its own, so every relative
+// reference inside it resolves against the page that hosts the iframe —
+// the Vite dev server. Asking it for `app.js` returns the single-page
+// app's `index.html`, and the browser then tries to parse that HTML as
+// JavaScript and fails with "Unexpected token '<'".
+//
+// So the referenced project files are inlined into the document before
+// it is handed to the iframe, and any local reference we cannot resolve
+// is stripped rather than left to hit the network.
+
+/** The file name a `src` / `href` points at, if it is a local one. */
+const localRefName = (url) => {
+  const raw = String(url || '').trim();
+  if (!raw) return null;
+  // Absolute URL, protocol-relative URL, data: or blob: — not local.
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(raw)) return null;
+  if (raw.startsWith('#')) return null;
+  // Strip any query string or fragment, then take the last path segment.
+  const path = raw.split(/[?#]/)[0];
+  const segment = path.split('/').pop() || '';
+  return segment || null;
+};
+
+/**
+ * Inline the project files an HTML document references.
+ *
+ * @param {string} html      The document body.
+ * @param {Array<{name: string, content: string}>} allFiles  Project files.
+ * @returns {{ html: string, inlined: string[] }} The document with local
+ *   references resolved, plus the names of the files that were inlined.
+ */
+export const inlineLocalAssets = (html, allFiles) => {
+  let body = String(html || '');
+  const files = allFiles || [];
+  const byName = new Map();
+  for (const f of files) {
+    if (!f?.name) continue;
+    byName.set(f.name, f);
+    // Also index the bare name so `src="app.js"` finds `src/app.js`.
+    byName.set(f.name.split('/').pop(), f);
+  }
+
+  const inlined = new Set();
+  const remember = (name) => {
+    if (name) inlined.add(name);
+  };
+
+  // <script src="app.js"></script>  ->  <script>…contents…</script>
+  body = body.replace(
+    /<script\b([^>]*)\bsrc\s*=\s*(["'])(.*?)\2([^>]*)>\s*<\/script>/gi,
+    (match, before, quote, url, after) => {
+      const name = localRefName(url);
+      if (!name) return match;
+      const file = byName.get(name);
+      if (!file) return '';
+      remember(file.name);
+      return `<script${before}${after}>${file.content || ''}</script>`;
+    }
+  );
+
+  // <link rel="stylesheet" href="styles.css" />  ->  <style>…</style>
+  body = body.replace(
+    /<link\b([^>]*)\bhref\s*=\s*(["'])(.*?)\2([^>]*)\/?>/gi,
+    (match, before, quote, url, after) => {
+      const name = localRefName(url);
+      if (!name) return match;
+      const file = byName.get(name);
+      if (!file) return '';
+      if (!/rel\s*=\s*(["'])stylesheet\1/i.test(before)) return '';
+      remember(file.name);
+      return `<style>${file.content || ''}</style>`;
+    }
+  );
+
+  // A script tag with no body (e.g. `<script src="x.js" />`).
+  body = body.replace(
+    /<script\b([^>]*)\bsrc\s*=\s*(["'])(.*?)\2([^>]*)\/?>/gi,
+    (match, before, quote, url, after) => {
+      const name = localRefName(url);
+      if (!name) return match;
+      const file = byName.get(name);
+      if (!file) return '';
+      remember(file.name);
+      return `<script${before}${after}>${file.content || ''}</script>`;
+    }
+  );
+
+  return { html: body, inlined: [...inlined] };
+};
+
+// ---------------------------------------------------------------------------
 // HTML escape helper used by the runners
 // ---------------------------------------------------------------------------
 
@@ -491,10 +586,22 @@ const sourceOnlyPreview = (file, language) => {
 export const RUNNERS = {
   html({ file, allFiles }) {
     let body = file.content || '';
+    // Resolve `<script src>` / `<link href>` against the project files
+    // before the document is handed to the srcdoc iframe — see
+    // inlineLocalAssets for why this matters.
+    const resolved = inlineLocalAssets(body, allFiles);
+    body = resolved.html;
+    const alreadyInlined = new Set(resolved.inlined);
     const css = allFiles.find((f) => /\.(css|scss)$/.test(f.name) && !f.name.includes('preview'));
     const js  = allFiles.find((f) => /\.(js|mjs|cjs)$/.test(f.name));
-    if (css) body = body.replace(/<\/head>/i, `<style>${css.content || ''}</style></head>`);
-    if (js)  body = body.replace(/<\/body>/i, `<script>\n${js.content || ''}\n</script></body>`);
+    // Only append a file the document did not already reference, so its
+    // code does not run twice.
+    if (css && !alreadyInlined.has(css.name)) {
+      body = body.replace(/<\/head>/i, `<style>${css.content || ''}</style></head>`);
+    }
+    if (js && !alreadyInlined.has(js.name)) {
+      body = body.replace(/<\/body>/i, `<script>\n${js.content || ''}\n</script></body>`);
+    }
     const bridge = SANDBOX_BRIDGE_ONLY;
     if (!/<\/body>/i.test(body)) body += `<body>${bridge}</body>`;
     else body = body.replace(/<\/body>/i, `${bridge}</body>`);
@@ -510,7 +617,7 @@ export const RUNNERS = {
   <p>Edit the CSS file and click <b>Run</b> to refresh this preview.</p>
   <button>Hover me</button>
   <div class="card">Sample card</div>
-  <script>${SANDBOX_BRIDGE_ONLY}</script>
+  ${SANDBOX_BRIDGE_ONLY}
 </body></html>`;
     addLog('success', `Rendered ${file.name} against a sample HTML page.`);
     return { kind: 'html', html };
@@ -523,7 +630,7 @@ export const RUNNERS = {
 <style>body{font:13px ui-monospace,monospace;background:#0f172a;color:#e2e8f0;padding:16px;}</style>
 </head><body>
 <pre id="log"></pre>
-<script>${SANDBOX_BRIDGE_ONLY}</script>
+${SANDBOX_BRIDGE_ONLY}
 <script>
 (function () { function run() { try { ${code} } catch (e) { parent.postMessage({ __sandboxLog: true, level: 'error', message: (e && e.stack) || String(e) }, '*'); } parent.postMessage({ __sandboxDone: true, ok: true }, '*'); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
@@ -601,7 +708,7 @@ export const RUNNERS = {
   blockquote { border-left: 4px solid #6366f1; padding-left: 16px; color: #475569; margin-left: 0; }
   a { color: #2563eb; }
 </style></head>
-<body>${out.join('\n')}<script>${SANDBOX_BRIDGE_ONLY}</script></body></html>`;
+<body>${out.join('\n')}${SANDBOX_BRIDGE_ONLY}</body></html>`;
     addLog('success', `Rendered ${file.name} as HTML preview.`);
     return { kind: 'html', html };
   },
@@ -686,7 +793,11 @@ export const buildSampleForLanguage = (langId) => {
   if (!meta) return '';
   const tplSet = TEMPLATES[langId];
   if (tplSet && Object.keys(tplSet).length > 0) {
-    return Object.values(tplSet)[0];
+    // The first template is used, unless it is deliberately blank (the
+    // "Blank note" template is), in which case the plain sample is the
+    // better answer.
+    const first = Object.values(tplSet)[0];
+    if (first) return first;
   }
   return TEST_SAMPLES[langId] || `// Sample ${meta.label} code`;
 };

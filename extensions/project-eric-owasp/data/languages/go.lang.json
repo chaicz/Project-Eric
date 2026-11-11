@@ -1,0 +1,390 @@
+{
+  "id": "go",
+  "label": "Go",
+  "extensions": [
+    "go"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-GO-001",
+      "name": "Broken Access Control — Gin route with :id",
+      "summary": "2 patterns match broken access control in Go.",
+      "description": "Add middleware (`r.Use(auth.RequireAuth)`) and per-handler ownership checks (`if resource.UserID != currentUserID { c.AbortWithStatus(403) }`).",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "Gin route with :id",
+          "regex": "\\.(?:GET|POST|PUT|DELETE|PATCH)\\s*\\(\\s*['\"`][^'\"`]*\\\\{[^}]*?(?:id|userId)[^}]*\\\\}",
+          "flags": "g"
+        },
+        {
+          "description": "Reads :id from Gin params",
+          "regex": "c\\.Param\\(['\"](?:id|userId)['\"]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Add middleware (`r.Use(auth.RequireAuth)`) and per-handler ownership checks (`if resource.UserID != currentUserID { c.AbortWithStatus(403) }`).",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-GO-002",
+      "name": "Cryptographic Failures — crypto/md5 or crypto/sha1 import",
+      "summary": "3 patterns match cryptographic failures in Go.",
+      "description": "Use `golang.org/x/crypto/bcrypt` for passwords. Use `crypto/rand` for tokens. Move secrets to env / Vault. `math/rand` is a predictable PRNG — never use it for tokens, nonces or passwords.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "crypto/md5 or crypto/sha1 import",
+          "regex": "crypto/(?:md5|sha1)\\b(?!\\d)",
+          "flags": "g"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        },
+        {
+          "description": "math/rand used for a security value",
+          "regex": "[\"']math/rand[\"']|\\bmath/rand\\.",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use `golang.org/x/crypto/bcrypt` for passwords. Use `crypto/rand` for tokens. Move secrets to env / Vault. `math/rand` is a predictable PRNG — never use it for tokens, nonces or passwords.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-GO-003",
+      "name": "Injection — fmt.Sprintf into SQL",
+      "summary": "2 patterns match injection in Go.",
+      "description": "Use `db.Query(\"SELECT … WHERE id = ?\", id)` with `?` placeholders. Pass argv lists to `exec.Command`; avoid `sh -c`.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "fmt.Sprintf into SQL",
+          "regex": "fmt\\.Sprintf\\s*\\(\\s*['\"][^'\"]*?(?:SELECT|INSERT|UPDATE|DELETE)",
+          "flags": "g"
+        },
+        {
+          "description": "exec.Command through a shell",
+          "regex": "exec\\.Command\\(\\s*[\"'](?:sh|bash|zsh|cmd|powershell|shell)[\"']|exec\\.Command\\([^)]*\\+",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Use `db.Query(\"SELECT … WHERE id = ?\", id)` with `?` placeholders. Pass argv lists to `exec.Command`; avoid `sh -c`.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-GO-004",
+      "name": "Security Misconfiguration — Wildcard ACAO header",
+      "summary": "Wildcard ACAO header detected in Go source.",
+      "description": "Restrict CORS via `github.com/gin-contrib/cors` with explicit `AllowOrigins`. Build with `-trimpath`, strip debug.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "Wildcard ACAO header",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Restrict CORS via `github.com/gin-contrib/cors` with explicit `AllowOrigins`. Build with `-trimpath`, strip debug.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-GO-005",
+      "name": "Identification and Authentication Failures — ConstantTimeCompare (good practice, reduce score)",
+      "summary": "ConstantTimeCompare (good practice, reduce score) detected in Go source.",
+      "description": "Use `bcrypt.CompareHashAndPassword`. Compare tokens with `subtle.ConstantTimeCompare`. Enforce MFA via TOTP.",
+      "severity": "high",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "ConstantTimeCompare (good practice, reduce score)",
+          "regex": "subtle\\.ConstantTimeCompare\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Use `bcrypt.CompareHashAndPassword`. Compare tokens with `subtle.ConstantTimeCompare`. Enforce MFA via TOTP.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-GO-006",
+      "name": "Security Logging and Monitoring Failures — log.Print* (consider slog/zerolog)",
+      "summary": "log.Print* (consider slog/zerolog) detected in Go source.",
+      "description": "Use `log/slog` or `zerolog` with structured fields. Log auth, authorization and admin events with user id, IP.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "log.Print* (consider slog/zerolog)",
+          "regex": "log\\.(?:Print|Println|Fatal|Panic)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Use `log/slog` or `zerolog` with structured fields. Log auth, authorization and admin events with user id, IP.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    },
+    {
+      "id": "A10-GO-007",
+      "name": "Server-Side Request Forgery (SSRF) — http.Get/Post with variable",
+      "summary": "http.Get/Post with variable detected in Go source.",
+      "description": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs. Disable HTTP redirects (`client.CheckRedirect = func(...) error { return http.ErrUseLastResponse }`).",
+      "severity": "high",
+      "category": "A10",
+      "cwe": [
+        "CWE-918"
+      ],
+      "patterns": [
+        {
+          "description": "http.Get/Post with variable",
+          "regex": "http\\.(?:Get|Post|NewRequest)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Server-Side Request Forgery (SSRF)",
+        "hint": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs. Disable HTTP redirects (`client.CheckRedirect = func(...) error { return http.ErrUseLastResponse }`).",
+        "docUrl": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A10",
+          "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+        },
+        {
+          "label": "CWE-918",
+          "url": "https://cwe.mitre.org/data/definitions/918.html"
+        }
+      ]
+    }
+  ]
+}

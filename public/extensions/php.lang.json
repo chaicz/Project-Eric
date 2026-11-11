@@ -1,51 +1,120 @@
 {
   "id": "php",
   "label": "PHP",
-  "extensions": ["php"],
+  "extensions": [
+    "php"
+  ],
   "icon": "🐘",
   "runner": "source",
   "version": "1.1.0",
   "owaspPack": "./owasp-pack.json",
   "owaspRules": {
-    "appliesTo": ["A01", "A02", "A03", "A05", "A07", "A09"],
+    "appliesTo": [
+      "A01",
+      "A02",
+      "A03",
+      "A05",
+      "A07",
+      "A09"
+    ],
     "A01": {
       "patterns": [
-        { "regex": "Route::(?:get|post|put|delete)\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|userId)[^}]*\\}", "weight": 2, "label": "Laravel route with {id}" },
-        { "regex": "\\$request->(?:input|get)\\(['\"](?:id|userId)['\"]", "weight": 1, "label": "Reads id from request" }
+        {
+          "regex": "Route::(?:get|post|put|delete)\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|userId)[^}]*\\}(?:(?!abort_unless|abort_if|authorize|->can\\(|Gate::|->policy\\()[\\s\\S])*?\\}\\);",
+          "weight": 2,
+          "label": "Laravel route with {id} and no authorisation check",
+          "multiline": true
+        },
+        {
+          "regex": "\\$request->(?:input|get)\\(['\"](?:id|userId)['\"](?:(?!abort_unless|abort_if|authorize|->can\\(|Gate::|->policy\\()[\\s\\S])*?\\}\\);",
+          "weight": 1,
+          "label": "Reads id from request with no authorisation check",
+          "multiline": true
+        }
       ],
       "remediation": "Use Laravel Policies (`$this->authorize('view', $user)`). Apply middleware (`->middleware('can:update,user')`)."
     },
     "A02": {
       "patterns": [
-        { "regex": "\\bmd5\\s*\\(|\\bsha1\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+        {
+          "regex": "\\bmd5\\s*\\(|\\bsha1\\s*\\(",
+          "weight": 3,
+          "label": "Weak hash algorithm",
+          "flags": "gi"
+        },
+        {
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi",
+          "weight": 4,
+          "label": "Hardcoded credential literal"
+        }
       ],
       "remediation": "Use `password_hash($pwd, PASSWORD_BCRYPT)` and `password_verify`. Move secrets to env / Vault."
     },
     "A03": {
       "patterns": [
-        { "regex": "\\beval\\s*\\(|\\bassert\\s*\\(", "weight": 4, "label": "eval/assert" },
-        { "regex": "\\b(?:mysql_query|mysqli_query|pg_query)\\s*\\(\\s*['\"][^'\"]*\\$\\w+", "weight": 4, "label": "PHP SQL with variable interpolation" },
-        { "regex": "\\b(?:shell_exec|exec|system|passthru|popen|proc_open)\\s*\\(", "weight": 3, "label": "PHP shell exec family" }
+        {
+          "regex": "\\beval\\s*\\(|\\bassert\\s*\\(",
+          "weight": 4,
+          "label": "eval/assert"
+        },
+        {
+          "regex": "\\b(?:mysql_query|mysqli_query|pg_query)\\s*\\(\\s*['\"][^'\"]*\\$\\w+",
+          "weight": 4,
+          "label": "PHP SQL with variable interpolation"
+        },
+        {
+          "regex": "\\b(?:shell_exec|exec|system|passthru|popen|proc_open)\\s*\\(\\s*[\"'][^\"']*[\"']?\\s*\\.\\s*\\$",
+          "weight": 3,
+          "label": "PHP shell exec family"
+        },
+        {
+          "regex": "([\"'])\\s*(?:SELECT|INSERT|UPDATE|DELETE)\\b(?:(?!\\1).)*\\1\\s*\\.\\s*\\$[a-zA-Z_]\\w*",
+          "weight": 4,
+          "label": "PHP SQL built by string concatenation",
+          "flags": "gi"
+        },
+        {
+          "regex": "echo\\s+\\$(?:_GET|_POST|_REQUEST|_COOKIE|_SERVER)\\s*\\[",
+          "weight": 4,
+          "label": "Superglobal echoed without escaping",
+          "flags": "g"
+        }
       ],
       "remediation": "Use PDO with prepared statements (`$stmt = $pdo->prepare('SELECT … WHERE id = ?'); $stmt->execute([$id])`). Avoid `eval` / `assert`. Pass argv to Process / Symfony Process."
     },
     "A05": {
       "patterns": [
-        { "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]", "weight": 2, "label": "Wildcard ACAO header" },
-        { "regex": "\\bAPP_DEBUG\\s*=\\s*true\\b|\\bAPP_ENV\\s*=\\s*local\\b", "weight": 1, "label": "Laravel debug=true / env=local" }
+        {
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "weight": 2,
+          "label": "Wildcard ACAO header"
+        },
+        {
+          "regex": "\\bAPP_DEBUG\\s*=\\s*true\\b|\\bAPP_ENV\\s*=\\s*local\\b",
+          "weight": 1,
+          "label": "Laravel debug=true / env=local"
+        }
       ],
       "remediation": "Set `APP_DEBUG=false` in production. Restrict CORS via `config/cors.php` to explicit origins."
     },
     "A07": {
       "patterns": [
-        { "regex": "\\bpassword_verify\\s*\\(", "weight": -2, "label": "password_verify (good practice, reduce score)" }
+        {
+          "regex": "\\bpassword_verify\\s*\\(",
+          "weight": -2,
+          "label": "password_verify (good practice, reduce score)"
+        }
       ],
       "remediation": "Use `password_verify($input, $user->password_hash)`. Compare JWTs with `JWT::verify` (firebase/php-jwt). Enforce MFA."
     },
     "A09": {
       "patterns": [
-        { "regex": "var_dump\\s*\\(|print_r\\s*\\(", "weight": 1, "label": "var_dump/print_r" }
+        {
+          "regex": "var_dump\\s*\\(|print_r\\s*\\(",
+          "weight": 1,
+          "label": "var_dump/print_r"
+        }
       ],
       "remediation": "Use Laravel's Log facade (`Log::info(...)`) or Monolog. Log auth + admin events with user id and IP."
     }
@@ -74,44 +143,155 @@
     ]
   },
   "keywords": [
-    "abstract", "and", "array", "as", "break", "callable", "case", "catch",
-    "class", "clone", "const", "continue", "declare", "default", "die",
-    "do", "echo", "else", "elseif", "empty", "enddeclare", "endfor",
-    "endforeach", "endif", "endswitch", "endwhile", "eval", "exit",
-    "extends", "final", "finally", "fn", "for", "foreach", "function",
-    "global", "goto", "if", "implements", "include", "include_once",
-    "instanceof", "insteadof", "interface", "isset", "list", "match",
-    "namespace", "new", "or", "print", "private", "protected", "public",
-    "readonly", "require", "require_once", "return", "static", "switch",
-    "throw", "trait", "try", "unset", "use", "var", "while", "xor", "yield"
+    "abstract",
+    "and",
+    "array",
+    "as",
+    "break",
+    "callable",
+    "case",
+    "catch",
+    "class",
+    "clone",
+    "const",
+    "continue",
+    "declare",
+    "default",
+    "die",
+    "do",
+    "echo",
+    "else",
+    "elseif",
+    "empty",
+    "enddeclare",
+    "endfor",
+    "endforeach",
+    "endif",
+    "endswitch",
+    "endwhile",
+    "eval",
+    "exit",
+    "extends",
+    "final",
+    "finally",
+    "fn",
+    "for",
+    "foreach",
+    "function",
+    "global",
+    "goto",
+    "if",
+    "implements",
+    "include",
+    "include_once",
+    "instanceof",
+    "insteadof",
+    "interface",
+    "isset",
+    "list",
+    "match",
+    "namespace",
+    "new",
+    "or",
+    "print",
+    "private",
+    "protected",
+    "public",
+    "readonly",
+    "require",
+    "require_once",
+    "return",
+    "static",
+    "switch",
+    "throw",
+    "trait",
+    "try",
+    "unset",
+    "use",
+    "var",
+    "while",
+    "xor",
+    "yield"
   ],
   "builtins": [
-    "$_GET", "$_POST", "$_REQUEST", "$_SERVER", "$_SESSION", "$_COOKIE",
-    "$_FILES", "$_ENV", "$GLOBALS", "mysqli", "PDO", "curl_exec",
-    "json_encode", "json_decode", "phpinfo", "array_map", "array_filter"
+    "$_GET",
+    "$_POST",
+    "$_REQUEST",
+    "$_SERVER",
+    "$_SESSION",
+    "$_COOKIE",
+    "$_FILES",
+    "$_ENV",
+    "$GLOBALS",
+    "mysqli",
+    "PDO",
+    "curl_exec",
+    "json_encode",
+    "json_decode",
+    "phpinfo",
+    "array_map",
+    "array_filter"
   ],
   "dangerousApis": [
-    "eval(", "assert(", "preg_replace(/e", "create_function", "include(",
-    "shell_exec", "exec(", "system(", "passthru(", "popen", "proc_open",
-    "backtick", "unserialize"
+    "eval(",
+    "assert(",
+    "preg_replace(/e",
+    "create_function",
+    "include(",
+    "shell_exec",
+    "exec(",
+    "system(",
+    "passthru(",
+    "popen",
+    "proc_open",
+    "backtick",
+    "unserialize"
   ],
-  "domSinks": ["echo", "print"],
+  "domSinks": [
+    "echo",
+    "print"
+  ],
   "networkApis": [
-    "curl_init", "curl_exec", "file_get_contents", "fopen", "fsockopen",
+    "curl_init",
+    "curl_exec",
+    "file_get_contents",
+    "fopen",
+    "fsockopen",
     "stream_socket_client"
   ],
   "cryptoApis": [
-    "password_hash", "password_verify", "hash", "hash_hmac", "openssl_random_pseudo_bytes",
+    "password_hash",
+    "password_verify",
+    "hash",
+    "hash_hmac",
+    "openssl_random_pseudo_bytes",
     "random_bytes"
   ],
-  "weakHashes": ["md5(", "sha1(", "hash('md5'", "hash('sha1'"],
+  "weakHashes": [
+    "md5(",
+    "sha1(",
+    "hash('md5'",
+    "hash('sha1'"
+  ],
   "authHints": [
-    "$_SESSION", "Auth::", "auth()->user", "auth()->check",
-    "Gate::allows", "isAdmin", "current_user"
+    "$_SESSION",
+    "Auth::",
+    "auth()->user",
+    "auth()->check",
+    "Gate::allows",
+    "isAdmin",
+    "current_user"
   ],
   "loggingHints": [
-    "Log::info", "Log::warning", "Log::error", "error_log",
-    "Logger::info", "monolog", "syslog", "var_dump", "print_r"
+    "Log::info",
+    "Log::warning",
+    "Log::error",
+    "error_log",
+    "Logger::info",
+    "monolog",
+    "syslog",
+    "var_dump",
+    "print_r"
   ],
   "templates": [
     "<?php",

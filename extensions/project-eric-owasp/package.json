@@ -137,14 +137,14 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "projectEric.securityContainer",
+          "id": "projectEricSecurityContainer",
           "title": "Project Eric Security",
           "icon": "media/icon.png"
         }
       ]
     },
     "views": {
-      "projectEric.securityContainer": [
+      "projectEricSecurityContainer": [
         {
           "id": "projectEric.securityView",
           "name": "Findings",

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Sparkles,
   Play,
@@ -40,6 +41,7 @@ import {
   MoreVertical,
   FolderOpen,
   ListTree,
+  ShieldAlert,
   KeyRound,
   Maximize2,
   Minimize2,
@@ -51,6 +53,7 @@ import {
   TEMPLATES,
   RUNNERS,
   SANDBOX_BRIDGE_ONLY,
+  inlineLocalAssets,
   languageFromName,
   runAllLanguageTests,
 } from '../services/codeRunner';
@@ -62,6 +65,7 @@ import {
   suggestBuildImprovements,
   extractCodeBlock,
 } from '../services/aiService';
+import { readUserScoped, writeUserScoped } from '../utils/userStorage';
 
 // ---------------------------------------------------------------------------
 // File-system model
@@ -173,16 +177,16 @@ console.log('app.js ready');`,
 
 const loadProject = () => {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return buildSeedProject();
-    return JSON.parse(raw);
+    const parsed = readUserScoped(LS_KEY, null);
+    if (!parsed) return buildSeedProject();
+    return parsed;
   } catch {
     return buildSeedProject();
   }
 };
 
 const saveProject = (tree) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(tree)); } catch {}
+  try { writeUserScoped(LS_KEY, tree); } catch {}
 };
 
 // ---------------------------------------------------------------------------
@@ -336,7 +340,15 @@ const SANDBOX_RUNNER_HTML = (files) => {
   if (!body.trim()) {
     body = `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Preview</title></head><body><pre id="log"></pre></body></html>`;
   }
-  body = body.replace(/<\/head>/i, `<style>${css}</style></head>`);
+  // Resolve `<script src>` / `<link href>` against the project files —
+  // inside a srcdoc iframe they would otherwise be fetched from the dev
+  // server, which answers with the app's HTML.
+  const resolved = inlineLocalAssets(body, files);
+  body = resolved.html;
+  const alreadyInlined = new Set(resolved.inlined);
+  if (css && !alreadyInlined.has(css.name)) {
+    body = body.replace(/<\/head>/i, `<style>${css}</style></head>`);
+  }
   const bridge = `
 <script>
 (function () {
@@ -1118,6 +1130,10 @@ const Sandbox = () => {
   const [newFileStart, setNewFileStart] = useState('blank'); // 'blank' | 'existing' | 'template'
   const [newFileName, setNewFileName] = useState('');
   const [newFileTemplate, setNewFileTemplate] = useState('');
+  // The path of the file to duplicate when the dialog starts from an
+  // existing one. It holds a path rather than an id because the
+  // dropdown lists `f.path`.
+  const [newFileSource, setNewFileSource] = useState('');
 
   // --- Language test runner state ------------------------------------
   // Mirrors the OWASP findings shape: one entry per language with
@@ -1126,6 +1142,28 @@ const Sandbox = () => {
   const [isTestingAll, setIsTestingAll] = useState(false);
   const [testFilter, setTestFilter] = useState('all'); // all | pass | warning | fail
   const testAbortRef = useRef(false);
+
+  // --- Incoming vulnerability from Analysis "View in IDE" -------------------
+  const [searchParams] = useSearchParams();
+  const [incomingVuln, setIncomingVuln] = useState(null); // { id, title, severity, location, description, category, cwe }
+  const [fixingVuln, setFixingVuln] = useState(false);    // true while AI is generating
+  const [vulnFixReply, setVulnFixReply] = useState(null); // raw AI reply
+  const [vulnFixCode, setVulnFixCode] = useState('');     // extracted code block
+
+  // Read ?vulnId= URL params on mount / when searchParams change
+  useEffect(() => {
+    const id = searchParams.get('vulnId');
+    if (!id) { setIncomingVuln(null); return; }
+    setIncomingVuln({
+      id,
+      title: searchParams.get('title') || 'Unknown vulnerability',
+      severity: searchParams.get('severity') || 'medium',
+      location: searchParams.get('location') || '',
+      description: searchParams.get('description') || '',
+      category: searchParams.get('category') || '',
+      cwe: searchParams.get('cwe') || '',
+    });
+  }, [searchParams]);
 
   const iframeRef = useRef(null);
   const messageHandlerRef = useRef(null);
@@ -1551,6 +1589,53 @@ const Sandbox = () => {
     showToast('Fix applied', 'success');
   };
 
+  // --- AI fix for incoming vulnerability ---------------------------------
+
+  const generateVulnFix = async () => {
+    if (!incomingVuln) return;
+    if (!hasAIKey()) return showToast('Add an AI key in AI API Keys → AI Provider', 'error');
+    setFixingVuln(true);
+    setVulnFixReply(null);
+    setVulnFixCode('');
+    try {
+      const reply = await generateFix({
+        code: activeFile?.content || '',
+        language: activeFile?.language || languageFromName(activeFile?.name || ''),
+        findings: [{
+          id: incomingVuln.id,
+          severity: incomingVuln.severity,
+          name: incomingVuln.title,
+          description: incomingVuln.description,
+          cwe: incomingVuln.cwe,
+        }],
+      });
+      setVulnFixReply(reply);
+      const extracted = extractCodeBlock(reply);
+      setVulnFixCode(extracted);
+    } catch (e) {
+      setVulnFixReply(`⚠ ${e.message}`);
+    } finally {
+      setFixingVuln(false);
+    }
+  };
+
+  const applyVulnFix = () => {
+    if (!vulnFixCode || !activeFile) return;
+    handleApplyFix(activeFile.id, vulnFixCode);
+    setVulnFixReply(null);
+    setVulnFixCode('');
+    setIncomingVuln(null);
+    // Clear the URL params so a refresh doesn't re-trigger
+    window.history.replaceState({}, '', '/sandbox');
+  };
+
+  const dismissVuln = () => {
+    setIncomingVuln(null);
+    setVulnFixReply(null);
+    setVulnFixCode('');
+    window.history.replaceState({}, '', '/sandbox');
+  };
+
   // --- Language test runner --------------------------------------------
   //
   // Iterates every entry in LANGUAGES, runs the runner pipeline against a
@@ -1788,6 +1873,115 @@ const Sandbox = () => {
           <div className={`flex flex-row gap-3 min-w-0 min-h-0 ${
             (showPreviewPane || showRightPane) ? 'flex-1' : 'w-full'
           }`}>
+            {/* Vulnerability context banner — shown when navigated from Analysis "View in IDE" */}
+            {incomingVuln && (
+              <div className="w-full glass-strong rounded-2xl overflow-hidden flex flex-col min-h-0">
+                <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b border-amber-200/50 dark:border-amber-700/30">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                    <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="text-sm font-bold text-amber-900 dark:text-amber-100">
+                        {incomingVuln.title}
+                      </h3>
+                      <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                        incomingVuln.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                        incomingVuln.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
+                        incomingVuln.severity === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' :
+                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                      }`}>
+                        {incomingVuln.severity}
+                      </span>
+                      {incomingVuln.cwe && (
+                        <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">
+                          {incomingVuln.cwe}
+                        </span>
+                      )}
+                      {incomingVuln.category && (
+                        <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                          {incomingVuln.category}
+                        </span>
+                      )}
+                    </div>
+                    {incomingVuln.description && (
+                      <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed mb-3">
+                        {incomingVuln.description}
+                      </p>
+                    )}
+                    {incomingVuln.location && (
+                      <p className="text-[11px] font-mono text-amber-600 dark:text-amber-400 mb-3">
+                        📍 {incomingVuln.location}
+                      </p>
+                    )}
+                    {/* AI fix controls */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={generateVulnFix}
+                        disabled={fixingVuln || !activeFile}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+                      >
+                        {fixingVuln ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating fix…</>
+                        ) : (
+                          <><Wand2 className="w-3.5 h-3.5" /> AI Fix with {getAIConfig().provider} · {getAIConfig().model}</>
+                        )}
+                      </button>
+                      {!activeFile && (
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400">
+                          Open a file first to apply the fix
+                        </span>
+                      )}
+                      <button
+                        onClick={dismissVuln}
+                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-slate-500 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                      >
+                        <X className="w-3 h-3" /> Dismiss
+                      </button>
+                    </div>
+                    {/* Fix preview */}
+                    {(vulnFixReply || fixingVuln) && (
+                      <div className="mt-3 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-auto max-h-64">
+                        {fixingVuln && !vulnFixReply && (
+                          <div className="p-4 flex items-center gap-2 text-slate-400">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Sending to AI model…
+                          </div>
+                        )}
+                        {vulnFixReply && (
+                          <div className="p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[11px] text-slate-400 uppercase tracking-wider">AI response</span>
+                              <div className="flex gap-1">
+                                {vulnFixCode && (
+                                  <button
+                                    onClick={applyVulnFix}
+                                    className="px-2 py-1 rounded text-[11px] font-semibold bg-emerald-500 text-white hover:bg-emerald-600"
+                                  >
+                                    Apply fix
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(vulnFixCode || vulnFixReply)}
+                                  className="px-2 py-1 rounded text-[11px] font-semibold bg-slate-700 text-slate-200 hover:bg-slate-600"
+                                >
+                                  <Copy className="w-3 h-3 inline" />
+                                </button>
+                              </div>
+                            </div>
+                            {vulnFixCode ? (
+                              <pre className="whitespace-pre-wrap leading-relaxed text-emerald-400">{vulnFixCode}</pre>
+                            ) : (
+                              <pre className="whitespace-pre-wrap leading-relaxed text-slate-300">{vulnFixReply}</pre>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Compact Explorer (toggleable, narrow) */}
             {showLeftPane && (
               <div className="w-56 flex-shrink-0 glass-strong rounded-2xl overflow-hidden flex flex-col min-h-0">

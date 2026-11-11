@@ -1,0 +1,424 @@
+{
+  "generatedAt": "2026-11-10T01:51:20.590Z",
+  "results": [
+    {
+      "id": "dom-xss",
+      "lang": "javascript",
+      "target": "A03",
+      "flaw": "DOM XSS — request data assigned to innerHTML",
+      "expectedCoverage": [
+        "web-builtin",
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-builtin",
+        "web-pack",
+        "extension"
+      ],
+      "missed": [],
+      "coverageGap": [],
+      "unexpectedMiss": [],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A03": 2
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "jwt-none",
+      "lang": "typescript",
+      "target": "A07",
+      "flaw": "JWT signed with algorithm \"none\" (forgeable token)",
+      "expectedCoverage": [
+        "web-builtin",
+        "web-pack"
+      ],
+      "detected": [
+        "web-builtin",
+        "web-pack",
+        "extension"
+      ],
+      "missed": [],
+      "coverageGap": [],
+      "unexpectedMiss": [],
+      "falsePositives": [],
+      "documentedResiduals": [
+        "web-builtin:A04"
+      ],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {
+            "A04": 1,
+            "A07": 1
+          },
+          "safe": {
+            "A04": 1
+          }
+        },
+        "web-pack": {
+          "vuln": {
+            "A07": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A07": 1
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "pickle-loads",
+      "lang": "python",
+      "target": "A08",
+      "flaw": "pickle.loads() on untrusted bytes",
+      "expectedCoverage": [
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-pack",
+        "extension"
+      ],
+      "missed": [
+        "web-builtin"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-builtin"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {},
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A08": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A08": 2
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "md5-digest",
+      "lang": "java",
+      "target": "A02",
+      "flaw": "MessageDigest.getInstance(\"MD5\") for password hashing",
+      "expectedCoverage": [
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-pack",
+        "extension"
+      ],
+      "missed": [
+        "web-builtin"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-builtin"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {},
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A02": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A02": 4
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "command-injection",
+      "lang": "go",
+      "target": "A03",
+      "flaw": "exec.Command with a shell string built from input",
+      "expectedCoverage": [
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-pack",
+        "extension"
+      ],
+      "missed": [
+        "web-builtin"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-builtin"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {},
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "sql-injection",
+      "lang": "csharp",
+      "target": "A03",
+      "flaw": "SqlCommand built by string concatenation",
+      "expectedCoverage": [
+        "web-builtin",
+        "extension"
+      ],
+      "detected": [
+        "web-builtin",
+        "extension"
+      ],
+      "missed": [
+        "web-pack"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-pack"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {},
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "shell-interpolation",
+      "lang": "ruby",
+      "target": "A03",
+      "flaw": "Backtick shell command interpolating params[:dir]",
+      "expectedCoverage": [
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-pack",
+        "extension"
+      ],
+      "missed": [
+        "web-builtin"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-builtin"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {},
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "unwrap-panic",
+      "lang": "rust",
+      "target": "A04",
+      "flaw": "unwrap() on user-supplied id → panic (insecure design)",
+      "expectedCoverage": [
+        "extension"
+      ],
+      "detected": [
+        "web-pack",
+        "extension"
+      ],
+      "missed": [
+        "web-builtin"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-builtin"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [
+        "web-pack:A01"
+      ],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {},
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A01": 2,
+            "A04": 1
+          },
+          "safe": {
+            "A01": 2
+          }
+        },
+        "extension": {
+          "vuln": {
+            "A01": 1,
+            "A04": 1
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "idor-laravel",
+      "lang": "php",
+      "target": "A01",
+      "flaw": "Laravel route with {id} and no authorisation check",
+      "expectedCoverage": [
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-pack",
+        "extension"
+      ],
+      "missed": [
+        "web-builtin"
+      ],
+      "coverageGap": [],
+      "unexpectedMiss": [
+        "web-builtin"
+      ],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {},
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A01": 2
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A01": 2
+          },
+          "safe": {}
+        }
+      }
+    },
+    {
+      "id": "dynamic-identifier",
+      "lang": "sql",
+      "target": "A03",
+      "flaw": "Dynamic SQL identifier built by concatenation",
+      "expectedCoverage": [
+        "web-builtin",
+        "web-pack",
+        "extension"
+      ],
+      "detected": [
+        "web-builtin",
+        "web-pack",
+        "extension"
+      ],
+      "missed": [],
+      "coverageGap": [],
+      "unexpectedMiss": [],
+      "falsePositives": [],
+      "documentedResiduals": [],
+      "perEngine": {
+        "web-builtin": {
+          "vuln": {
+            "A03": 2
+          },
+          "safe": {}
+        },
+        "web-pack": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        },
+        "extension": {
+          "vuln": {
+            "A03": 1
+          },
+          "safe": {}
+        }
+      }
+    }
+  ]
+}

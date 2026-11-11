@@ -132,7 +132,11 @@ export class DashboardWebview {
   }
 
   private htmlFor(payload: PayloadValue | null): string {
-    const payloadJson = JSON.stringify(payload ?? emptyPayload());
+    // The payload is inlined into an inline <script> block, so any "</script>"
+    // inside a finding excerpt (scanned source code frequently contains it)
+    // would terminate the script early and leave the dashboard unrendered.
+    // Escaping "<" as "<" keeps the JSON valid and the script intact.
+    const payloadJson = JSON.stringify(payload ?? emptyPayload()).replace(/</g, '\\u003c');
     return /* html */`<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -57,7 +57,7 @@ const PASSWORD_RULES = [
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { login, loginWithOAuth } = useApp();
+  const { register, loginWithOAuth } = useApp();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -68,6 +68,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
   const [errors, setErrors] = useState({});
   const [mounted, setMounted] = useState(false);
   const [shake, setShake] = useState(false);
@@ -118,15 +119,30 @@ const Signup = () => {
       return;
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    login(formData.email, formData.password);
-    navigate('/onboarding');
+    setAuthError('');
+    try {
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+      navigate('/onboarding');
+    } catch (err) {
+      setAuthError(err.message || 'Could not create your account. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handleOAuth = async (provider) => {
-    loginWithOAuth(provider);
-    await new Promise((r) => setTimeout(r, 100));
-    navigate('/onboarding');
+    setIsLoading(true);
+    setAuthError('');
+    try {
+      await loginWithOAuth(provider);
+      navigate('/onboarding');
+    } catch (err) {
+      setAuthError(err.message || `Could not sign up with ${provider}.`);
+      setIsLoading(false);
+    }
   };
 
   const emailValid = formData.email && /\S+@\S+\.\S+/.test(formData.email);
@@ -418,6 +434,17 @@ const Signup = () => {
               )}
             </div>
           </FadeIn>
+
+          {/* API error banner */}
+          {authError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
 
           {/* Submit */}
           <FadeIn delay={350}>

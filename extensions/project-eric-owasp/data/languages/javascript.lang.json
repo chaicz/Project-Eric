@@ -1,0 +1,547 @@
+{
+  "id": "javascript",
+  "label": "JavaScript",
+  "extensions": [
+    "js",
+    "mjs",
+    "cjs"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-JAVASCRIPT-001",
+      "name": "Broken Access Control — Route accepts :id from the URL",
+      "summary": "3 patterns match broken access control in JavaScript.",
+      "description": "Deny by default. Verify ownership / role on every route that reads a user id. Centralise authorization in middleware, not in the controller.",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "Route accepts :id from the URL",
+          "regex": "app\\.(get|post|put|delete|patch)\\s*\\(\\s*['\"`][^'\"`]*\\b:id\\b[^'\"`]*['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "Reads :id from request params",
+          "regex": "req\\.params\\.id",
+          "flags": "g"
+        },
+        {
+          "description": "Reads id from params dict",
+          "regex": "params\\[['\"](?:id|userId|accountId)['\"]\\]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Deny by default. Verify ownership / role on every route that reads a user id. Centralise authorization in middleware, not in the controller.",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-JAVASCRIPT-002",
+      "name": "Cryptographic Failures — Weak hash algorithm",
+      "summary": "4 patterns match cryptographic failures in JavaScript.",
+      "description": "Use bcrypt/argon2 for passwords, sha-256+ for general hashing, HTTPS-only URLs, crypto.randomBytes for tokens, and load secrets from a managed store (env, KMS, vault).",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "Weak hash algorithm",
+          "regex": "\\b(?:md5|sha1)\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        },
+        {
+          "description": "Plain http:// URL",
+          "regex": "\\bhttp://[^\\s'\"`]+",
+          "flags": "g"
+        },
+        {
+          "description": "Non-cryptographic randomness",
+          "regex": "\\bMath\\.random\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use bcrypt/argon2 for passwords, sha-256+ for general hashing, HTTPS-only URLs, crypto.randomBytes for tokens, and load secrets from a managed store (env, KMS, vault).",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-JAVASCRIPT-003",
+      "name": "Injection — eval()",
+      "summary": "6 patterns match injection in JavaScript.",
+      "description": "Use parameterised queries, never concatenate user input into SQL. Avoid eval / new Function. Sanitise HTML or use safe DOM APIs (textContent) instead of innerHTML.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "eval()",
+          "regex": "\\beval\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "new Function()",
+          "regex": "\\bnew\\s+Function\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "innerHTML assignment",
+          "regex": "\\.innerHTML\\s*=",
+          "flags": "g"
+        },
+        {
+          "description": "document.write sink",
+          "regex": "document\\.write(?:ln)?\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "Query built with concatenation",
+          "regex": "\\b(?:db|conn|knex|sequelize)\\.(?:query|execute|raw)\\s*\\([^,)]*\\+",
+          "flags": "g"
+        },
+        {
+          "description": "child_process / execSync / spawn",
+          "regex": "\\b(?:exec|execSync)\\s*\\(\\s*(?:`[^`]*\\$\\{|['\"][^'\"]*['\"]\\s*\\+)|\\bspawn(?:Sync)?\\s*\\([^)]*shell\\s*:\\s*true",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Use parameterised queries, never concatenate user input into SQL. Avoid eval / new Function. Sanitise HTML or use safe DOM APIs (textContent) instead of innerHTML.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A04-JAVASCRIPT-004",
+      "name": "Insecure Design — Security TODO/FIXME",
+      "summary": "Security TODO/FIXME detected in JavaScript source.",
+      "description": "Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping.",
+      "severity": "medium",
+      "category": "A04",
+      "cwe": [
+        "CWE-209",
+        "CWE-256",
+        "CWE-501",
+        "CWE-522"
+      ],
+      "patterns": [
+        {
+          "description": "Security TODO/FIXME",
+          "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Insecure Design",
+        "hint": "Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping.",
+        "docUrl": "https://owasp.org/Top10/A04_2021-Insecure_Design/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A04",
+          "url": "https://owasp.org/Top10/A04_2021-Insecure_Design/"
+        },
+        {
+          "label": "CWE-209",
+          "url": "https://cwe.mitre.org/data/definitions/209.html"
+        },
+        {
+          "label": "CWE-256",
+          "url": "https://cwe.mitre.org/data/definitions/256.html"
+        },
+        {
+          "label": "CWE-501",
+          "url": "https://cwe.mitre.org/data/definitions/501.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-JAVASCRIPT-005",
+      "name": "Security Misconfiguration — CORS origin: '*'",
+      "summary": "4 patterns match security misconfiguration in JavaScript.",
+      "description": "Lock down CORS to explicit origins, disable debug in production, ship default-deny settings and helmet-style security headers.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "CORS origin: '*'",
+          "regex": "cors\\s*\\(\\s*\\{\\s*origin\\s*:\\s*['\"`]\\*['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "Wildcard ACAO header",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "NODE_ENV=development",
+          "regex": "\\bNODE_ENV\\s*[!=]=\\s*['\"`]development['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "helmet() with default config",
+          "regex": "\\bhelmet\\s*\\(\\s*\\)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Lock down CORS to explicit origins, disable debug in production, ship default-deny settings and helmet-style security headers.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-JAVASCRIPT-006",
+      "name": "Identification and Authentication Failures — Plain password compare",
+      "summary": "3 patterns match identification and authentication failures in JavaScript.",
+      "description": "Use bcrypt/argon2 for password hashing, constant-time comparison, enforce MFA, and rotate any leaked signing keys.",
+      "severity": "critical",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "Plain password compare",
+          "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:req\\.body|user\\.|input)",
+          "flags": "g"
+        },
+        {
+          "description": "jwt.sign with algorithm: 'none'",
+          "regex": "\\bjwt\\.sign\\s*\\([^,]+,\\s*[^,]+,\\s*\\{\\s*algorithm\\s*:\\s*['\"`]none['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "jwt.decode without verify",
+          "regex": "\\bjwt\\.decode\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Use bcrypt/argon2 for password hashing, constant-time comparison, enforce MFA, and rotate any leaked signing keys.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    },
+    {
+      "id": "A08-JAVASCRIPT-007",
+      "name": "Software and Data Integrity Failures — JWT verify: false",
+      "summary": "JWT verify: false detected in JavaScript source.",
+      "description": "Verify JWT signatures, sign CI artefacts and lock down auto-update channels.",
+      "severity": "high",
+      "category": "A08",
+      "cwe": [
+        "CWE-345",
+        "CWE-353",
+        "CWE-426",
+        "CWE-502",
+        "CWE-565",
+        "CWE-784",
+        "CWE-829",
+        "CWE-830",
+        "CWE-915"
+      ],
+      "patterns": [
+        {
+          "description": "JWT verify: false",
+          "regex": "verify\\s*:\\s*false",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Software and Data Integrity Failures",
+        "hint": "Verify JWT signatures, sign CI artefacts and lock down auto-update channels.",
+        "docUrl": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A08",
+          "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/"
+        },
+        {
+          "label": "CWE-345",
+          "url": "https://cwe.mitre.org/data/definitions/345.html"
+        },
+        {
+          "label": "CWE-353",
+          "url": "https://cwe.mitre.org/data/definitions/353.html"
+        },
+        {
+          "label": "CWE-426",
+          "url": "https://cwe.mitre.org/data/definitions/426.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-JAVASCRIPT-008",
+      "name": "Security Logging and Monitoring Failures — console.* usage",
+      "summary": "console.* usage detected in JavaScript source.",
+      "description": "Add structured logging on auth, authorization and data-modification events with user id, IP and timestamp.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "console.* usage",
+          "regex": "console\\.(log|info|warn|error)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Add structured logging on auth, authorization and data-modification events with user id, IP and timestamp.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    },
+    {
+      "id": "A10-JAVASCRIPT-009",
+      "name": "Server-Side Request Forgery (SSRF) — fetch/axios from request data",
+      "summary": "2 patterns match server-side request forgery (ssrf) in JavaScript.",
+      "description": "Validate and allowlist outbound URLs, resolve DNS yourself to block private/loopback addresses, and disable HTTP redirections on the HTTP client.",
+      "severity": "high",
+      "category": "A10",
+      "cwe": [
+        "CWE-918"
+      ],
+      "patterns": [
+        {
+          "description": "fetch/axios from request data",
+          "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*(?:req\\.|ctx\\.|input|body|data)",
+          "flags": "g"
+        },
+        {
+          "description": "fetch/axios from variable",
+          "regex": "\\b(?:fetch|axios|got|request)\\s*\\(\\s*[a-zA-Z_][\\w.]*\\s*\\)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Server-Side Request Forgery (SSRF)",
+        "hint": "Validate and allowlist outbound URLs, resolve DNS yourself to block private/loopback addresses, and disable HTTP redirections on the HTTP client.",
+        "docUrl": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A10",
+          "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+        },
+        {
+          "label": "CWE-918",
+          "url": "https://cwe.mitre.org/data/definitions/918.html"
+        }
+      ]
+    }
+  ]
+}

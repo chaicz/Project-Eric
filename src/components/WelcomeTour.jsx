@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import {
   LayoutDashboard,
   Code2,
   ScanSearch,
-  AlertTriangle,
   Sparkles,
   ArrowRight,
   X,
@@ -45,28 +45,17 @@ const TOUR_STEPS = [
     description:
       'Write code with AI assistance, real-time OWASP scanning, and sandboxed execution. Your code never leaves a protected environment.',
     target: '/sandbox',
-    next: 'analysis',
-    primaryLabel: 'Next: Analysis',
+    next: 'security',
+    primaryLabel: 'Next: Security',
   },
   {
-    id: 'analysis',
+    id: 'security',
     icon: ScanSearch,
     iconColor: 'from-emerald-500 to-teal-600',
-    title: 'Find vulnerabilities in one click',
+    title: 'Your complete security workspace',
     description:
-      'Run OWASP Top 10 scans across every project. Drill into any finding to see the exact line of code and remediation steps.',
-    target: '/analysis',
-    next: 'threats',
-    primaryLabel: 'Next: Threats',
-  },
-  {
-    id: 'threats',
-    icon: AlertTriangle,
-    iconColor: 'from-red-500 to-rose-600',
-    title: 'Stay ahead of live threats',
-    description:
-      'Get real-time threat intelligence and proactively patch CVEs before they hit. Search the NVD/CVE database from here.',
-    target: '/threats',
+      'Run OWASP Top 10 scans, drill into any finding to see the exact line of code and remediation steps, watch the failing issues as active threats, and export the results as a report.',
+    target: '/security',
     next: 'team',
     primaryLabel: 'Next: Team',
   },
@@ -109,11 +98,19 @@ const STORAGE_KEY = 'eric_welcome_tour_seen';
 
 const WelcomeTour = () => {
   const navigate = useNavigate();
+  const { user } = useApp();
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [hasSeen, setHasSeen] = useState(true);
 
   useEffect(() => {
+    // The tour walks through the signed-in app (dashboard, IDE, analysis,
+    // team), so it only makes sense once there is an account. Opening it
+    // on the public pages put a full-screen overlay on top of the login
+    // form, which blocked the "Sign in" button until the visitor
+    // dismissed it.
+    if (!user) return undefined;
+
     const seen = localStorage.getItem(STORAGE_KEY);
     setHasSeen(seen === 'true');
     if (!seen) {
@@ -124,7 +121,8 @@ const WelcomeTour = () => {
       }, 900);
       return () => clearTimeout(t);
     }
-  }, []);
+    return undefined;
+  }, [user]);
 
   const closeAndRemember = useCallback(() => {
     setOpen(false);

@@ -7,26 +7,32 @@
   "version": "1.1.0",
   "owaspPack": "./owasp-pack.json",
   "owaspRules": {
-    "appliesTo": ["A01", "A02", "A03", "A09", "A10"],
+    "appliesTo": ["A01", "A02", "A03", "A04", "A09", "A10"],
     "A01": {
       "patterns": [
-        { "regex": "\\.route\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|user_id)[^}]*\\}", "weight": 2, "label": "Actix route with {id}" },
-        { "regex": "web::Path<\\([^)]*(?:u64|usize|String)[^)]*\\)>", "weight": 1, "label": "Path extractor takes id" }
+        { "regex": "\\.route\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|user_id)[^}]*\\}(?:(?!abort_unless|abort_if|authorize|->can\\(|Gate::|->policy\\(|RequireAuth|require_auth|is_authenticated|current_user|AuthMiddleware|middleware::Auth)[\\s\\S])*?\\)\\s*(?:;|$)", "weight": 2, "label": "Actix route with {id} and no auth check" },
+        { "regex": "web::Path<\\([^)]*(?:u64|usize|String)[^)]*\\)>(?![\\s\\S]{0,400}?(?:owner_id\\s*==|current_user|RequireAuth|require_auth|is_authenticated))", "weight": 1, "label": "Path extractor takes id" }
       ],
       "remediation": "Use Actix-Web middleware / extractors (`RequireAuth`) and ownership checks (`if resource.user_id != current_user.id`)."
     },
     "A02": {
       "patterns": [
         { "regex": "\\b(?:Md5|Sha1)::(?:new|default)", "weight": 3, "label": "Weak hash digest usage" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" }
       ],
       "remediation": "Use `bcrypt` / `argon2` crates for passwords. Use `rand::OsRng` for tokens. Move to env / Vault."
     },
     "A03": {
       "patterns": [
-        { "regex": "Command::new\\s*\\(|process::Command::new\\s*\\(", "weight": 3, "label": "process::Command spawn" }
+        { "regex": "Command::new\\s*\\(\\s*[\"'](?:sh|bash|zsh|cmd|powershell)", "weight": 3, "label": "process::Command spawn" }
       ],
       "remediation": "Pass argv lists to `Command::new(\"ping\").arg(\"-c\").arg(\"1\").arg(host)`. Avoid shell metacharacters."
+    },
+    "A04": {
+      "patterns": [
+        { "regex": "(?:reqwest::|web::|actix_web::|axum::|std::env::args|std::env::var|env::args|env::var|Json|Path<|Query<|Form<|Body|headers?\\(\\)|cookies?\\(\\))[\\s\\S]{0,200}?\\.(?:unwrap|expect)\\s*\\(", "flags": "g", "weight": 2, "label": "unwrap()/expect() on user-controlled value", "multiline": true }
+      ],
+      "remediation": "Always handle parse errors gracefully on user-controlled data. Use the `?` operator or an explicit `match` instead of `unwrap()` / `expect()`."
     },
     "A09": {
       "patterns": [
@@ -45,6 +51,7 @@
     "A01": "Use Actix middleware + per-handler ownership checks.",
     "A02": "Use bcrypt/argon2 crates. Use rand::OsRng for tokens.",
     "A03": "Pass argv lists to Command::new. Avoid shell strings.",
+    "A04": "Handle parse errors with `?` or an explicit match. Never unwrap() on user-controlled data.",
     "A09": "Use log/tracing with structured fields.",
     "A10": "Allowlist outbound URLs. Resolve DNS yourself. Block private IPs."
   },

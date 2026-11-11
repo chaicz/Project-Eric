@@ -2,11 +2,21 @@
 # run-project.ps1
 #
 # Unified launcher for the full Project Eric dev stack:
-#   1. Vite dev server  (http://127.0.0.1:5173)
-#   2. code-server       (http://127.0.0.1:8080)
-#   3. Yjs collab relay  (ws://127.0.0.1:1234, optional)
+#   1. Vite dev server     (http://127.0.0.1:5173)
+#   2. code-server          (http://127.0.0.1:8080)
+#   3. Yjs collab relay     (ws://127.0.0.1:1234, optional)
+#   4. P2P Live Share relay (ws://127.0.0.1:1235, optional)
 #
-# Both run in detached background processes so the caller
+# The two relays serve different extensions and speak different wire
+# protocols, so they run side by side on separate ports:
+#
+#   • The Yjs relay backs `extensions/eric-collab` (Yjs CRDT sync).
+#   • The P2P Live Share relay backs `extensions/p2p-live-share`. It
+#     implements that extension's signalling protocol exactly, so a session
+#     hosted by this project's fork can be joined by a stock P2P Live Share
+#     client as well.
+#
+# All four run in detached background processes so the caller
 # can keep using the terminal. Logs go under ./logs/.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\run-project.ps1
@@ -18,10 +28,15 @@ param(
     [switch]$Stop,
     [switch]$Status,
     [switch]$NoYjs,
+    [switch]$NoRelay,
     [int]$VitePort   = 5173,
     [int]$CodePort   = 8080,
-    [int]$YjsPort    = 1234
+    [int]$YjsPort    = 1234,
+    [int]$RelayPort  = 1235
 )
+
+# `-NoYjs` is the historical name for "skip the collaboration relay".
+if ($NoYjs) { $NoRelay = $true }
 
 $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
@@ -30,6 +45,7 @@ if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Forc
 
 $ViteLog     = Join-Path $LogDir 'vite.log'
 $YjsLog      = Join-Path $LogDir 'yjs.log'
+$RelayLog    = Join-Path $LogDir 'p2p-relay.log'
 $CodeLog     = Join-Path $LogDir 'code-server.log'
 $LauncherLog = Join-Path $LogDir 'run-project.log'
 
@@ -67,7 +83,8 @@ if ($Stop) {
     Write-Step "Stopping Project Eric dev stack"
     Stop-ByPort $VitePort 'Vite dev server'
     Stop-ByPort $CodePort 'code-server'
-    if (-not $NoYjs) { Stop-ByPort $YjsPort 'Yjs collab relay' }
+    if (-not $NoYjs)   { Stop-ByPort $YjsPort 'Yjs collab relay' }
+    if (-not $NoRelay) { Stop-ByPort $RelayPort 'P2P Live Share relay' }
     # Also kill the Vite wrapper (npm.cmd spawns node) since it doesn't own the port itself.
     Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object {
         ($_.Path -like '*nodejs*' -and $_.StartTime -gt (Get-Date).AddHours(-2)) -or
@@ -84,14 +101,16 @@ if ($Status) {
     Write-Step "Project Eric stack status"
     $vite   = Test-PortListening $VitePort
     $code   = Test-PortListening $CodePort
-    $yjs    = if ($NoYjs) { $false } else { Test-PortListening $YjsPort }
+    $yjs    = if ($NoYjs)   { $false } else { Test-PortListening $YjsPort }
+    $relay  = if ($NoRelay) { $false } else { Test-PortListening $RelayPort }
     $fmt = { param($ok,$name,$url)
         if ($ok) { Write-Host ("   [OK]  " + $name.PadRight(22) + " " + $url) -ForegroundColor Green }
         else     { Write-Host ("   [off] " + $name.PadRight(22) + " (not running)") -ForegroundColor Yellow }
     }
-    & $fmt $vite   'Vite dev server'   "http://127.0.0.1:$VitePort"
-    & $fmt $code   'code-server'       "http://127.0.0.1:$CodePort"
-    if (-not $NoYjs) { & $fmt $yjs 'Yjs collab relay' "ws://127.0.0.1:$YjsPort" }
+    & $fmt $vite   'Vite dev server'     "http://127.0.0.1:$VitePort"
+    & $fmt $code   'code-server'         "http://127.0.0.1:$CodePort"
+    if (-not $NoYjs)   { & $fmt $yjs   'Yjs collab relay'     "ws://127.0.0.1:$YjsPort" }
+    if (-not $NoRelay) { & $fmt $relay 'P2P Live Share relay' "ws://127.0.0.1:$RelayPort" }
     exit 0
 }
 
@@ -121,6 +140,14 @@ $userSettings = @{
     'update.enableWindowsBackgroundUpdates' = $false
     'workbench.startupEditor'               = 'none'
     'window.restoreWindows'                 = 'none'
+}
+
+# Point the P2P Live Share extension at the local relay so "Start session"
+# does not ask the host to pick a server. Guests are told about the relay
+# separately through `p2p-live-share.publicRelayUrl` (the tunnel URL), which
+# is left alone here — it changes every time a tunnel is opened.
+if (-not $NoRelay) {
+    $userSettings['p2p-live-share.relayUrl'] = "ws://127.0.0.1:$RelayPort"
 }
 
 # Some code-server builds only check LOCALAPPDATA, some also check APPDATA — write to both so the
@@ -179,6 +206,7 @@ if (Test-PortListening $CodePort) {
 }
 
 # ---- Step 4: Yjs collab relay (optional) -----------------------------------
+# Backs `extensions/eric-collab`, which still syncs over Yjs CRDTs.
 if (-not $NoYjs) {
     Write-Step "Starting Yjs collab relay on port $YjsPort"
     if (Test-PortListening $YjsPort) {
@@ -207,6 +235,35 @@ if (-not $NoYjs) {
     }
 }
 
+# ---- Step 5: P2P Live Share relay (optional) -------------------------------
+# Backs `extensions/p2p-live-share`. It implements that extension's
+# signalling protocol, so a stock P2P Live Share client can join a session
+# hosted by this project's build.
+if (-not $NoRelay) {
+    Write-Step "Starting P2P Live Share relay on port $RelayPort"
+    if (Test-PortListening $RelayPort) {
+        Write-Warn ("Port $RelayPort is already in use — the P2P relay is likely already running")
+    } else {
+        $relay = Join-Path $ProjectRoot 'scripts\p2p-relay-server.mjs'
+        if (Test-Path $relay) {
+            $node = (Get-Command node.exe -ErrorAction SilentlyContinue).Source
+            if (-not $node) { $node = 'C:\Program Files\nodejs\node.exe' }
+            $relayCmd = '""' + $node + '" "' + $relay + '" --port ' + $RelayPort + ' --host 0.0.0.0"'
+            $relayProc = Start-Process `
+                -FilePath 'cmd.exe' `
+                -ArgumentList '/c', $relayCmd `
+                -WorkingDirectory $ProjectRoot `
+                -RedirectStandardOutput $RelayLog `
+                -RedirectStandardError ($RelayLog + '.err') `
+                -WindowStyle Hidden `
+                -PassThru
+            Write-OK ("P2P Live Share relay launching (PID " + $relayProc.Id + ")")
+        } else {
+            Write-Warn ('p2p-relay-server.mjs not found; skipping P2P Live Share relay')
+        }
+    }
+}
+
 # ---- Wait + summary --------------------------------------------------------
 Write-Step "Waiting for ports to open"
 $deadline = (Get-Date).AddSeconds(20)
@@ -223,9 +280,10 @@ $fmt2 = { param($ok,$name,$url)
     if ($ok) { Write-Host ('   [OK]  ' + $name.PadRight(22) + ' ' + $url) -ForegroundColor Green }
     else     { Write-Host ('   [..]  ' + $name.PadRight(22) + ' starting...') -ForegroundColor Yellow }
 }
-& $fmt2 (Test-PortListening $VitePort) 'Vite dev server'   "http://127.0.0.1:$VitePort"
-& $fmt2 (Test-PortListening $CodePort) 'code-server'       "http://127.0.0.1:$CodePort"
-if (-not $NoYjs) { & $fmt2 (Test-PortListening $YjsPort) 'Yjs collab relay' "ws://127.0.0.1:$YjsPort" }
+& $fmt2 (Test-PortListening $VitePort) 'Vite dev server'     "http://127.0.0.1:$VitePort"
+& $fmt2 (Test-PortListening $CodePort) 'code-server'         "http://127.0.0.1:$CodePort"
+if (-not $NoYjs)   { & $fmt2 (Test-PortListening $YjsPort)   'Yjs collab relay'     "ws://127.0.0.1:$YjsPort" }
+if (-not $NoRelay) { & $fmt2 (Test-PortListening $RelayPort) 'P2P Live Share relay' "ws://127.0.0.1:$RelayPort" }
 Write-Host ''
 Write-Host '  Open the dashboard and navigate to Tools - Live IDE or OWASP Analysis.' -ForegroundColor White
 Write-Host '  The OWASP scanner now runs inside the embedded code-server workbench.' -ForegroundColor White

@@ -1,0 +1,36 @@
+# Project Eric API — extensionless routing
+#
+# The React client calls the API as `/project-eric-api/api/auth/login`
+# (no `.php` extension). Without this rewrite Apache 404s on every one of
+# those paths because only `api/index.php` exists as a front controller.
+#
+# Everything that is not a real file is handed to `index.php`, which maps
+# the route onto the matching endpoint (see api/index.php $routes).
+#
+# Requires: mod_rewrite loaded and `AllowOverride All` on the htdocs
+# directory — both are already true in the stock XAMPP httpd.conf.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /project-eric-api/api/
+
+    # `features`, `team`, `projects`, ... are real directories, so Apache's
+    # mod_dir would 301 them to `.../` *before* mod_rewrite runs — and every
+    # 301 turns the POST into a GET, which silently breaks the method
+    # guards. Turning DirectorySlash off for this folder keeps the request
+    # intact so the rewrite below can route it.
+    DirectorySlash Off
+
+    # Never rewrite a real file (e.g. /api/landing.php) — serve it directly.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Everything else (extensionless routes, and directories such as
+    # /api/features) goes through the front controller.
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Stop Apache from serving the PHP sources as plain text.
+<FilesMatch "\.(sql|log|md|json)$">
+    Require all denied
+</FilesMatch>

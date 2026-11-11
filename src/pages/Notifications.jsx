@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bell,
   Search,
@@ -21,6 +21,12 @@ import {
 import { useToast } from '../components/Toast';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
+import { dashboardAPI } from '../services/api';
+import {
+  readCachedSettings,
+  loadSettings,
+  saveSettings,
+} from '../utils/accountSettings';
 
 const Notifications = () => {
   const { showToast } = useToast();
@@ -28,89 +34,57 @@ const Notifications = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [showSettings, setShowSettings] = useState(false);
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    criticalAlerts: true,
-    scanCompletion: true,
-    emailNotifications: false,
-    pushNotifications: true
-  });
+  // The account's notification preferences.
+  //
+  // These used to be kept under a `localStorage` key of their own,
+  // separate from the one the Settings page used, so the two screens
+  // disagreed about the same setting and neither followed the account.
+  // Both now read the account's stored preferences.
+  const [notificationPrefs, setNotificationPrefs] = useState(
+    () => readCachedSettings().notifications
+  );
   
-  const [notifications, setNotifications] = useState([
-    { 
-      id: 1, 
-      type: 'error',
-      title: 'Critical vulnerability detected',
-      message: 'SQL Injection vulnerability found in /api/users endpoint of E-Commerce API project',
-      timestamp: '2024-01-17 14:32',
-      read: false,
-      actionRequired: true,
-      project: 'E-Commerce API'
-    },
-    { 
-      id: 2, 
-      type: 'success',
-      title: 'Security scan completed',
-      message: 'OWASP analysis completed successfully. 3 vulnerabilities found, 2 fixed.',
-      timestamp: '2024-01-17 14:15',
-      read: false,
-      actionRequired: false,
-      project: 'Auth Service'
-    },
-    { 
-      id: 3, 
-      type: 'warning',
-      title: 'New threat intelligence',
-      message: 'Log4j variant (CVE-2024-1234) detected in wild. Consider updating dependencies.',
-      timestamp: '2024-01-17 13:45',
-      read: false,
-      actionRequired: true,
-      project: null
-    },
-    { 
-      id: 4, 
-      type: 'info',
-      title: 'Team member joined',
-      message: 'sarah.chen@company.com has been added to your organization as Admin',
-      timestamp: '2024-01-17 12:30',
-      read: true,
-      actionRequired: false,
-      project: null
-    },
-    { 
-      id: 5, 
-      type: 'success',
-      title: 'API key created',
-      message: 'New API key "CI/CD Integration" has been created with scan permissions',
-      timestamp: '2024-01-17 11:22',
-      read: true,
-      actionRequired: false,
-      project: null
-    },
-    { 
-      id: 6, 
-      type: 'error',
-      title: 'Failed login attempt detected',
-      message: 'Multiple failed login attempts from IP 198.51.100.23. Consider blocking.',
-      timestamp: '2024-01-17 10:15',
-      read: true,
-      actionRequired: true,
-      project: null
-    },
-    { 
-      id: 7, 
-      type: 'info',
-      title: 'Weekly security report ready',
-      message: 'Your weekly security summary for Jan 10-17 is ready to download.',
-      timestamp: '2024-01-17 09:00',
-      read: true,
-      actionRequired: false,
-      project: null
-    },
-  ]);
+  // The account's own alerts.
+  //
+  // This list used to be a fixed set of demo entries dated 2024, so every
+  // account - including a brand-new one - was shown a SQL injection in an
+  // "E-Commerce API" project it does not own. The API owns the list now.
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const data = await dashboardAPI.getNotifications();
+      const list = Array.isArray(data?.notifications) ? data.notifications : [];
+      setNotifications(
+        list.map((n) => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          timestamp: n.createdAt,
+          read: !!n.read,
+          // Errors and warnings are the ones that need a human.
+          actionRequired: n.type === 'error' || n.type === 'warning',
+          project: (n.data && n.data.projectName) || null,
+        }))
+      );
+    } catch {
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    loadNotifications();
+    // The preferences belong to the account, so they are read from the
+    // API rather than from this browser.
+    loadSettings().then(({ settings }) => {
+      setNotificationPrefs(settings.notifications);
+    });
+  }, [loadNotifications]);
 
   const filters = [
     { id: 'all', label: 'All' },
@@ -137,25 +111,40 @@ const Notifications = () => {
   const actionRequiredCount = notifications.filter(n => n.actionRequired && !n.read).length;
 
   const markAsRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    dashboardAPI.markNotificationRead(id).catch(() => loadNotifications());
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    dashboardAPI.markAllNotificationsRead().catch(() => loadNotifications());
   };
 
   const deleteNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    dashboardAPI.deleteNotification(id).catch(() => loadNotifications());
   };
 
   const deleteAllRead = () => {
-    setNotifications(notifications.filter(n => !n.read));
+    setNotifications((prev) => prev.filter((n) => !n.read));
+    dashboardAPI.deleteReadNotifications().catch(() => loadNotifications());
   };
 
-  const toggleNotificationPref = (key) => {
-    setNotificationPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleNotificationPref = async (key) => {
+    const nextValue = !notificationPrefs[key];
+    const previous = notificationPrefs;
+
+    setNotificationPrefs((prev) => ({ ...prev, [key]: nextValue }));
+
+    const result = await saveSettings({ notifications: { [key]: nextValue } });
+    if (!result.ok) {
+      setNotificationPrefs(previous);
+      showToast(result.error || 'Could not save the preference', 'error');
+      return;
+    }
+    if (result.settings?.notifications) {
+      setNotificationPrefs(result.settings.notifications);
+    }
   };
 
   const handleSettingsSave = () => {
@@ -362,10 +351,14 @@ const Notifications = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => toggleNotificationPref('criticalAlerts')}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.criticalAlerts ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={notificationPrefs.vulnerabilityAlerts}
+                  aria-label="Critical Alerts"
+                  onClick={() => toggleNotificationPref('vulnerabilityAlerts')}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.vulnerabilityAlerts ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notificationPrefs.criticalAlerts ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notificationPrefs.vulnerabilityAlerts ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
                 </button>
               </div>
 
@@ -380,6 +373,10 @@ const Notifications = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
+                  role="switch"
+                  aria-checked={notificationPrefs.scanCompletion}
+                  aria-label="Scan Completion"
                   onClick={() => toggleNotificationPref('scanCompletion')}
                   className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.scanCompletion ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                 >
@@ -398,10 +395,14 @@ const Notifications = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => toggleNotificationPref('emailNotifications')}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.emailNotifications ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={notificationPrefs.email}
+                  aria-label="Email Notifications"
+                  onClick={() => toggleNotificationPref('email')}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.email ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notificationPrefs.emailNotifications ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notificationPrefs.email ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
                 </button>
               </div>
 
@@ -416,10 +417,14 @@ const Notifications = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => toggleNotificationPref('pushNotifications')}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.pushNotifications ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={notificationPrefs.push}
+                  aria-label="Push Notifications"
+                  onClick={() => toggleNotificationPref('push')}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${notificationPrefs.push ? 'bg-slate-900 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notificationPrefs.pushNotifications ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notificationPrefs.push ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
                 </button>
               </div>
             </div>

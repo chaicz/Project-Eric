@@ -52,9 +52,24 @@ fn convert_video(filename: &str) -> std::io::Result<()> {
 
 // SSRF allowlist
 async fn proxy_avatar(url: &str) -> Result<String, reqwest::Error> {
-    let u = reqwest::Url::parse(url).expect("bad url");
+    // The URL comes from the request, so a parse failure is attacker-
+    // controlled input, not an invariant. Handle it with an explicit
+    // match instead of `expect()`, which would panic and take the
+    // request handler down with it.
+    let u = match reqwest::Url::parse(url) {
+        Ok(parsed) => parsed,
+        Err(_) => {
+            return Err(reqwest::Error::new(
+                reqwest::ErrorKind::Builder,
+                "invalid avatar url",
+            ))
+        }
+    };
     if !matches!(u.host_str(), Some("cdn.example.com")) {
-        panic!("blocked host");
+        return Err(reqwest::Error::new(
+            reqwest::ErrorKind::Builder,
+            "host not allowed",
+        ));
     }
     let body = reqwest::get(u).await?.text().await?;
     Ok(body)

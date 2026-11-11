@@ -18,7 +18,7 @@
     "A02": {
       "patterns": [
         { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-?1)['\"]", "weight": 3, "label": "MessageDigest with MD5/SHA-1" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" }
       ],
       "remediation": "Use BCrypt / Argon2 (Spring Security Crypto). Pin MessageDigest to SHA-256+. Move secrets to env / Vault."
     },
@@ -26,7 +26,7 @@
       "patterns": [
         { "regex": "createStatement\\s*\\(\\s*\\)", "weight": 2, "label": "Statement (not PreparedStatement)" },
         { "regex": "\\bRuntime\\.getRuntime\\s*\\(\\s*\\)\\.exec\\s*\\(", "weight": 4, "label": "Runtime.exec()" },
-        { "regex": "\\bProcessBuilder\\s*\\(", "weight": 3, "label": "ProcessBuilder" }
+        { "regex": "\\bProcessBuilder\\s*\\(\\s*[\"'](?:sh|bash|cmd|powershell)", "weight": 3, "label": "ProcessBuilder" }
       ],
       "remediation": "Use `PreparedStatement` with bind variables. Avoid Runtime.exec / ProcessBuilder with user-supplied argv. Run on a allowlisted command list."
     },

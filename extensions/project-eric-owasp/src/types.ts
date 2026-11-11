@@ -40,6 +40,12 @@ export interface RulePattern {
   regex: string;
   /** Optional flags, defaults to "g". */
   flags?: string;
+  /**
+   * The rule needs to match across line boundaries. The scanner already
+   * runs every pattern against the whole file, so this is advisory — it
+   * documents the intent and lets line-oriented engines behave the same.
+   */
+  multiline?: boolean;
   /** Confidence 0–100, helps rank overlapping matches. */
   confidence?: number;
 }

@@ -24,8 +24,18 @@ import {
   Maximize2,
   Minimize2,
   Save,
+  Download,
+  UserRound,
 } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import {
+  CODE_SERVER_REPO,
+  buildWorkbenchUrl,
+  getUserWorkspace,
+  launchUserWorkbench,
+  probeCodeServer,
+} from '../services/codeServer';
+import { readUserScoped, writeUserScoped } from '../utils/userStorage';
 
 // ============================================================
 // Live IDE — Run Project + code-server
@@ -51,7 +61,6 @@ const YJS_URL     = 'ws://127.0.0.1:1234';
 
 const HEALTH = {
   vite: `${VITE_URL}/`,
-  code: `${CODE_URL}/healthz`,
 };
 
 // Persisted recent-projects strip (recent code-server workspaces / repos
@@ -99,10 +108,20 @@ const useServiceStatus = (probe, intervalMs = 6000) => {
 const makeProbe = (url) => async ({ signal }) =>
   fetch(url, { method: 'GET', signal, mode: 'no-cors' });
 
+// The code-server probe goes through the shared service so we check the
+// health endpoint rather than the raw socket — a port that is merely open
+// does not mean the workbench is serving.
+// Named distinctly from the `probeCode` returned by useServiceStatus() below:
+// destructuring `const [status, probeCode] = ...` would shadow this binding
+// and trip a temporal-dead-zone error ("Cannot access 'probeCode' before
+// initialization") the moment the component body runs.
+const probeCodeHealth = async () => (await probeCodeServer() ? { ok: true } : { ok: false });
+
 // ============================================================
 // Status pill
 // ============================================================
 const StatusPill = ({ status, label, accent = 'emerald' }) => {
+  const testId = `status-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const palette = {
     emerald: {
       running:  'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -124,7 +143,11 @@ const StatusPill = ({ status, label, accent = 'emerald' }) => {
     unknown:  'unknown',
   }[status] || 'unknown';
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${palette[status]}`}>
+    <span
+      data-testid={testId}
+      data-status={status}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${palette[status]}`}
+    >
       <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {label}: {text}
     </span>
@@ -138,18 +161,61 @@ const IDEWorkspace = () => {
   const { showToast } = useToast();
 
   const [viteStatus,   probeVite,   setViteStatus  ] = useServiceStatus(makeProbe(HEALTH.vite));
-  const [codeStatus,   probeCode,   setCodeStatus  ] = useServiceStatus(makeProbe(HEALTH.code));
+  const [codeStatus,   probeCode,   setCodeStatus  ] = useServiceStatus(probeCodeHealth);
   const [busy, setBusy] = useState(false);          // "Run Project" / "Stop" in flight
   const [yjsOn,  setYjsOn]  = useState(true);
   const [showLog, setShowLog] = useState(false);
   const [recentProjects, setRecentProjects] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(LS_PROJECTS_KEY) || '[]'); }
-    catch { return []; }
+    try {
+      const parsed = readUserScoped(LS_PROJECTS_KEY, []);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
   });
 
   useEffect(() => {
-    localStorage.setItem(LS_PROJECTS_KEY, JSON.stringify(recentProjects));
+    writeUserScoped(LS_PROJECTS_KEY, recentProjects);
   }, [recentProjects]);
+
+  // ---- The signed-in account's own workbench -----------------------------
+  //
+  // The API owns the link between the account and its IDE workspace: the
+  // mapping lives in MySQL (`user_workspaces`), so the dashboard, the API
+  // and the code-server launcher all agree on which folder belongs to
+  // whom. Every account gets its own folder and its own code-server
+  // instance, so two accounts never share files or editor state.
+  const [account, setAccount] = useState(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+
+  const loadAccount = useCallback(async () => {
+    const info = await getUserWorkspace();
+    setAccount(info);
+  }, []);
+
+  useEffect(() => {
+    loadAccount();
+  }, [loadAccount]);
+
+  const openAccountWorkbench = useCallback(async () => {
+    if (!account?.workspace?.name || accountBusy) return;
+    setAccountBusy(true);
+    try {
+      const launched = await launchUserWorkbench({ workspaceName: account.workspace.name });
+      if (!launched.ok) {
+        showToast(launched.error || 'Could not start your workbench.', 'error', 10000);
+        return;
+      }
+      // The instance may still be booting — give it a moment.
+      await new Promise((r) => setTimeout(r, 2500));
+      const target = buildWorkbenchUrl({
+        url: launched.url || account.workspace.codeServerUrl,
+        folder: account.workspace.path,
+      });
+      openInWindow(target, 'project-eric-code-server');
+      showToast('Your workbench is opening.', 'success');
+    } finally {
+      setAccountBusy(false);
+    }
+  }, [account, accountBusy, showToast]);
 
   const refreshAll = useCallback(async () => {
     await Promise.allSettled([probeVite(), probeCode()]);
@@ -213,6 +279,46 @@ const IDEWorkspace = () => {
   const openOwaspInIde = useCallback(() => {
     window.location.href = '/owasp-analysis?embed=1';
   }, []);
+
+  // ---- Import the coder/code-server source into the workspace -----------
+  //
+  // A convenience for the OWASP scanner: the extension scans whatever
+  // lives in the workspace, so having a real, large codebase in there
+  // gives the user something meaningful to point it at.
+  const [importingSource, setImportingSource] = useState(false);
+
+  const importUpstreamSource = useCallback(async () => {
+    if (importingSource) return;
+    setImportingSource(true);
+    try {
+      const res = await fetch('/api/clone-repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: CODE_SERVER_REPO, folder: 'code-server' }),
+      }).catch(() => null);
+
+      if (!res) {
+        showToast(
+          `Import service unavailable — run \`git clone ${CODE_SERVER_REPO}\` inside the code-server workspace.`,
+          'info',
+          9000
+        );
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+
+      if (data.alreadyExists) {
+        showToast('The coder/code-server source is already in the workspace.', 'info');
+      } else if (data.ok) {
+        showToast('Imported the coder/code-server source into the workspace.', 'success');
+      } else {
+        showToast(data.error || 'Import failed.', 'error', 10000);
+      }
+    } finally {
+      setImportingSource(false);
+    }
+  }, [importingSource, showToast]);
 
   // ---- Derived UI flags ---------------------------------------------------
   const bothRunning = viteStatus === 'running' && codeStatus === 'running';
@@ -366,7 +472,7 @@ const IDEWorkspace = () => {
           port={8080}
           status={codeStatus}
           onProbe={probeCode}
-          onOpen={() => openInWindow(CODE_URL, 'code-server')}
+          onOpen={() => openInWindow(buildWorkbenchUrl(), 'code-server')}
           highlight
         />
         <ServiceCard
@@ -380,6 +486,70 @@ const IDEWorkspace = () => {
           onOpen={null}
           badge={!yjsOn ? 'Disabled' : null}
         />
+      </div>
+
+      {/* ============================================================ */}
+      {/* The signed-in account's own workbench                        */}
+      {/* ============================================================ */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center flex-shrink-0">
+            <UserRound className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              Your workbench
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              {account ? (
+                <>
+                  Signed in as <strong>{account.user?.name || account.user?.email}</strong>.
+                  The workbench below opens{' '}
+                  <strong>your</strong> folder — separate from every other
+                  account on this machine.
+                </>
+              ) : (
+                'Sign in to link your Project Eric profile to its own IDE workspace.'
+              )}
+            </p>
+
+            {account?.workspace && (
+              <div
+                className="mt-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 px-3 py-2.5"
+                data-testid="ide-workspace-folder"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Workspace folder
+                </p>
+                <p className="mt-1 font-mono text-xs text-slate-700 dark:text-slate-200 break-all">
+                  {account.workspace.path}
+                </p>
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  code-server · {account.workspace.codeServerUrl}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={openAccountWorkbench}
+                disabled={!account?.workspace?.name || accountBusy}
+                data-testid="ide-open-workbench"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white shadow-md shadow-emerald-500/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {accountBusy ? 'Starting…' : 'Open my workbench'}
+              </button>
+              <button
+                onClick={loadAccount}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ============================================================ */}
@@ -409,7 +579,7 @@ const IDEWorkspace = () => {
             </p>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <button
-                onClick={() => openInWindow(CODE_URL, 'code-server')}
+                onClick={() => openInWindow(buildWorkbenchUrl(), 'code-server')}
                 disabled={codeStatus !== 'running'}
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-md shadow-blue-500/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -495,9 +665,9 @@ const IDEWorkspace = () => {
           </div>
           {showLog ? (
             <div className="grid grid-cols-1 gap-2 text-[11px] font-mono">
-              <LogSnippet name="vite" path="/logs/vite.log" />
-              <LogSnippet name="code-server" path="/logs/code-server.log" />
-              <LogSnippet name="yjs" path="/logs/yjs.log" />
+              <LogSnippet name="vite" source="/api/run-project-logs" field="vite" />
+              <LogSnippet name="code-server" source="/api/code-server/logs" />
+              <LogSnippet name="yjs" source="/api/run-project-logs" field="yjs" />
             </div>
           ) : (
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -509,6 +679,58 @@ const IDEWorkspace = () => {
               peek at the tail.
             </p>
           )}
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* Import a real codebase to scan                                 */}
+      {/* ============================================================ */}
+      {/* The OWASP extension scans whatever is in the workspace, so     */}
+      {/* pulling a well-known project in gives you something real to  */}
+      {/* point it at. code-server's own source is a good candidate:    */}
+      {/* it is a large TypeScript codebase with plenty of patterns    */}
+      {/* for the scanner to flag.                                      */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center flex-shrink-0">
+            <FileCode className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-slate-900 dark:text-white">
+              Import a codebase to scan
+            </h3>
+            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Clone{' '}
+              <a
+                href={CODE_SERVER_REPO}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+              >
+                coder/code-server
+              </a>{' '}
+              into the code-server workspace, then open the workbench and run
+              the OWASP scanner against it. The clone is shallow and skipped
+              when the folder is already there.
+            </p>
+          </div>
+          <button
+            onClick={importUpstreamSource}
+            disabled={importingSource}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500/40 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {importingSource ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                Importing…
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" />
+                Import source
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -589,22 +811,31 @@ const ServiceCard = ({ icon: Icon, name, description, url, port, status, onProbe
 );
 
 // ============================================================
-// Log snippet (last 5 lines of a file fetched over /logs/...)
+// Log snippet — the tail of a log file, fetched from the dev server
 // ============================================================
-const LogSnippet = ({ name, path }) => {
+//
+// `source` is a dev-server endpoint that returns either `{ lines: [] }`
+// or `{ <field>: [] }`. The logs live outside the Vite public folder, so
+// they are served by scripts/dev-server-plugin.js instead of a static path.
+const LogSnippet = ({ name, source, field }) => {
   const [lines, setLines] = useState([]);
   useEffect(() => {
     let cancelled = false;
-    fetch(path)
-      .then((r) => (r.ok ? r.text() : ''))
-      .then((text) => {
-        if (cancelled) return;
-        const arr = text.split(/\r?\n/).filter(Boolean);
-        setLines(arr.slice(-5));
-      })
-      .catch(() => { /* log file may not exist yet */ });
-    return () => { cancelled = true; };
-  }, [path]);
+    const load = async () => {
+      try {
+        const res = await fetch(source);
+        if (!res.ok) return;
+        const data = await res.json();
+        const arr = field ? data?.[field] : data?.lines;
+        if (!cancelled && Array.isArray(arr)) setLines(arr.slice(-5));
+      } catch {
+        /* log file may not exist yet */
+      }
+    };
+    void load();
+    const id = setInterval(load, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [source, field]);
   return (
     <div className="rounded-md bg-slate-950 text-slate-200 px-2 py-1.5">
       <div className="text-slate-500 text-[10px]">{name}</div>

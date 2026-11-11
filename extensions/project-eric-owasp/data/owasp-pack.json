@@ -8,7 +8,13 @@
       "name": "Broken Access Control",
       "shortName": "Access Control",
       "description": "Authorization enforced by the UI is bypassed, or missing on routes that take user-supplied ids.",
-      "cwe": ["CWE-22", "CWE-285", "CWE-639", "CWE-862", "CWE-863"],
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
       "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
     },
     "A02": {
@@ -16,7 +22,18 @@
       "name": "Cryptographic Failures",
       "shortName": "Crypto",
       "description": "Weak, missing, or misused cryptography. Includes storing passwords in cleartext, weak hashing (MD5/SHA1), and using HTTP where TLS is available.",
-      "cwe": ["CWE-261", "CWE-296", "CWE-310", "CWE-319", "CWE-321", "CWE-326", "CWE-327", "CWE-328", "CWE-330", "CWE-916"],
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
       "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
     },
     "A03": {
@@ -24,7 +41,28 @@
       "name": "Injection",
       "shortName": "Injection",
       "description": "User-controlled input is interpreted as code, a query, or a command. SQL injection, command injection, XSS, and template injection all fall here.",
-      "cwe": ["CWE-20", "CWE-74", "CWE-75", "CWE-77", "CWE-78", "CWE-79", "CWE-80", "CWE-83", "CWE-87", "CWE-88", "CWE-89", "CWE-91", "CWE-94", "CWE-95", "CWE-96", "CWE-97", "CWE-98", "CWE-113", "CWE-116", "CWE-138"],
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
       "url": "https://owasp.org/Top10/A03_2021-Injection/"
     },
     "A04": {
@@ -32,7 +70,12 @@
       "name": "Insecure Design",
       "shortName": "Insecure Design",
       "description": "A control or process is missing by design. Can't be fixed by better implementation — it has to be redesigned.",
-      "cwe": ["CWE-209", "CWE-256", "CWE-501", "CWE-522"],
+      "cwe": [
+        "CWE-209",
+        "CWE-256",
+        "CWE-501",
+        "CWE-522"
+      ],
       "url": "https://owasp.org/Top10/A04_2021-Insecure_Design/"
     },
     "A05": {
@@ -40,7 +83,27 @@
       "name": "Security Misconfiguration",
       "shortName": "Misconfig",
       "description": "Default credentials, debug flags enabled in production, verbose error pages, missing patches, and unprotected files.",
-      "cwe": ["CWE-2", "CWE-11", "CWE-13", "CWE-15", "CWE-16", "CWE-260", "CWE-315", "CWE-520", "CWE-526", "CWE-537", "CWE-541", "CWE-547", "CWE-611", "CWE-614", "CWE-756", "CWE-776", "CWE-942", "CWE-1004", "CWE-1032"],
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
       "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
     },
     "A06": {
@@ -48,7 +111,11 @@
       "name": "Vulnerable and Outdated Components",
       "shortName": "Components",
       "description": "Using libraries with known vulnerabilities, or components that are no longer maintained.",
-      "cwe": ["CWE-937", "CWE-1035", "CWE-1104"],
+      "cwe": [
+        "CWE-937",
+        "CWE-1035",
+        "CWE-1104"
+      ],
       "url": "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/"
     },
     "A07": {
@@ -56,7 +123,30 @@
       "name": "Identification and Authentication Failures",
       "shortName": "Auth",
       "description": "Authentication is broken — weak passwords, no MFA, credential stuffing, exposed session tokens.",
-      "cwe": ["CWE-255", "CWE-259", "CWE-287", "CWE-288", "CWE-290", "CWE-294", "CWE-295", "CWE-297", "CWE-300", "CWE-302", "CWE-304", "CWE-306", "CWE-307", "CWE-346", "CWE-384", "CWE-521", "CWE-613", "CWE-620", "CWE-640", "CWE-798", "CWE-940", "CWE-1216"],
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
       "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
     },
     "A08": {
@@ -64,7 +154,17 @@
       "name": "Software and Data Integrity Failures",
       "shortName": "Integrity",
       "description": "Code or data is assumed trustworthy without verifying its integrity. CI/CD pipelines without integrity verification, deserialisation from untrusted input, auto-update without signature verification.",
-      "cwe": ["CWE-345", "CWE-353", "CWE-426", "CWE-502", "CWE-565", "CWE-784", "CWE-829", "CWE-830", "CWE-915"],
+      "cwe": [
+        "CWE-345",
+        "CWE-353",
+        "CWE-426",
+        "CWE-502",
+        "CWE-565",
+        "CWE-784",
+        "CWE-829",
+        "CWE-830",
+        "CWE-915"
+      ],
       "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/"
     },
     "A09": {
@@ -72,7 +172,12 @@
       "name": "Security Logging and Monitoring Failures",
       "shortName": "Logging",
       "description": "Insufficient logging, missing alerts, and inability to investigate or respond to incidents.",
-      "cwe": ["CWE-117", "CWE-223", "CWE-532", "CWE-778"],
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
       "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
     },
     "A10": {
@@ -80,7 +185,9 @@
       "name": "Server-Side Request Forgery (SSRF)",
       "shortName": "SSRF",
       "description": "Server fetches a remote URL based on user input without validating the destination — enabling access to internal services.",
-      "cwe": ["CWE-918"],
+      "cwe": [
+        "CWE-918"
+      ],
       "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
     }
   },
@@ -92,10 +199,18 @@
       "description": "MD5 has known collision attacks. Use sha256 or sha3-256 instead. For passwords, use bcrypt, scrypt, or argon2.",
       "severity": "high",
       "category": "A02",
-      "cwe": ["CWE-327"],
+      "cwe": [
+        "CWE-327"
+      ],
       "patterns": [
-        { "regex": "\\bmd5\\b", "flags": "i" },
-        { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|md5)['\"]\\s*\\)" }
+        {
+          "regex": "\\bmd5\\b",
+          "flags": "gi"
+        },
+        {
+          "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|md5)['\"]\\s*\\)",
+          "flags": "gi"
+        }
       ],
       "fix": {
         "title": "Replace MD5 with SHA-256",
@@ -104,8 +219,14 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" },
-        { "label": "CWE-327", "url": "https://cwe.mitre.org/data/definitions/327.html" }
+        {
+          "label": "OWASP A02:2021",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-327",
+          "url": "https://cwe.mitre.org/data/definitions/327.html"
+        }
       ]
     },
     {
@@ -115,10 +236,17 @@
       "description": "SHA-1 has known collision attacks (SHAttered, 2017). Modern systems should use SHA-256 or stronger.",
       "severity": "high",
       "category": "A02",
-      "cwe": ["CWE-327"],
+      "cwe": [
+        "CWE-327"
+      ],
       "patterns": [
-        { "regex": "\\bsha1\\b", "flags": "i" },
-        { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:SHA-1|SHA1)['\"]\\s*\\)" }
+        {
+          "regex": "\\bsha1\\b",
+          "flags": "gi"
+        },
+        {
+          "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:SHA-1|SHA1)['\"]\\s*\\)"
+        }
       ],
       "fix": {
         "title": "Replace SHA-1 with SHA-256",
@@ -127,7 +255,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" }
+        {
+          "label": "OWASP A02:2021",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        }
       ]
     },
     {
@@ -137,9 +268,14 @@
       "description": "Secrets in source code end up in version control, build artifacts, and crash dumps. Move them to environment variables or a secrets manager.",
       "severity": "critical",
       "category": "A02",
-      "cwe": ["CWE-798"],
+      "cwe": [
+        "CWE-798"
+      ],
       "patterns": [
-        { "regex": "(password|api[_-]?key|secret|token|auth[_-]?token)\\s*[:=]\\s*['\"][^'\"\\n]{6,}['\"]", "flags": "gi" }
+        {
+          "regex": "(password|api[_-]?key|secret|token|auth[_-]?token)\\s*[:=]\\s*['\"][^'\"\\n]{6,}['\"]",
+          "flags": "gi"
+        }
       ],
       "fix": {
         "title": "Move the secret to environment variables",
@@ -148,7 +284,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" }
+        {
+          "label": "OWASP A02:2021",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        }
       ]
     },
     {
@@ -158,9 +297,13 @@
       "description": "Plain HTTP traffic is unauthenticated and unencrypted. A network attacker can read or modify the request.",
       "severity": "medium",
       "category": "A02",
-      "cwe": ["CWE-319"],
+      "cwe": [
+        "CWE-319"
+      ],
       "patterns": [
-        { "regex": "['\"]http://(?!localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|::1)[^'\"\\s]+['\"]" }
+        {
+          "regex": "['\"]http://(?!localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|::1)[^'\"\\s]+['\"]"
+        }
       ],
       "fix": {
         "title": "Switch to HTTPS",
@@ -169,7 +312,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A02:2021", "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" }
+        {
+          "label": "OWASP A02:2021",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        }
       ]
     },
     {
@@ -179,10 +325,17 @@
       "description": "User-controlled input concatenated into a SQL string lets an attacker modify the query (UNION SELECT, DROP TABLE, etc). Use parameterised queries or an ORM.",
       "severity": "critical",
       "category": "A03",
-      "cwe": ["CWE-89"],
+      "cwe": [
+        "CWE-89"
+      ],
       "patterns": [
-        { "regex": "(?:execute|query|raw)\\s*\\(\\s*['\"`][^'\"`]*['\"`]?\\s*\\+\\s*[A-Za-z_]" },
-        { "regex": "['\"`].*?(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\\s+.*?['\"`]\\s*\\+" }
+        {
+          "regex": "(?:execute|query|raw)\\s*\\(\\s*['\"`][^'\"`]*['\"`]?\\s*\\+\\s*[A-Za-z_]"
+        },
+        {
+          "regex": "['\"`].*?(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\\s+.*?['\"`]\\s*\\+",
+          "flags": "gi"
+        }
       ],
       "fix": {
         "title": "Use parameterised queries",
@@ -191,7 +344,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+        {
+          "label": "OWASP A03:2021",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        }
       ]
     },
     {
@@ -201,9 +357,13 @@
       "description": "User input passed to a shell command lets the attacker run arbitrary OS commands. Avoid shell execution or sanitise the input through a strict allowlist.",
       "severity": "critical",
       "category": "A03",
-      "cwe": ["CWE-78"],
+      "cwe": [
+        "CWE-78"
+      ],
       "patterns": [
-        { "regex": "\\b(?:exec|system|popen|os\\.system|subprocess\\.call|child_process\\.exec)\\s*\\(\\s*['\"`][^'\"`]*['\"`]?\\s*\\+\\s*[A-Za-z_]" }
+        {
+          "regex": "\\b(?:exec|system|popen|os\\.system|subprocess\\.call|child_process\\.exec)\\s*\\(\\s*['\"`][^'\"`]*['\"`]?\\s*\\+\\s*[A-Za-z_]"
+        }
       ],
       "fix": {
         "title": "Avoid shell execution of user input",
@@ -212,7 +372,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+        {
+          "label": "OWASP A03:2021",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        }
       ]
     },
     {
@@ -222,11 +385,19 @@
       "description": "Assigning user-controlled strings to innerHTML lets attackers inject script tags. Use textContent or a sanitiser such as DOMPurify.",
       "severity": "high",
       "category": "A03",
-      "cwe": ["CWE-79"],
+      "cwe": [
+        "CWE-79"
+      ],
       "patterns": [
-        { "regex": "\\.innerHTML\\s*=\\s*[^'\"\\s;]" },
-        { "regex": "\\bdocument\\.write\\s*\\(" },
-        { "regex": "dangerouslySetInnerHTML" }
+        {
+          "regex": "\\.innerHTML\\s*=\\s*[^'\"\\s;]"
+        },
+        {
+          "regex": "\\bdocument\\.write\\s*\\("
+        },
+        {
+          "regex": "dangerouslySetInnerHTML"
+        }
       ],
       "fix": {
         "title": "Use textContent or DOMPurify",
@@ -235,7 +406,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+        {
+          "label": "OWASP A03:2021",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        }
       ]
     },
     {
@@ -245,10 +419,16 @@
       "description": "eval() executes its argument as code. Anything an attacker can influence becomes arbitrary code execution in your process.",
       "severity": "critical",
       "category": "A03",
-      "cwe": ["CWE-95"],
+      "cwe": [
+        "CWE-95"
+      ],
       "patterns": [
-        { "regex": "\\beval\\s*\\(\\s*(?!['\"`])" },
-        { "regex": "new\\s+Function\\s*\\(\\s*['\"`][^'\"`]*['\"\\']\\s*\\+" }
+        {
+          "regex": "\\beval\\s*\\(\\s*(?!['\"`])"
+        },
+        {
+          "regex": "new\\s+Function\\s*\\(\\s*['\"`][^'\"`]*['\"\\']\\s*\\+"
+        }
       ],
       "fix": {
         "title": "Avoid eval()",
@@ -257,7 +437,10 @@
       },
       "safeToAutoFix": false,
       "references": [
-        { "label": "OWASP A03:2021", "url": "https://owasp.org/Top10/A03_2021-Injection/" }
+        {
+          "label": "OWASP A03:2021",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        }
       ]
     },
     {
@@ -269,7 +452,10 @@
       "category": "A04",
       "cwe": [],
       "patterns": [
-        { "regex": "TODO|FIXME|XXX", "confidence": 50 }
+        {
+          "regex": "TODO|FIXME|XXX",
+          "confidence": 50
+        }
       ],
       "fix": {
         "title": "Resolve the TODO before shipping",
@@ -284,10 +470,16 @@
       "description": "A wildcard CORS policy combined with credentials or sensitive responses enables cross-origin theft.",
       "severity": "high",
       "category": "A05",
-      "cwe": ["CWE-942"],
+      "cwe": [
+        "CWE-942"
+      ],
       "patterns": [
-        { "regex": "Access-Control-Allow-Origin['\\s:]+['\"]\\*['\"]" },
-        { "regex": "allow_origins\\s*=\\s*\\[?\\s*['\"]\\*['\"]" }
+        {
+          "regex": "Access-Control-Allow-Origin['\\s:]+['\"]\\*['\"]"
+        },
+        {
+          "regex": "allow_origins\\s*=\\s*\\[?\\s*['\"]\\*['\"]"
+        }
       ],
       "fix": {
         "title": "Lock CORS to known origins",
@@ -303,10 +495,17 @@
       "description": "Debug mode exposes stack traces, configuration, and sometimes the REPL. Disable it in production.",
       "severity": "high",
       "category": "A05",
-      "cwe": ["CWE-489", "CWE-11"],
+      "cwe": [
+        "CWE-489",
+        "CWE-11"
+      ],
       "patterns": [
-        { "regex": "DEBUG\\s*=\\s*True" },
-        { "regex": "app\\.run\\([^)]*debug\\s*=\\s*True" }
+        {
+          "regex": "DEBUG\\s*=\\s*True"
+        },
+        {
+          "regex": "app\\.run\\([^)]*debug\\s*=\\s*True"
+        }
       ],
       "fix": {
         "title": "Disable debug mode in production",
@@ -321,10 +520,16 @@
       "description": "Most security guidance requires at least 8–12 characters. Enforce length and complexity on the server side.",
       "severity": "medium",
       "category": "A07",
-      "cwe": ["CWE-521"],
+      "cwe": [
+        "CWE-521"
+      ],
       "patterns": [
-        { "regex": "(?:password|passwd)\\s*\\.\\s*length\\s*[(<]\\s*[1-5]\\b" },
-        { "regex": "min(?:Length)?\\s*[:=]\\s*[1-5]\\b" }
+        {
+          "regex": "(?:password|passwd)\\s*\\.\\s*length\\s*[(<]\\s*[1-5]\\b"
+        },
+        {
+          "regex": "min(?:Length)?\\s*[:=]\\s*[1-5]\\b"
+        }
       ],
       "fix": {
         "title": "Require ≥ 8 character passwords",
@@ -339,9 +544,14 @@
       "description": "Plaintext passwords in storage expose every user when the database leaks. Always hash with bcrypt/scrypt/argon2.",
       "severity": "critical",
       "category": "A07",
-      "cwe": ["CWE-256", "CWE-257"],
+      "cwe": [
+        "CWE-256",
+        "CWE-257"
+      ],
       "patterns": [
-        { "regex": "(?:password|passwd|pwd)\\s*=\\s*['\"`][^'\"`]+['\"`]" }
+        {
+          "regex": "(?:password|passwd|pwd)\\s*=\\s*['\"`][^'\"`]+['\"`]"
+        }
       ],
       "fix": {
         "title": "Hash passwords with bcrypt/scrypt/argon2",
@@ -356,10 +566,16 @@
       "description": "pickle and yaml.load can execute arbitrary code when given malicious input. Use json, or yaml.safe_load.",
       "severity": "critical",
       "category": "A08",
-      "cwe": ["CWE-502"],
+      "cwe": [
+        "CWE-502"
+      ],
       "patterns": [
-        { "regex": "pickle\\.loads?\\s*\\(" },
-        { "regex": "yaml\\.load\\s*\\((?!.*Loader\\s*=\\s*yaml\\.SafeLoader)" }
+        {
+          "regex": "pickle\\.loads?\\s*\\("
+        },
+        {
+          "regex": "yaml\\.load\\s*\\((?!.*Loader\\s*=\\s*yaml\\.SafeLoader)"
+        }
       ],
       "fix": {
         "title": "Use a safe deserialiser",
@@ -374,10 +590,18 @@
       "description": "When the server fetches a URL from user input without validation, the user can reach internal services (169.254.169.254 cloud metadata, 127.0.0.1, file://, etc).",
       "severity": "high",
       "category": "A10",
-      "cwe": ["CWE-918"],
+      "cwe": [
+        "CWE-918"
+      ],
       "patterns": [
-        { "regex": "(?:axios|fetch|requests|got|http\\.get)\\s*\\(\\s*(?!['\"`])" },
-        { "regex": "urlopen\\s*\\(\\s*(?!['\"`])" }
+        {
+          "regex": "(?<![\\w$>.])(?:axios|fetch|requests|got|http\\.get)\\s*\\(\\s*(?!['\"`])",
+          "flags": "g"
+        },
+        {
+          "regex": "urlopen\\s*\\(\\s*(?!['\"`])",
+          "flags": "g"
+        }
       ],
       "fix": {
         "title": "Validate URLs against an allowlist",
@@ -390,7 +614,12 @@
     {
       "id": "javascript",
       "label": "JavaScript",
-      "extensions": ["js", "mjs", "cjs", "jsx"],
+      "extensions": [
+        "js",
+        "mjs",
+        "cjs",
+        "jsx"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -400,9 +629,13 @@
           "description": "Math.random uses a non-cryptographic PRNG. Use crypto.getRandomValues or crypto.randomUUID for security-sensitive operations.",
           "severity": "medium",
           "category": "A02",
-          "cwe": ["CWE-330"],
+          "cwe": [
+            "CWE-330"
+          ],
           "patterns": [
-            { "regex": "Math\\.random\\s*\\(" }
+            {
+              "regex": "Math\\.random\\s*\\("
+            }
           ],
           "fix": {
             "title": "Use crypto.getRandomValues() instead",
@@ -419,9 +652,13 @@
           "description": "Writing user-controlled data into the document with document.write can inject script tags. Use safer DOM APIs.",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-79"],
+          "cwe": [
+            "CWE-79"
+          ],
           "patterns": [
-            { "regex": "document\\.write(?:ln)?\\s*\\([^)]*\\+" }
+            {
+              "regex": "document\\.write(?:ln)?\\s*\\([^)]*\\+"
+            }
           ],
           "fix": {
             "title": "Use safe DOM APIs",
@@ -434,7 +671,12 @@
     {
       "id": "typescript",
       "label": "TypeScript",
-      "extensions": ["ts", "tsx", "mts", "cts"],
+      "extensions": [
+        "ts",
+        "tsx",
+        "mts",
+        "cts"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -445,7 +687,9 @@
           "severity": "low",
           "category": "A04",
           "patterns": [
-            { "regex": "as\\s+any\\b" }
+            {
+              "regex": "as\\s+any\\b"
+            }
           ],
           "fix": {
             "title": "Use a precise type",
@@ -458,7 +702,10 @@
     {
       "id": "python",
       "label": "Python",
-      "extensions": ["py", "pyw"],
+      "extensions": [
+        "py",
+        "pyw"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -468,9 +715,13 @@
           "description": "Python's -O flag strips assertions. Use an explicit if/raise for security checks.",
           "severity": "medium",
           "category": "A04",
-          "cwe": ["CWE-617"],
+          "cwe": [
+            "CWE-617"
+          ],
           "patterns": [
-            { "regex": "^\\s*assert\\s+(?:isinstance|hasattr|getattr)\\(" }
+            {
+              "regex": "^\\s*assert\\s+(?:isinstance|hasattr|getattr)\\("
+            }
           ],
           "fix": {
             "title": "Replace assert with explicit check",
@@ -485,9 +736,13 @@
           "description": "shell=True lets attackers break out of the command. Pass arguments as a list with shell=False.",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-78"],
+          "cwe": [
+            "CWE-78"
+          ],
           "patterns": [
-            { "regex": "subprocess\\.[A-Za-z_]+\\([^)]*shell\\s*=\\s*True" }
+            {
+              "regex": "subprocess\\.[A-Za-z_]+\\([^)]*shell\\s*=\\s*True"
+            }
           ],
           "fix": {
             "title": "Pass args as a list, shell=False",
@@ -500,7 +755,9 @@
     {
       "id": "sql",
       "label": "SQL",
-      "extensions": ["sql"],
+      "extensions": [
+        "sql"
+      ],
       "flags": "gi",
       "rules": [
         {
@@ -510,9 +767,18 @@
           "description": "Most databases don't allow parameterised identifiers. Validate the identifier against an allowlist of expected names.",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-89"],
+          "cwe": [
+            "CWE-89"
+          ],
           "patterns": [
-            { "regex": "(?:SELECT|FROM|UPDATE|INTO|ORDER BY|GROUP BY)\\s+['\"`]?" }
+            {
+              "regex": "(?:SELECT|FROM|UPDATE|INTO|ORDER BY|GROUP BY)\\s+['\"`]",
+              "flags": "gi"
+            },
+            {
+              "regex": "['\"`]\\s*\\|\\|\\s*\\(|\\|\\|\\s*\\(\\s*SELECT\\b",
+              "flags": "gi"
+            }
           ],
           "fix": {
             "title": "Validate identifiers against an allowlist",
@@ -525,7 +791,9 @@
     {
       "id": "java",
       "label": "Java",
-      "extensions": ["java"],
+      "extensions": [
+        "java"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -535,9 +803,13 @@
           "description": "Use SHA-256 or stronger.",
           "severity": "high",
           "category": "A02",
-          "cwe": ["CWE-327"],
+          "cwe": [
+            "CWE-327"
+          ],
           "patterns": [
-            { "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-1|SHA1)['\"]" }
+            {
+              "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-1|SHA1)['\"]"
+            }
           ],
           "fix": {
             "title": "Switch to SHA-256",
@@ -550,7 +822,9 @@
     {
       "id": "php",
       "label": "PHP",
-      "extensions": ["php"],
+      "extensions": [
+        "php"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -560,13 +834,60 @@
           "description": "Echoing request input directly lets attackers inject script. Use htmlspecialchars($x, ENT_QUOTES, 'UTF-8').",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-79"],
+          "cwe": [
+            "CWE-79"
+          ],
           "patterns": [
-            { "regex": "echo\\s+\\$(?:_GET|_POST|_REQUEST|_COOKIE|_SERVER)\\[" }
+            {
+              "regex": "echo\\s+\\$(?:_GET|_POST|_REQUEST|_COOKIE|_SERVER)\\["
+            }
           ],
           "fix": {
             "title": "Sanitise with htmlspecialchars",
             "hint": "echo htmlspecialchars($x, ENT_QUOTES, 'UTF-8');"
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "PHP-A03-002",
+          "name": "SQL statement built by string concatenation",
+          "summary": "A PHP SQL statement is glued together with user input.",
+          "description": "The query text is assembled by concatenating a variable into a SQL string. Use PDO prepared statements with bound parameters instead.",
+          "severity": "critical",
+          "category": "A03",
+          "cwe": [
+            "CWE-89"
+          ],
+          "patterns": [
+            {
+              "regex": "([\"'])\\s*(?:SELECT|INSERT|UPDATE|DELETE)\\b(?:(?!\\1).)*\\1\\s*\\.\\s*\\$[a-zA-Z_]\\w*",
+              "flags": "gi"
+            }
+          ],
+          "fix": {
+            "title": "Use a prepared statement",
+            "hint": "$stmt = $pdo->prepare('SELECT ... WHERE id = ?'); $stmt->execute([$id]);"
+          },
+          "safeToAutoFix": false
+        },
+        {
+          "id": "PHP-A03-003",
+          "name": "Shell command assembled by concatenation",
+          "summary": "A shell command is built from user input and executed.",
+          "description": "The command string is concatenated with a variable before being passed to a shell function, which allows command injection.",
+          "severity": "critical",
+          "category": "A03",
+          "cwe": [
+            "CWE-78"
+          ],
+          "patterns": [
+            {
+              "regex": "\\b(?:shell_exec|exec|system|passthru|popen|proc_open)\\s*\\(\\s*[\"'][^\"']*[\"']?\\s*\\.\\s*\\$"
+            }
+          ],
+          "fix": {
+            "title": "Avoid the shell",
+            "hint": "Call the binary directly with escapeshellarg() on every argument."
           },
           "safeToAutoFix": false
         }
@@ -575,7 +896,9 @@
     {
       "id": "go",
       "label": "Go",
-      "extensions": ["go"],
+      "extensions": [
+        "go"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -585,9 +908,13 @@
           "description": "Use crypto/rand for security-sensitive random values (tokens, nonces, session ids).",
           "severity": "medium",
           "category": "A02",
-          "cwe": ["CWE-330"],
+          "cwe": [
+            "CWE-330"
+          ],
           "patterns": [
-            { "regex": "(?:math/rand\\.|[\"']math/rand[\"']|\\brand\\.[A-Z])" }
+            {
+              "regex": "(?:math/rand\\.|[\"']math/rand[\"']|\\brand\\.[A-Z])"
+            }
           ],
           "fix": {
             "title": "Use crypto/rand instead",
@@ -600,7 +927,9 @@
     {
       "id": "rust",
       "label": "Rust",
-      "extensions": ["rs"],
+      "extensions": [
+        "rs"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -610,9 +939,13 @@
           "description": "Always handle parse errors gracefully on user-controlled data.",
           "severity": "medium",
           "category": "A04",
-          "cwe": ["CWE-754"],
+          "cwe": [
+            "CWE-754"
+          ],
           "patterns": [
-            { "regex": "\\.unwrap\\(\\)\\s*;?" }
+            {
+              "regex": "\\.unwrap\\(\\)\\s*;?"
+            }
           ],
           "fix": {
             "title": "Use ? operator or match",
@@ -625,7 +958,9 @@
     {
       "id": "ruby",
       "label": "Ruby",
-      "extensions": ["rb"],
+      "extensions": [
+        "rb"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -635,9 +970,13 @@
           "description": "Never pass user input directly to ERB.new. Use a safe templating engine or a whitelist.",
           "severity": "critical",
           "category": "A03",
-          "cwe": ["CWE-94"],
+          "cwe": [
+            "CWE-94"
+          ],
           "patterns": [
-            { "regex": "ERB\\.new\\([^)]*params" }
+            {
+              "regex": "ERB\\.new\\([^)]*params"
+            }
           ],
           "fix": {
             "title": "Sanitise templates before rendering",
@@ -650,7 +989,14 @@
     {
       "id": "cpp",
       "label": "C++",
-      "extensions": ["cpp", "cc", "cxx", "hpp", "hh", "h"],
+      "extensions": [
+        "cpp",
+        "cc",
+        "cxx",
+        "hpp",
+        "hh",
+        "h"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -660,9 +1006,13 @@
           "description": "Use strncpy, strncat, or std::string. Better: use modern C++ containers.",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-120"],
+          "cwe": [
+            "CWE-120"
+          ],
           "patterns": [
-            { "regex": "\\b(?:strcpy|strcat|gets)\\s*\\(" }
+            {
+              "regex": "\\b(?:strcpy|strcat|gets)\\s*\\("
+            }
           ],
           "fix": {
             "title": "Use bounded string functions",
@@ -675,7 +1025,9 @@
     {
       "id": "csharp",
       "label": "C#",
-      "extensions": ["cs"],
+      "extensions": [
+        "cs"
+      ],
       "flags": "g",
       "rules": [
         {
@@ -685,9 +1037,13 @@
           "description": "Use SHA256CryptoServiceProvider or, for passwords, Rfc2898DeriveBytes (PBKDF2).",
           "severity": "high",
           "category": "A02",
-          "cwe": ["CWE-327"],
+          "cwe": [
+            "CWE-327"
+          ],
           "patterns": [
-            { "regex": "MD5CryptoServiceProvider\\b" }
+            {
+              "regex": "MD5CryptoServiceProvider\\b"
+            }
           ],
           "fix": {
             "title": "Switch to SHA-256 or PBKDF2",
@@ -700,7 +1056,10 @@
     {
       "id": "html",
       "label": "HTML",
-      "extensions": ["html", "htm"],
+      "extensions": [
+        "html",
+        "htm"
+      ],
       "flags": "gi",
       "rules": [
         {
@@ -710,9 +1069,13 @@
           "description": "CSP provides defence-in-depth against XSS by restricting what scripts can run.",
           "severity": "low",
           "category": "A05",
-          "cwe": ["CWE-1021"],
+          "cwe": [
+            "CWE-1021"
+          ],
           "patterns": [
-            { "regex": "<html[^>]*>(?!.*Content-Security-Policy)" }
+            {
+              "regex": "<html[^>]*>(?!.*Content-Security-Policy)"
+            }
           ],
           "fix": {
             "title": "Add a Content-Security-Policy meta tag",
@@ -725,14 +1088,20 @@
     {
       "id": "css",
       "label": "CSS",
-      "extensions": ["css"],
+      "extensions": [
+        "css"
+      ],
       "flags": "g",
       "rules": []
     },
     {
       "id": "mcp",
       "label": "MCP Server",
-      "extensions": ["mcp.ts", "mcp.js", "mcp.py"],
+      "extensions": [
+        "mcp.ts",
+        "mcp.js",
+        "mcp.py"
+      ],
       "matchPatterns": [
         "@modelcontextprotocol/sdk",
         "@modelcontextprotocol",
@@ -756,11 +1125,20 @@
           "description": "Every MCP tool that touches state or returns privileged data must verify the caller's identity and permissions. The MCP server runs the handler in-process; any caller that can reach the JSON-RPC endpoint can invoke the tool.",
           "severity": "high",
           "category": "A01",
-          "cwe": ["CWE-862", "CWE-285"],
+          "cwe": [
+            "CWE-862",
+            "CWE-285"
+          ],
           "patterns": [
-            { "regex": "\\.tool\\s*\\(\\s*['\"`][^'\"`]+['\"`]\\s*,\\s*\\{\\s*\\}" },
-            { "regex": "@(?:server|mcp)\\.tool\\s*\\(\\s*['\"`][^'\"`]+['\"`]" },
-            { "regex": "setRequestHandler\\s*\\(\\s*CallToolRequestSchema" }
+            {
+              "regex": "\\.tool\\s*\\(\\s*['\"`][^'\"`]+['\"`]\\s*,\\s*\\{\\s*\\}"
+            },
+            {
+              "regex": "@(?:server|mcp)\\.tool\\s*\\(\\s*['\"`][^'\"`]+['\"`]"
+            },
+            {
+              "regex": "setRequestHandler\\s*\\(\\s*CallToolRequestSchema"
+            }
           ],
           "fix": {
             "title": "Add an auth check at the start of the handler",
@@ -775,10 +1153,16 @@
           "description": "MCP servers frequently handle tokens on behalf of the caller; hardcoding them turns a credential leak into a full server compromise. Load secrets from env / vault.",
           "severity": "critical",
           "category": "A02",
-          "cwe": ["CWE-798"],
+          "cwe": [
+            "CWE-798"
+          ],
           "patterns": [
-            { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]" },
-            { "regex": "Bearer\\s+[A-Za-z0-9_\\-]{16,}" }
+            {
+              "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]"
+            },
+            {
+              "regex": "Bearer\\s+[A-Za-z0-9_\\-]{16,}"
+            }
           ],
           "fix": {
             "title": "Move secrets out of source",
@@ -793,10 +1177,16 @@
           "description": "MCP tools that wrap shell commands (file search, build, test runners) are a high-value target — anything an LLM can pass through becomes a command. Validate the input against a strict allowlist and pass argv as an array (no shell).",
           "severity": "critical",
           "category": "A03",
-          "cwe": ["CWE-78"],
+          "cwe": [
+            "CWE-78"
+          ],
           "patterns": [
-            { "regex": "\\b(?:exec|execSync|spawn|spawnSync|os\\.system|subprocess\\.(?:run|call|Popen))\\s*\\([^)]*(?:args|input|query|param|req)" },
-            { "regex": "child_process\\.exec\\s*\\(" }
+            {
+              "regex": "\\b(?:exec|execSync|spawn|spawnSync|os\\.system|subprocess\\.(?:run|call|Popen))\\s*\\([^)]*(?:args|input|query|param|req)"
+            },
+            {
+              "regex": "child_process\\.exec\\s*\\("
+            }
           ],
           "fix": {
             "title": "Use argv arrays, no shell, allowlist the input",
@@ -811,11 +1201,19 @@
           "description": "Tools that read URLs / files and concatenate them into an LLM prompt are classic indirect prompt-injection vectors. Sanitise, escape, and treat remote content as untrusted.",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-1427"],
+          "cwe": [
+            "CWE-1427"
+          ],
           "patterns": [
-            { "regex": "\\bfetch\\s*\\([^)]*\\)\\s*\\.then\\s*\\([^)]*prompt" },
-            { "regex": "await\\s+fetch\\s*\\([^)]*\\)[\\s\\S]{0,80}?(?:prompt|completion|chat|llm)" },
-            { "regex": "systemPrompt\\s*[+\\.]=\\s*[^;]+(?:fetch|readFile|axios)" }
+            {
+              "regex": "\\bfetch\\s*\\([^)]*\\)\\s*\\.then\\s*\\([^)]*prompt"
+            },
+            {
+              "regex": "await\\s+fetch\\s*\\([^)]*\\)[\\s\\S]{0,80}?(?:prompt|completion|chat|llm)"
+            },
+            {
+              "regex": "systemPrompt\\s*[+\\.]=\\s*[^;]+(?:fetch|readFile|axios)"
+            }
           ],
           "fix": {
             "title": "Treat remote content as data, not instructions",
@@ -830,10 +1228,16 @@
           "description": "MCP file tools (read_file, list_dir) that take a user-supplied path can be tricked into reading outside the intended root via '..'. Resolve the path, then check it stays under the root.",
           "severity": "high",
           "category": "A03",
-          "cwe": ["CWE-22"],
+          "cwe": [
+            "CWE-22"
+          ],
           "patterns": [
-            { "regex": "(?:readFile|read_file|fs\\.read)\\s*\\(\\s*(?:args|input|query|param|req)\\.[a-zA-Z_]+" },
-            { "regex": "path\\.join\\s*\\([^)]*(?:args|input|query|param|req)\\." }
+            {
+              "regex": "(?:readFile|read_file|fs\\.read)\\s*\\(\\s*(?:args|input|query|param|req)\\.[a-zA-Z_]+"
+            },
+            {
+              "regex": "path\\.join\\s*\\([^)]*(?:args|input|query|param|req)\\."
+            }
           ],
           "fix": {
             "title": "Resolve and confine to a root directory",
@@ -848,21 +1252,23 @@
           "description": "By default MCP servers should bind to 127.0.0.1. Listening on 0.0.0.0 exposes the JSON-RPC endpoint to the network, which usually means the LLM can reach internal services too.",
           "severity": "medium",
           "category": "A05",
-          "cwe": ["CWE-668"],
-          "patterns": [
-            { "regex": "\\b0\\.0\\.0\\.0\\b" },
-            { "regex": "host\\s*[:=]\\s*['\"]0\\.0\\.0\\.0['\"]" }
+          "cwe": [
+            "CWE-668"
           ],
-          "fix": {
-            "title": "Bind to 127.0.0.1 unless you really need a network socket",
-            "hint": "Pass host: '127.0.0.1' to the server constructor."
-          },
-          "safeToAutoFix": true,
+          "patterns": [
+            {
+              "regex": "\\b0\\.0\\.0\\.0\\b"
+            },
+            {
+              "regex": "host\\s*[:=]\\s*['\"]0\\.0\\.0\\.0['\"]"
+            }
+          ],
           "fix": {
             "title": "Bind to 127.0.0.1",
             "hint": "host: '127.0.0.1'",
             "replacement": "host: '127.0.0.1'"
-          }
+          },
+          "safeToAutoFix": true
         },
         {
           "id": "MCP-A07-001",
@@ -871,10 +1277,16 @@
           "description": "An unauthenticated MCP endpoint is callable by anything that can open a TCP socket. Add a token check (e.g. SSEServerTransport with a shared bearer token) before exposing the server.",
           "severity": "high",
           "category": "A07",
-          "cwe": ["CWE-306"],
+          "cwe": [
+            "CWE-306"
+          ],
           "patterns": [
-            { "regex": "SSEServerTransport\\s*\\(\\s*['\"`][^'\"`]*['\"`]\\s*\\)" },
-            { "regex": "StdioServerTransport\\s*\\.connect\\s*\\(" }
+            {
+              "regex": "SSEServerTransport\\s*\\(\\s*['\"`][^'\"`]*['\"`]\\s*\\)"
+            },
+            {
+              "regex": "StdioServerTransport\\s*\\.connect\\s*\\("
+            }
           ],
           "fix": {
             "title": "Add a token check at the transport layer",
@@ -889,10 +1301,16 @@
           "description": "MCP tools that swallow exceptions hide bugs and make auditing impossible. Always log with the tool name, request id, and a redacted error message.",
           "severity": "medium",
           "category": "A09",
-          "cwe": ["CWE-778"],
+          "cwe": [
+            "CWE-778"
+          ],
           "patterns": [
-            { "regex": "catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}" },
-            { "regex": "except\\s*:\\s*\\n\\s*pass" }
+            {
+              "regex": "catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}"
+            },
+            {
+              "regex": "except\\s*:\\s*\\n\\s*pass"
+            }
           ],
           "fix": {
             "title": "Log and re-throw or return a structured error",
@@ -907,10 +1325,16 @@
           "description": "Tools that take a URL from the caller and fetch it turn the MCP server into an SSRF proxy. Validate against an allowlist and block private IP ranges (incl. 169.254.169.254).",
           "severity": "high",
           "category": "A10",
-          "cwe": ["CWE-918"],
+          "cwe": [
+            "CWE-918"
+          ],
           "patterns": [
-            { "regex": "\\b(?:fetch|axios|got|requests|httpx|aiohttp)\\.\\w*\\s*\\(\\s*(?:args|input|query|param|req)\\." },
-            { "regex": "urlopen\\s*\\(\\s*(?:args|input|query|param|req)\\." }
+            {
+              "regex": "\\b(?:fetch|axios|got|requests|httpx|aiohttp)\\.\\w*\\s*\\(\\s*(?:args|input|query|param|req)\\."
+            },
+            {
+              "regex": "urlopen\\s*\\(\\s*(?:args|input|query|param|req)\\."
+            }
           ],
           "fix": {
             "title": "Allowlist URLs and resolve DNS yourself",

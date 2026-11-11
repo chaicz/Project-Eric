@@ -1,0 +1,401 @@
+{
+  "id": "ruby",
+  "label": "Ruby",
+  "extensions": [
+    "rb"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-RUBY-001",
+      "name": "Broken Access Control — Rails route with :id",
+      "summary": "2 patterns match broken access control in Ruby.",
+      "description": "Use Pundit / CanCanCan. Add `before_action :authenticate_user!` and ownership check (`@post.user == current_user`).",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "Rails route with :id",
+          "regex": "resources\\s+:\\w+|get\\s+['\"`][^'\"`]*:id[^'\"`]*['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "Reads :id from params",
+          "regex": "params\\[:(?:id|user_id)\\]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Use Pundit / CanCanCan. Add `before_action :authenticate_user!` and ownership check (`@post.user == current_user`).",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-RUBY-002",
+      "name": "Cryptographic Failures — Digest::MD5 / Digest::SHA1",
+      "summary": "2 patterns match cryptographic failures in Ruby.",
+      "description": "Use `BCrypt::Password.create(pwd)` / `BCrypt::Password.create(string, cost: 12)`. Use `SecureRandom.hex(32)` for tokens. Move secrets to Rails credentials / Vault.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "Digest::MD5 / Digest::SHA1",
+          "regex": "Digest::(?:MD5|SHA1)",
+          "flags": "g"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use `BCrypt::Password.create(pwd)` / `BCrypt::Password.create(string, cost: 12)`. Use `SecureRandom.hex(32)` for tokens. Move secrets to Rails credentials / Vault.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-RUBY-003",
+      "name": "Injection — Shell command with interpolation",
+      "summary": "2 patterns match injection in Ruby.",
+      "description": "Pass argv lists to `Open3.capture3(cmd, *args)` (never a shell string). Use ActiveRecord (parameterised by default) instead of raw SQL. Never build an ERB template from `params` — a user-supplied template is remote code execution; render a fixed template with sanitised values.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "Shell command with interpolation",
+          "regex": "\\b(?:system|exec|`)\\s*[^,)]*\\+|`[^`]*#\\{[^}]*\\}[^`]*`",
+          "flags": "g"
+        },
+        {
+          "description": "ERB template built from user input",
+          "regex": "ERB\\.new\\([^)]*params",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Pass argv lists to `Open3.capture3(cmd, *args)` (never a shell string). Use ActiveRecord (parameterised by default) instead of raw SQL. Never build an ERB template from `params` — a user-supplied template is remote code execution; render a fixed template with sanitised values.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-RUBY-004",
+      "name": "Security Misconfiguration — Wildcard ACAO header",
+      "summary": "Wildcard ACAO header detected in Ruby source.",
+      "description": "Set `config.middleware.insert_before 0, Rack::Cors` with explicit origins. Set `Rails.env = 'production'`.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "Wildcard ACAO header",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Set `config.middleware.insert_before 0, Rack::Cors` with explicit origins. Set `Rails.env = 'production'`.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-RUBY-005",
+      "name": "Identification and Authentication Failures — Plain password compare",
+      "summary": "Plain password compare detected in Ruby source.",
+      "description": "Use `user.authenticate(params[:password])` (has_secure_password + BCrypt). Enforce MFA via Devise :two_factor_authenticatable.",
+      "severity": "high",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "Plain password compare",
+          "regex": "(?:password|passwd|pwd)\\s*===?\\s*(?:params|user\\.|input)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Use `user.authenticate(params[:password])` (has_secure_password + BCrypt). Enforce MFA via Devise :two_factor_authenticatable.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    },
+    {
+      "id": "A08-RUBY-006",
+      "name": "Software and Data Integrity Failures — Marshal.load/restore",
+      "summary": "Marshal.load/restore detected in Ruby source.",
+      "description": "Never `Marshal.load` untrusted bytes. Use JSON + schema validation.",
+      "severity": "high",
+      "category": "A08",
+      "cwe": [
+        "CWE-345",
+        "CWE-353",
+        "CWE-426",
+        "CWE-502",
+        "CWE-565",
+        "CWE-784",
+        "CWE-829",
+        "CWE-830",
+        "CWE-915"
+      ],
+      "patterns": [
+        {
+          "description": "Marshal.load/restore",
+          "regex": "\\bMarshal\\.(?:load|restore)\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Software and Data Integrity Failures",
+        "hint": "Never `Marshal.load` untrusted bytes. Use JSON + schema validation.",
+        "docUrl": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A08",
+          "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/"
+        },
+        {
+          "label": "CWE-345",
+          "url": "https://cwe.mitre.org/data/definitions/345.html"
+        },
+        {
+          "label": "CWE-353",
+          "url": "https://cwe.mitre.org/data/definitions/353.html"
+        },
+        {
+          "label": "CWE-426",
+          "url": "https://cwe.mitre.org/data/definitions/426.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-RUBY-007",
+      "name": "Security Logging and Monitoring Failures — puts (consider logger)",
+      "summary": "puts (consider logger) detected in Ruby source.",
+      "description": "Use Rails.logger.info(...). Log auth + admin events with user id, IP, timestamp.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "puts (consider logger)",
+          "regex": "puts\\s+",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Use Rails.logger.info(...). Log auth + admin events with user id, IP, timestamp.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    }
+  ]
+}

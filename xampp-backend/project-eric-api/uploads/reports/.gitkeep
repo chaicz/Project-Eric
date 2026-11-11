@@ -1,0 +1,5 @@
+# The reports folder is managed by the API.
+#
+# The `.htaccess` next to this file denies direct web access, and the
+# API creates and deletes the PDFs itself. This placeholder keeps the
+# empty folder in the repository.

@@ -18,7 +18,7 @@
     "A02": {
       "patterns": [
         { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" },
         { "regex": "\\bhttp://[^\\s'\"`]+", "weight": 1, "label": "Plain http:// URL" },
         { "regex": "\\bMath\\.random\\s*\\(", "weight": 1, "label": "Non-cryptographic randomness" }
       ],
@@ -36,9 +36,10 @@
     },
     "A04": {
       "patterns": [
-        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" }
+        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" },
+        { "regex": "\\bas\\s+any\\b", "weight": 2, "label": "`as any` bypasses the type system" }
       ],
-      "remediation": "Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping."
+      "remediation": "Apply per-IP and per-account rate limits on auth endpoints. Resolve security-related TODO/FIXME comments before shipping. Replace `as any` with a precise type or `unknown` plus a narrowing check — `any` silences the compiler exactly where untrusted data enters."
     },
     "A05": {
       "patterns": [

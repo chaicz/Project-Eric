@@ -91,76 +91,124 @@ const SlideControls = ({ goNext, goPrev, current, total, goTo, slideLabel }) => 
         />
       </div>
 
-      {/* Side arrows (desktop only) */}
-      <button
-        onClick={goPrev}
-        disabled={current === 0}
-        aria-label="Previous slide"
-        className={`hidden md:flex fixed left-6 lg:left-10 top-1/2 -translate-y-1/2 z-40 w-12 h-12 lg:w-14 lg:h-14 items-center justify-center rounded-full border border-slate-300 bg-white/80 backdrop-blur-md transition-all duration-300 ${
-          current === 0
-            ? 'text-slate-300 cursor-not-allowed'
-            : 'text-slate-900 hover:bg-white hover:scale-110 hover:border-blue-500 hover:text-blue-600 shadow-lg'
-        }`}
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+      {/* Side arrows (desktop only).
 
-      <button
-        onClick={goNext}
-        disabled={current === total - 1}
-        aria-label="Next slide"
-        className={`hidden md:flex fixed right-6 lg:right-10 top-1/2 -translate-y-1/2 z-40 w-12 h-12 lg:w-14 lg:h-14 items-center justify-center rounded-full border border-slate-300 bg-white/80 backdrop-blur-md transition-all duration-300 ${
-          current === total - 1
-            ? 'text-slate-300 cursor-not-allowed'
-            : 'text-slate-900 hover:bg-white hover:scale-110 hover:border-blue-500 hover:text-blue-600 shadow-lg'
-        }`}
-      >
-        <ArrowRight className="w-5 h-5" />
-      </button>
+          Centred with an inset flex wrapper rather than `top-1/2`:
+          a percentage `top` on a fixed element resolves against the
+          document height here, which pushed the arrows far below the
+          viewport. */}
+      <div className="hidden md:flex fixed inset-y-0 left-0 z-40 items-center pointer-events-none">
+        <button
+          onClick={goPrev}
+          disabled={current === 0}
+          aria-label="Previous slide"
+          className={`pointer-events-auto ml-6 lg:ml-10 w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center rounded-full border bg-white/85 backdrop-blur-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+            current === 0
+              ? 'text-slate-300 border-slate-200 cursor-not-allowed'
+              : 'text-slate-900 border-slate-300 hover:bg-white hover:scale-110 hover:border-blue-500 hover:text-blue-600 shadow-lg'
+          }`}
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* The right arrow gives way to the section dock on wide screens,
+          where the dock already lists every slide and would sit on
+          top of it. */}
+      <div className="hidden md:flex xl:hidden fixed inset-y-0 right-0 z-40 items-center pointer-events-none">
+        <button
+          onClick={goNext}
+          disabled={current === total - 1}
+          aria-label="Next slide"
+          className={`pointer-events-auto mr-6 lg:mr-10 w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center rounded-full border bg-white/85 backdrop-blur-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+            current === total - 1
+              ? 'text-slate-300 border-slate-200 cursor-not-allowed'
+              : 'text-slate-900 border-slate-300 hover:bg-white hover:scale-110 hover:border-blue-500 hover:text-blue-600 shadow-lg'
+          }`}
+        >
+          <ArrowRight className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Slide name (top center) */}
-      <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 bg-white/80 backdrop-blur-md rounded-full border border-slate-200 text-slate-700 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] shadow-sm transition-all duration-500">
-        <span className="text-blue-600 mr-2 tabular-nums transition-all duration-300">0{current + 1}</span>
+      <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 px-3 py-1.5 bg-white/85 backdrop-blur-md rounded-full border border-slate-200 text-slate-700 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] shadow-sm transition-all duration-500">
+        <span className="text-blue-600 mr-2 tabular-nums transition-all duration-300">
+          {String(current + 1).padStart(2, '0')}
+        </span>
         <span key={current} className="inline-block animate-fadeInUp">{slideLabel}</span>
       </div>
 
-      {/* Bottom dots (mobile) + slide counter (desktop) */}
+      {/* Bottom dots + slide counter — one pill carries both, so the
+          bottom of the viewport is not crowded with two floating pieces. */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-white/80 backdrop-blur-md rounded-full border border-slate-200 shadow-sm">
-          {Array.from({ length: total }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              aria-label={`Go to slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                i === current ? 'w-6 bg-blue-600' : 'w-1.5 bg-slate-300 hover:bg-slate-400'
-              }`}
-            />
-          ))}
+        <div className="flex items-center gap-2.5 px-3 py-2 bg-white/85 backdrop-blur-md rounded-full border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: total }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                aria-current={i === current ? 'true' : undefined}
+                className={`h-1.5 rounded-full transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  i === current ? 'w-6 bg-blue-600' : 'w-1.5 bg-slate-300 hover:bg-slate-400'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-slate-300 text-[10px]" aria-hidden="true">
+            |
+          </span>
+          <span className="text-[11px] font-mono tabular-nums text-slate-500">
+            <span className="text-blue-600 font-bold">
+              {String(current + 1).padStart(2, '0')}
+            </span>
+            <span className="text-slate-400">/{String(total).padStart(2, '0')}</span>
+          </span>
         </div>
-      </div>
 
-      {/* Slide counter pill — top right (desktop only) */}
-      <div className="fixed top-20 right-6 lg:right-10 z-40 hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-md rounded-full border border-slate-200 text-slate-900 text-xs font-mono tracking-wider shadow-sm">
-        <span className="text-blue-600 font-bold">{String(current + 1).padStart(2, '0')}</span>
-        <span className="text-slate-400">/</span>
-        <span className="text-slate-500">{String(total).padStart(2, '0')}</span>
+        {/* Keyboard hint — the page navigates with arrow keys and space,
+            but nothing on screen said so. This shows the shortcut once
+            and then steps aside. */}
+        <div className="hidden md:flex items-center gap-1.5 px-3 py-2 bg-slate-900/85 backdrop-blur-md rounded-full border border-white/10 shadow-lg">
+          <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">
+            Navigate
+          </span>
+          <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-white/80 font-mono text-[9px] border border-white/15">
+            ↑
+          </kbd>
+          <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-white/80 font-mono text-[9px] border border-white/15">
+            ↓
+          </kbd>
+        </div>
       </div>
     </>
   );
 };
 
 // ============================================================
-// Editorial section label — Max Arden style "/TITLE"
+// Editorial section label — a rule, an index, and a title
 // ============================================================
-const SectionLabel = ({ label, number }) => (
-  <div className="flex items-center gap-4 text-slate-900">
-    <span className="text-4xl sm:text-5xl font-light text-blue-600 leading-none">{number}</span>
-    <span className="text-sm sm:text-base font-bold uppercase tracking-[0.3em]">
-      {label}
-    </span>
-  </div>
-);
+// The previous version used a bare "/" as the "number" slot, which
+// read as a stray character rather than an index. It is now a real
+// two-digit index that pairs with a hairline rule, so the label
+// reads as an editorial marker instead of a typo.
+const SectionLabel = ({ label, index, tone = 'dark' }) => {
+  const muted = tone === 'dark' ? 'text-slate-500' : 'text-white/60';
+  const rule = tone === 'dark' ? 'bg-slate-200' : 'bg-white/25';
+  const title = tone === 'dark' ? 'text-slate-900' : 'text-white';
+
+  return (
+    <div className="flex items-center gap-3.5">
+      <span className={`text-[11px] font-bold tabular-nums tracking-[0.2em] ${muted}`}>
+        {String(index).padStart(2, '0')}
+      </span>
+      <span className={`h-px w-8 ${rule}`} aria-hidden="true" />
+      <span className={`text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] ${title}`}>
+        {label}
+      </span>
+    </div>
+  );
+};
 
 // ============================================================
 // InteractiveWord — word-level hover micro-interactions
@@ -235,10 +283,47 @@ const Slide = ({ children, variant = 'white' }) => {
         />
       </div>
 
-      <div className="relative z-10 w-full h-full flex items-center justify-center px-8 sm:px-12 lg:px-20 xl:px-24 pt-24 pb-20">
+      {/* The extra right padding on wide screens leaves room for the
+          fixed section dock, so the dock never sits on top of the
+          slide content. */}
+      <div className="relative z-10 w-full h-full flex items-center justify-center px-8 sm:px-12 lg:px-20 xl:px-24 2xl:px-32 pt-24 pb-20 xl:pr-44">
         {children}
       </div>
     </section>
+  );
+};
+
+// ============================================================
+// Logo marquee — a slow, infinite strip of customer wordmarks.
+//
+// A static logo wall competes with the hero for attention. A
+// marquee reads as motion instead, and its edges are masked so the
+// names fade in and out rather than being cut off.
+// ============================================================
+const LogoMarquee = ({ items }) => {
+  const row = [...items, ...items];
+  return (
+    <div
+      className="relative overflow-hidden"
+      style={{
+        maskImage:
+          'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+        WebkitMaskImage:
+          'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+      }}
+      aria-hidden="true"
+    >
+      <div className="flex w-max animate-marquee items-center gap-12 sm:gap-16 py-1">
+        {row.map((name, i) => (
+          <span
+            key={`${name}-${i}`}
+            className="text-lg sm:text-xl font-bold tracking-tight text-slate-400 hover:text-slate-600 transition-colors duration-300 whitespace-nowrap"
+          >
+            {name}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -258,7 +343,7 @@ const HeroSlide = ({ navigate }) => {
           <div className="absolute -left-6 top-2 bottom-2 w-1 bg-gradient-to-b from-blue-500 via-cyan-400 to-blue-500 rounded-full opacity-60 animate-pulse-soft" aria-hidden="true" />
 
           <div className="animate-fadeInUp" style={{ animationDelay: '100ms' }}>
-            <SectionLabel label="Security-first IDE" number="/" />
+            <SectionLabel label="Security-first IDE" index={1} />
           </div>
 
           <h1 className="mt-6 font-bold text-slate-900 leading-[0.92] tracking-tight text-[16vw] sm:text-[12vw] lg:text-[9rem] xl:text-[10.5rem] 2xl:text-[12rem]">
@@ -277,18 +362,18 @@ const HeroSlide = ({ navigate }) => {
             </span>
           </h1>
 
-          <div className="mt-10 max-w-2xl animate-fadeInUp" style={{ animationDelay: '460ms' }}>
+          <div className="mt-7 max-w-xl animate-fadeInUp" style={{ animationDelay: '460ms' }}>
             <p className="text-lg sm:text-xl text-slate-600 leading-relaxed">
-              Project Eric is the security-first IDE. Real-time vulnerability detection,
-              OWASP Top 10 coverage, and an AI assistant that writes secure code alongside
-              you — built into a single, blazing-fast editor.
+              Real-time vulnerability detection, OWASP Top 10 coverage, and an AI
+              assistant that writes secure code alongside you — inside a single,
+              blazing-fast editor.
             </p>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-4 animate-fadeInUp" style={{ animationDelay: '560ms' }}>
+          <div className="mt-9 flex flex-wrap items-center gap-4 animate-fadeInUp" style={{ animationDelay: '560ms' }}>
             <button
               onClick={() => navigate('/signup')}
-              className="group relative overflow-hidden inline-flex items-center gap-2.5 px-7 py-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-base rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+              className="group relative overflow-hidden inline-flex items-center gap-2.5 px-7 py-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-base rounded-xl transition-all duration-200 shadow-lg shadow-slate-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               <span className="relative z-10 inline-flex items-center gap-2.5">
                 Start Free Trial
@@ -298,14 +383,14 @@ const HeroSlide = ({ navigate }) => {
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="group inline-flex items-center gap-2.5 px-7 py-4 bg-white hover:bg-slate-50 text-slate-900 font-semibold text-base rounded-xl border border-slate-200 hover:border-slate-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
+              className="group inline-flex items-center gap-2.5 px-7 py-4 bg-white hover:bg-slate-50 text-slate-900 font-semibold text-base rounded-xl border border-slate-200 hover:border-slate-300 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               Sign In
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600 transition-all duration-300 group-hover:w-6 group-hover:h-1.5" />
             </button>
           </div>
 
-          <div className="mt-10 flex flex-wrap gap-x-7 gap-y-2 text-sm text-slate-500 animate-fadeInUp" style={{ animationDelay: '660ms' }}>
+          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-slate-500 animate-fadeInUp" style={{ animationDelay: '660ms' }}>
             <span className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-900">
               <CheckCircle2 className="w-4 h-4 text-blue-600" />
               No credit card
@@ -316,8 +401,39 @@ const HeroSlide = ({ navigate }) => {
             </span>
             <span className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-900">
               <CheckCircle2 className="w-4 h-4 text-blue-600" />
-              SOC 2 & ISO 27001
+              SOC 2 &amp; ISO 27001
             </span>
+          </div>
+
+          {/* Social proof — a rating line with avatars gives the hero a
+              credibility anchor that the feature copy alone cannot. */}
+          <div
+            className="mt-9 flex items-center gap-4 animate-fadeInUp"
+            style={{ animationDelay: '740ms' }}
+          >
+            <div className="flex -space-x-2.5">
+              {['from-blue-500 to-cyan-400', 'from-violet-500 to-fuchsia-400', 'from-emerald-500 to-teal-400', 'from-amber-500 to-orange-400'].map(
+                (grad, i) => (
+                  <div
+                    key={i}
+                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${grad} ring-2 ring-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm`}
+                  >
+                    {['A', 'M', 'K', 'S'][i]}
+                  </div>
+                )
+              )}
+            </div>
+            <div className="leading-tight">
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star key={i} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                ))}
+                <span className="text-[13px] font-bold text-slate-900 ml-1.5 tabular-nums">
+                  4.9/5
+                </span>
+              </div>
+              <span className="text-xs text-slate-500">from 2,400+ reviews</span>
+            </div>
           </div>
         </div>
 
@@ -326,6 +442,26 @@ const HeroSlide = ({ navigate }) => {
           <div className="animate-float">
             <IDECard />
           </div>
+        </div>
+      </div>
+
+      {/* Trusted-by marquee — a quiet band of customer names that runs
+          under the hero. It adds credibility without competing with
+          the headline for attention.
+
+          It sits above the slide controls (which are pinned to the
+          bottom of the viewport) so the two never overlap. */}
+      <div
+        className="absolute bottom-24 left-0 right-0 z-10 hidden md:block animate-fadeInUp"
+        style={{ animationDelay: '900ms' }}
+      >
+        <div className="max-w-[88rem] mx-auto px-8 sm:px-12 lg:px-20 xl:px-24 2xl:px-32 xl:pr-44">
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400 mb-3.5">
+            Trusted by security teams at
+          </p>
+          <LogoMarquee
+            items={['Northwind', 'Globex', 'Initech', 'Umbrella', 'Cyberdyne', 'Wayne']}
+          />
         </div>
       </div>
     </Slide>
@@ -358,10 +494,10 @@ const IDECard = () => (
       </span>
     </div>
 
-    <div className="grid grid-cols-12 min-h-[400px] sm:min-h-[480px] lg:min-h-[520px]">
+    <div className="grid grid-cols-12 min-h-[420px] sm:min-h-[500px] lg:min-h-[540px]">
       {/* Sidebar */}
-      <div className="hidden sm:flex col-span-3 bg-slate-900/60 border-r border-white/10 p-3 flex-col gap-1">
-        <div className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-1">
+      <div className="hidden sm:flex col-span-3 bg-slate-900/60 border-r border-white/10 p-3 flex-col gap-0.5">
+        <div className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-2">
           Explorer
         </div>
         {[
@@ -370,26 +506,36 @@ const IDECard = () => (
           { icon: '📄', name: 'payments.js' },
           { icon: '📄', name: 'db.js' },
           { icon: '📁', name: 'tests' },
+          { icon: '📄', name: 'auth.test.js' },
         ].map((f, i) => (
           <div
             key={i}
-            className={`flex items-center gap-2 px-2 py-1.5 text-[11px] font-mono rounded ${
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-mono transition-colors ${
               f.active
                 ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
-                : 'text-slate-400'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
             }`}
           >
-            <span>{f.icon}</span>
-            <span>{f.name}</span>
+            <span className="text-[11px] leading-none">{f.icon}</span>
+            <span className="truncate">{f.name}</span>
           </div>
         ))}
+
+        {/* A mini activity footer makes the panel feel like a real IDE
+            rather than a static list of file names. */}
+        <div className="mt-auto pt-3 border-t border-white/10">
+          <div className="flex items-center gap-1.5 px-2 text-[10px] text-slate-500">
+            <GitBranch className="w-3 h-3" />
+            <span className="truncate">feature/rotate-keys</span>
+          </div>
+        </div>
       </div>
 
       {/* Editor */}
-      <div className="col-span-12 sm:col-span-6 p-5 font-mono text-[12px] sm:text-[13px] leading-relaxed bg-slate-950">
+      <div className="col-span-12 sm:col-span-6 p-4 sm:p-5 font-mono text-[11px] sm:text-[12.5px] leading-relaxed bg-slate-950">
         <div className="flex gap-3">
-          <div className="text-slate-600 select-none text-right">
-            {Array.from({ length: 9 }).map((_, i) => (
+          <div className="text-slate-600 select-none text-right shrink-0">
+            {Array.from({ length: 11 }).map((_, i) => (
               <div key={i}>{i + 12}</div>
             ))}
           </div>
@@ -402,7 +548,7 @@ const IDECard = () => (
               {'\n'}
               {'\n'}  <span className="text-pink-400">if</span> (!user) {'{'}
               {'\n'}    <span className="text-rose-300 bg-rose-500/15 px-1 rounded">
-                // ⚠ no rate limiting
+                // no rate limiting
               </span>
               {'\n'}    <span className="text-pink-400">throw new</span>{' '}
               <span className="text-cyan-300">AuthError</span>(<span className="text-emerald-300">'user_not_found'</span>);
@@ -423,36 +569,47 @@ const IDECard = () => (
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
           <Shield className="w-3 h-3" />
           3 issues
+          <span className="ml-auto text-slate-600">A07</span>
         </div>
         {[
-          { sev: 'Critical', color: 'rose', title: 'No rate limiting', meta: 'A07' },
-          { sev: 'Warning', color: 'amber', title: 'Weak password hash', meta: 'A02' },
-          { sev: 'Info', color: 'blue', title: 'Add 2FA', meta: 'A07' },
+          { sev: 'Critical', color: 'rose', title: 'No rate limiting', meta: 'A07:2021' },
+          { sev: 'Warning', color: 'amber', title: 'Weak password hash', meta: 'A02:2021' },
+          { sev: 'Info', color: 'blue', title: 'Add 2FA', meta: 'A07:2021' },
         ].map((v, i) => (
           <div
             key={i}
-            className={`rounded-md border p-1.5 bg-slate-950/60 ${
+            className={`rounded-lg border p-2 bg-slate-950/60 transition-all duration-300 hover:-translate-y-0.5 ${
               v.color === 'rose'
-                ? 'border-rose-500/30'
+                ? 'border-rose-500/30 hover:border-rose-500/60'
                 : v.color === 'amber'
-                ? 'border-amber-500/30'
-                : 'border-blue-500/30'
+                ? 'border-amber-500/30 hover:border-amber-500/60'
+                : 'border-blue-500/30 hover:border-blue-500/60'
             }`}
           >
-            <span
-              className={`text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
-                v.color === 'rose'
-                  ? 'bg-rose-500/20 text-rose-300'
-                  : v.color === 'amber'
-                  ? 'bg-amber-500/20 text-amber-300'
-                  : 'bg-blue-500/20 text-blue-300'
-              }`}
-            >
-              {v.sev}
-            </span>
-            <div className="text-[10px] text-slate-200 mt-1 leading-snug">{v.title}</div>
+            <div className="flex items-center justify-between gap-1">
+              <span
+                className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                  v.color === 'rose'
+                    ? 'bg-rose-500/20 text-rose-300'
+                    : v.color === 'amber'
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : 'bg-blue-500/20 text-blue-300'
+                }`}
+              >
+                {v.sev}
+              </span>
+              <span className="text-[8px] font-mono text-slate-600">{v.meta}</span>
+            </div>
+            <div className="text-[10.5px] text-slate-200 mt-1.5 leading-snug font-medium">
+              {v.title}
+            </div>
           </div>
         ))}
+
+        {/* Auto-fix action — the hero product promise, surfaced in the UI */}
+        <div className="mt-1 rounded-lg bg-blue-600/90 text-white px-2.5 py-1.5 text-[10px] font-semibold text-center shadow-lg shadow-blue-900/40 transition-transform duration-300 hover:scale-[1.03]">
+          Apply suggested fix
+        </div>
       </div>
     </div>
 
@@ -496,7 +653,7 @@ const DetectionSlide = ({ navigate }) => {
         className="w-full max-w-7xl mx-auto grid lg:grid-cols-12 gap-10 items-center animate-slideEnter"
       >
         <div className="lg:col-span-5">
-          <SectionLabel label="Real-time Detection" number="/" />
+          <SectionLabel label="Real-time Detection" index={2} />
           <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
             <InteractiveWord variant="lift" className="mr-[0.2em]">Find</InteractiveWord>
             <InteractiveWord variant="lift" className="mr-[0.2em]">bugs</InteractiveWord>
@@ -634,7 +791,7 @@ const OWASPSlide = () => {
       >
         <div className="grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-5">
-            <SectionLabel label="OWASP Coverage" number="/" />
+            <SectionLabel label="OWASP Coverage" index={3} />
             <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
               <InteractiveWord variant="underline" className="mr-[0.15em]">All</InteractiveWord>
               <InteractiveWord variant="glow" className="mr-[0.15em]">10.</InteractiveWord>
@@ -776,7 +933,7 @@ const AISlide = ({ navigate }) => {
         </div>
 
         <div className="lg:col-span-5 order-1 lg:order-2">
-          <SectionLabel label="AI Assistant" number="/" />
+          <SectionLabel label="AI Assistant" index={4} />
           <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
             <InteractiveWord variant="lift" className="mr-[0.2em]">Ask</InteractiveWord>
             <InteractiveWord variant="lift" className="mr-[0.2em]">in</InteractiveWord>
@@ -823,7 +980,7 @@ const ThreatSlide = () => {
         className="w-full max-w-7xl mx-auto grid lg:grid-cols-12 gap-10 items-center animate-slideEnter"
       >
         <div className="lg:col-span-5">
-          <SectionLabel label="Threat Intelligence" number="/" />
+          <SectionLabel label="Threat Intelligence" index={5} />
           <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
             <InteractiveWord variant="lift" className="mr-[0.2em]">We</InteractiveWord>
             <InteractiveWord variant="lift" className="mr-[0.2em]">watch</InteractiveWord>
@@ -949,7 +1106,7 @@ const StatsSlide = () => {
     <Slide variant="white">
       <div ref={ref} key="stats" className="w-full max-w-7xl mx-auto animate-slideEnter">
         <div className="text-center mb-16">
-          <SectionLabel label="By the Numbers" number="/" />
+          <SectionLabel label="By the Numbers" index={6} />
           <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
             <InteractiveWord variant="underline" className="mr-[0.2em]">Metrics</InteractiveWord>
             <InteractiveWord variant="underline" className="mr-[0.2em]">that</InteractiveWord>
@@ -1150,7 +1307,7 @@ const TrustSlide = () => {
       <div ref={ref} key="trust" className="w-full max-w-7xl mx-auto animate-slideEnter">
         <div className="grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-5">
-            <SectionLabel label="Trusted by" number="/" />
+            <SectionLabel label="Trusted by" index={7} />
             <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
               <InteractiveWord variant="underline" className="mr-[0.2em]">Teams</InteractiveWord>
               <InteractiveWord variant="underline" className="mr-[0.2em]">that</InteractiveWord>
@@ -1265,7 +1422,7 @@ const PricingSlide = ({ navigate }) => {
     <Slide variant="white">
       <div ref={ref} key="pricing" className="w-full max-w-7xl mx-auto animate-slideEnter">
         <div className="text-center mb-14">
-          <SectionLabel label="Pricing" number="/" />
+          <SectionLabel label="Pricing" index={8} />
           <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-slate-900 leading-[0.95]">
             <InteractiveWord variant="underline" className="mr-[0.2em]">Simple</InteractiveWord>
             <InteractiveWord variant="underline" className="mr-[0.2em]">plans.</InteractiveWord>
@@ -1372,40 +1529,65 @@ const TeamSlide = () => {
 
   const team = [
     {
+      id: 'eric',
       name: 'Eric Tze Wei Voon',
       studentId: '104399883',
-      role: 'Project Leader / Frontend Developer',
+      role: 'Project Leader',
+      focus: 'Frontend Developer',
+      bio: 'Leads Project Eric end-to-end and owns the frontend architecture. Focused on shipping a fast, accessible, and secure experience for developers writing safer code.',
       photo: photo('Eric Tze Wei Voon.png'),
       avatar: 'ET',
+      accent: 'from-cyan-400 to-blue-500',
+      skills: ['React', 'Vite', 'Tailwind CSS'],
+      leads: true,
     },
     {
+      id: 'gloria',
       name: 'Gloria Arroyo Dabin',
       studentId: '104398314',
-      role: 'Security / Semgrep / AI-LLM Developer',
+      role: 'Security / Semgrep',
+      focus: 'AI-LLM Developer',
+      bio: 'Bridges Semgrep-driven static analysis with AI/LLM workflows to surface real vulnerabilities fast. Builds the intelligent code-review features that power Project Eric.',
       photo: photo('Gloria Arroyo Dabin.png'),
       avatar: 'GA',
+      accent: 'from-violet-400 to-purple-500',
+      skills: ['Semgrep', 'Python', 'AI / LLM'],
     },
     {
-      name: 'Alvin Thomas Egat Anak Peter',
+      id: 'alvin',
+      name: 'Alvin Thomas Egat',
       studentId: '104398217',
-      role: 'Frontend / UI-UX & Documentation',
+      role: 'Frontend / UI-UX',
+      focus: 'Documentation',
+      bio: 'Shapes the look, feel, and clarity of Project Eric — from interface polish to the docs that help new users get started on day one.',
       photo: photo('Alvin Thomas Egat Anak Peter.png'),
       avatar: 'AT',
+      accent: 'from-emerald-400 to-teal-500',
+      skills: ['React', 'UI / UX', 'Figma'],
     },
     {
-      name: 'Nuur Ashya Lara Binti Araman',
-      studentId: '102789246',
-      role: 'Security / Semgrep / Testing & Evaluation',
-      photo: photo('Nuur Ashya LaraBinti Araman.png'),
-      avatar: 'NA',
-    },
-    {
+      id: 'cheng',
       name: 'Cheng Zu Chai',
       studentId: '106765596',
-      role: 'Backend Developer / Security / Semgrep',
+      role: 'Backend / Security',
+      focus: 'Semgrep Developer',
+      bio: 'Designs the APIs and backend services behind Project Eric, combining backend engineering with Semgrep and security know-how to keep the platform safe and scalable.',
       photo: photo('Cheng Zu Chai.png'),
       avatar: 'CZ',
+      accent: 'from-amber-400 to-orange-500',
+      skills: ['Node.js', 'PHP', 'API Design'],
     },
+  ];
+
+  // The lead gets the wide feature panel; the rest sit in the roster.
+  const lead = team.find((m) => m.leads) || team[0];
+  const roster = team.filter((m) => m.id !== lead.id);
+
+  const contributions = [
+    { label: 'Frontend architecture', owner: 'Eric', icon: Code2 },
+    { label: 'Semgrep rule engine', owner: 'Gloria', icon: ShieldCheck },
+    { label: 'Interface & docs', owner: 'Alvin', icon: Sparkles },
+    { label: 'API & services', owner: 'Cheng', icon: GitBranch },
   ];
 
   return (
@@ -1434,13 +1616,13 @@ const TeamSlide = () => {
         <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full blur-3xl opacity-20 bg-blue-500 animate-drift" style={{ animationDelay: '4s' }} />
       </div>
 
-      <div ref={ref} className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-24 pb-20 animate-slideEnter">
-        <div className="text-center mb-10 sm:mb-14">
-          <div className="flex items-center justify-center gap-3 text-white">
-            <span className="text-3xl sm:text-4xl font-light text-cyan-300 animate-pulse-soft">/</span>
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-[0.3em]">
-              About the Team
-            </span>
+      <div ref={ref} className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-24 pb-20 animate-slideEnter xl:pr-44">
+        <div className="text-center mb-10 sm:mb-12">
+          {/* Uses the same SectionLabel as the other slides. The previous
+              hand-rolled "/ ABOUT THE TEAM" eyebrow duplicated the label
+              already shown in the header's section pill. */}
+          <div className="flex justify-center">
+            <SectionLabel label="About the Team" index={9} tone="light" />
           </div>
           <h2 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight text-white leading-[0.95]">
             <InteractiveWord variant="lift" className="mr-[0.2em] text-white">People</InteractiveWord>
@@ -1455,47 +1637,202 @@ const TeamSlide = () => {
             A small group of security engineers and designers building the tools
             we wish we had — one keystroke at a time.
           </p>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 max-w-6xl mx-auto">
-          {team.map((m, i) => (
-            <div
-              key={m.name}
-              className="group relative rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-4 sm:p-5 text-center hover:border-cyan-300/60 hover:-translate-y-2 hover:bg-white/15 transition-all duration-500 shadow-xl shadow-black/30 cursor-pointer overflow-hidden"
-              style={{
-                opacity: inView ? 1 : 0,
-                transform: inView ? 'translateY(0)' : 'translateY(30px)',
-                transition: `all 600ms cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 90}ms`,
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-blue-500/0 group-hover:from-cyan-500/10 group-hover:to-blue-500/10 transition-all duration-500" />
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 mx-auto rounded-2xl overflow-hidden ring-2 ring-white/40 shadow-xl shadow-black/40 group-hover:ring-cyan-300/80 group-hover:scale-105 transition-all duration-500">
-                <img
-                  src={m.photo}
-                  alt={m.name}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    e.currentTarget.nextElementSibling?.classList.add('flex');
-                  }}
-                />
-                <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-2xl font-bold">
-                  {m.avatar}
+          {/* At-a-glance strip — turns "small group" into something concrete
+              without making the reader count the cards below. */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            {[
+              { value: '4', label: 'Core members' },
+              { value: '6', label: 'Languages covered' },
+              { value: '10', label: 'OWASP categories' },
+              { value: '24/7', label: 'Scanning' },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-white leading-none tracking-tight">
+                  {stat.value}
+                </div>
+                <div className="mt-1 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {stat.label}
                 </div>
               </div>
-              <h3 className="mt-3 sm:mt-4 text-sm sm:text-base font-bold text-white leading-tight relative z-10">
-                {m.name}
-              </h3>
-              <p className="mt-1.5 text-[10px] sm:text-[11px] font-semibold text-cyan-200 uppercase tracking-wider leading-snug relative z-10">
-                {m.role}
-              </p>
-              {m.studentId && (
-                <p className="mt-1 text-[10px] font-mono text-slate-300/70 relative z-10">
-                  {m.studentId}
-                </p>
-              )}
+            ))}
+          </div>
+        </div>
+
+        {/* Layout: a wide feature panel for the lead on the left, a
+            three-up roster on the right, and a contributions strip beneath.
+            The previous version was a uniform four-across grid, which gave
+            every member the same weight and left the roles unreadable. */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 max-w-6xl mx-auto">
+          {/* ---- Lead member ---- */}
+          <article
+            className="lg:col-span-5 group relative rounded-3xl border border-white/15 bg-white/10 backdrop-blur-md p-6 sm:p-7 overflow-hidden shadow-2xl shadow-black/40 hover:border-cyan-300/50 transition-colors duration-500"
+            style={{
+              opacity: inView ? 1 : 0,
+              transform: inView ? 'translateY(0)' : 'translateY(30px)',
+              transition: 'all 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 0ms',
+            }}
+          >
+            {/* Accent wash that blooms on hover */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-cyan-400/20 blur-3xl group-hover:bg-cyan-400/30 transition-colors duration-700" aria-hidden="true" />
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-blue-500/0 group-hover:from-cyan-500/10 group-hover:to-blue-500/10 transition-all duration-500" aria-hidden="true" />
+
+            <div className="relative">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-400/15 border border-cyan-300/30 text-cyan-200 text-[10px] font-bold uppercase tracking-[0.18em]">
+                <Star className="w-3 h-3 fill-cyan-300 text-cyan-300" />
+                Project Lead
+              </span>
+
+              <div className="mt-5 flex items-center gap-4">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden ring-2 ring-cyan-300/40 shadow-xl shadow-black/40 shrink-0">
+                  <img
+                    src={lead.photo}
+                    alt={lead.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      e.currentTarget.nextElementSibling?.classList.add('flex');
+                    }}
+                  />
+                  <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-2xl font-bold">
+                    {lead.avatar}
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white leading-tight tracking-tight">
+                    {lead.name}
+                  </h3>
+                  {/* Role and focus sit on separate lines — running them
+                      together on one line wrapped mid-phrase at this width. */}
+                  <p className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-cyan-200">
+                    {lead.role}
+                  </p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400/85">
+                    {lead.focus}
+                  </p>
+                  <p className="mt-1.5 text-[11px] font-mono text-slate-300/70">{lead.studentId}</p>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm sm:text-[15px] text-slate-200/90 leading-relaxed">{lead.bio}</p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {lead.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/10 text-slate-200 text-[11px] font-semibold backdrop-blur-sm"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+
+              <a
+                href="/about-team"
+                className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-200 hover:text-white transition-colors group/link"
+              >
+                Full profile
+                <ChevronRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
+              </a>
+            </div>
+          </article>
+
+          {/* ---- Roster ---- */}
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            {roster.map((m, i) => (
+              <article
+                key={m.id}
+                className="group relative rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-5 overflow-hidden shadow-xl shadow-black/30 hover:border-white/35 hover:-translate-y-1 hover:bg-white/15 transition-all duration-500"
+                style={{
+                  opacity: inView ? 1 : 0,
+                  transform: inView ? 'translateY(0)' : 'translateY(30px)',
+                  transition: `all 600ms cubic-bezier(0.34, 1.56, 0.64, 1) ${(i + 1) * 90}ms`,
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/0 group-hover:from-white/[0.07] group-hover:to-white/0 transition-all duration-500" aria-hidden="true" />
+
+                <div className="relative">
+                  <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg shadow-black/40">
+                    <img
+                      src={m.photo}
+                      alt={m.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        e.currentTarget.nextElementSibling?.classList.add('flex');
+                      }}
+                    />
+                    <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800 text-white text-3xl font-bold">
+                      {m.avatar}
+                    </div>
+                    {/* Accent bar keyed to the member's area of the project */}
+                    <div className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r ${m.accent}`} />
+
+                    {/* Bio slides in over the portrait on hover. It is
+                        absolutely positioned so revealing it never reflows
+                        the card or shifts the text below. */}
+                    <p className="absolute inset-x-0 bottom-1 p-3 text-[11px] leading-relaxed text-slate-200 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none">
+                      {m.bio}
+                    </p>
+                  </div>
+
+                  <h3 className="mt-4 text-sm font-bold text-white leading-tight">{m.name}</h3>
+                  <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-cyan-200 leading-snug">
+                    {m.role}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400/80 leading-snug">
+                    {m.focus}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {m.skills.slice(0, 2).map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2 py-0.5 rounded-md bg-white/10 text-slate-300 text-[10px] font-semibold whitespace-nowrap"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {m.skills.length > 2 && (
+                      <span
+                        className="px-2 py-0.5 rounded-md bg-cyan-400/15 text-cyan-200 text-[10px] font-semibold whitespace-nowrap"
+                        title={m.skills.slice(2).join(', ')}
+                      >
+                        +{m.skills.length - 2}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        {/* ---- What each person owns ---- */}
+        <div
+          className="mt-6 sm:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto"
+          style={{
+            opacity: inView ? 1 : 0,
+            transform: inView ? 'translateY(0)' : 'translateY(24px)',
+            transition: 'all 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 420ms',
+          }}
+        >
+          {contributions.map((c) => (
+            <div
+              key={c.label}
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] backdrop-blur-md px-4 py-3 hover:border-cyan-300/40 hover:bg-white/10 transition-all duration-300"
+            >
+              <span className="w-8 h-8 rounded-lg bg-cyan-400/15 border border-cyan-300/20 flex items-center justify-center shrink-0">
+                <c.icon className="w-4 h-4 text-cyan-300" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-bold text-white truncate">{c.label}</span>
+                <span className="block text-[10px] text-slate-400/80 font-medium">{c.owner}</span>
+              </span>
             </div>
           ))}
         </div>
@@ -1511,7 +1848,7 @@ const CTASlide = ({ navigate }) => {
   return (
     <Slide variant="blue">
       <div key="cta" className="w-full max-w-5xl mx-auto text-center animate-slideEnter">
-        <SectionLabel label="Get Started" number="/" />
+        <SectionLabel label="Get Started" index={10} tone="light" />
 
         <h2 className="mt-8 text-[12vw] sm:text-[9vw] lg:text-[8rem] xl:text-[9rem] font-bold tracking-tight text-white leading-[0.95]">
           <span className="block animate-fadeInUp" style={{ animationDelay: '100ms' }}>
@@ -1568,16 +1905,80 @@ const CTASlide = ({ navigate }) => {
 };
 
 // ============================================================
+// Section dock — a persistent vertical index of every slide.
+//
+// The bottom pill only shows dots and a counter, so on a ten-section
+// page the reader still has no idea what they are between. This
+// dock lists the sections by name and highlights the active one,
+// which turns the scroll position into something legible.
+// ============================================================
+const SectionDock = ({ slides, current, goTo }) => {
+  return (
+    /* The dock is centred with a flex wrapper rather than `top-1/2`.
+       A percentage `top` on a fixed element resolves against the
+       document height on this page (the scroll container is far
+       taller than the viewport), which pushed the dock thousands of
+       pixels down the page.
+
+       It sits clear of the slide content on the right, so it never
+       overlaps the IDE preview card in the hero. */
+    <div className="hidden xl:flex fixed inset-y-0 right-0 z-40 items-center pointer-events-none">
+      <div
+        className="pointer-events-auto flex flex-col gap-0.5 py-3 pl-3 pr-2.5 mr-8 rounded-2xl bg-white/80 backdrop-blur-xl border border-slate-200/90 shadow-lg shadow-slate-900/10"
+        aria-label="Page sections"
+      >
+        {slides.map((s, i) => {
+          const active = i === current;
+          return (
+            <button
+              key={s.id}
+              onClick={() => goTo(i)}
+              aria-current={active ? 'true' : undefined}
+              className="group relative flex items-center gap-2.5 py-1.5 pr-1 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              {/* Rail marker — the active item grows a filled pill while
+                  the rest stay as quiet hairlines. */}
+              <span
+                className={`w-[3px] rounded-full transition-all duration-300 ${
+                  active
+                    ? 'h-5 bg-blue-600'
+                    : 'h-2 bg-slate-300 group-hover:bg-slate-400'
+                }`}
+                aria-hidden="true"
+              />
+              <span
+                className={`text-[11px] font-semibold tracking-wide whitespace-nowrap transition-colors duration-300 ${
+                  active
+                    ? 'text-blue-700'
+                    : 'text-slate-400 group-hover:text-slate-700'
+                }`}
+              >
+                {s.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // Header (fixed, minimal)
 // ============================================================
 const Header = ({ navigate, currentSlide }) => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(max > 0 ? Math.min((window.scrollY / max) * 100, 100) : 0);
+    };
     onScroll();
-    window.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
@@ -1590,12 +1991,17 @@ const Header = ({ navigate, currentSlide }) => {
     { label: 'Pricing', idx: 7 },
   ];
 
+  const scrollToSlide = (idx) => {
+    const slide = document.querySelector(`[data-slide-index="${idx}"]`);
+    if (slide) slide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-white/85 backdrop-blur-xl border-b border-slate-200/80 shadow-sm'
-          : 'bg-white/40 backdrop-blur-md border-b border-transparent'
+          ? 'bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-sm'
+          : 'bg-white/50 backdrop-blur-md border-b border-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1606,7 +2012,7 @@ const Header = ({ navigate, currentSlide }) => {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex items-center gap-2.5 group"
+            className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
           >
             <img
               src="/Logo.png"
@@ -1628,45 +2034,83 @@ const Header = ({ navigate, currentSlide }) => {
             </span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={`#${l.idx}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  const slide = document.querySelector(`[data-slide-index="${l.idx}"]`);
-                  if (slide)
-                    slide.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${
-                  currentSlide === l.idx
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                {l.label}
-              </a>
-            ))}
+          <nav className="hidden md:flex items-center gap-0.5">
+            {links.map((l) => {
+              const active = currentSlide === l.idx;
+              return (
+                <a
+                  key={l.label}
+                  href={`#${l.idx}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSlide(l.idx);
+                  }}
+                  aria-current={active ? 'true' : undefined}
+                  className={`relative px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    active
+                      ? 'text-blue-600'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                  }`}
+                >
+                  {l.label}
+                  {/* Active indicator — a short underline that fades in,
+                      so the current section is legible at a glance. */}
+                  <span
+                    className={`absolute left-3 right-3 -bottom-0.5 h-[2px] rounded-full bg-blue-600 transition-all duration-300 ${
+                      active ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-50'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </a>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* Live status pill — a small, quiet signal that the product
+                is actively monitored. It replaces what used to be an
+                underused "Sign In" text link on the smallest breakpoint. */}
+            <a
+              href="#threat"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSlide(4);
+              }}
+              className="hidden xl:inline-flex items-center gap-2 px-3 py-1.5 mr-1 rounded-full border border-slate-200 bg-white/70 hover:border-blue-300 hover:bg-blue-50/70 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group"
+            >
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-[11px] font-semibold text-slate-600 group-hover:text-blue-700 transition-colors">
+                All systems operational
+              </span>
+            </a>
+
             <button
               onClick={() => navigate('/login')}
-              className="hidden sm:inline-flex text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2 transition-colors"
+              className="hidden sm:inline-flex text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
             >
               Sign In
             </button>
             <button
               onClick={() => navigate('/signup')}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+              className="group relative overflow-hidden inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
-              Get Started
+              <span className="relative z-10">Get Started</span>
+              <ArrowRight className="relative z-10 w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+              {/* Sheen that sweeps across on hover — a small cue that
+                  the primary action is live. */}
+              <span
+                className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-blue-600 to-cyan-500 transition-transform duration-500"
+                aria-hidden="true"
+              />
             </button>
             <button
-              className="md:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-700"
+              className="md:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={() => setOpen(!open)}
-              aria-label="Toggle menu"
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
             >
               {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -1676,40 +2120,56 @@ const Header = ({ navigate, currentSlide }) => {
         {/* Mobile menu */}
         <div
           className={`md:hidden overflow-hidden transition-all duration-300 ${
-            open ? 'max-h-72 pb-4' : 'max-h-0'
+            open ? 'max-h-96 pb-4' : 'max-h-0'
           }`}
         >
-          <div className="flex flex-col gap-1 pt-2 border-t border-slate-200/80">
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={`#${l.idx}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpen(false);
-                  const slide = document.querySelector(
-                    `[data-slide-index="${l.idx}"]`
-                  );
-                  if (slide)
-                    slide.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-lg"
-              >
-                {l.label}
-              </a>
-            ))}
+          <div className="flex flex-col gap-0.5 pt-2 border-t border-slate-200/80">
+            {links.map((l) => {
+              const active = currentSlide === l.idx;
+              return (
+                <a
+                  key={l.label}
+                  href={`#${l.idx}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    scrollToSlide(l.idx);
+                  }}
+                  aria-current={active ? 'true' : undefined}
+                  className={`px-3 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                    active
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {l.label}
+                </a>
+              );
+            })}
             <button
               onClick={() => {
                 setOpen(false);
                 navigate('/login');
               }}
-              className="text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-lg"
+              className="text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-100 rounded-lg"
             >
               Sign In
             </button>
           </div>
         </div>
       </div>
+
+      {/* Reading-progress bar — sits on the header's bottom edge and
+          tracks how much of the page has been scrolled past. */}
+      <div
+        className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-600 transition-[width] duration-150 ease-out"
+        style={{ width: `${progress}%` }}
+        role="progressbar"
+        aria-label="Page reading progress"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      />
     </header>
   );
 };
@@ -1846,6 +2306,8 @@ const Landing = () => {
         goTo={goTo}
         slideLabel={slides[currentSlide]?.name}
       />
+
+      <SectionDock slides={slides} current={currentSlide} goTo={goTo} />
 
       {/* Slide 1 — Hero */}
       <div
@@ -2055,7 +2517,21 @@ const Landing = () => {
           to   { opacity: 1; transform: scale(1); }
         }
 
-        /* Custom scrollbar — light, fits white theme */
+        /* ===== Logo marquee ===== */
+        @keyframes marquee {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 38s linear infinite;
+        }
+        /* Pausing on hover keeps a name readable while the pointer is
+           over the strip. */
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+
+        /* ===== Custom scrollbar — light, fits white theme ===== */
         ::-webkit-scrollbar {
           width: 0;
           background: transparent;

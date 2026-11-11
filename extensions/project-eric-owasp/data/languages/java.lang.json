@@ -1,0 +1,356 @@
+{
+  "id": "java",
+  "label": "Java",
+  "extensions": [
+    "java"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-JAVA-001",
+      "name": "Broken Access Control — Spring mapping with id path variable",
+      "summary": "2 patterns match broken access control in Java.",
+      "description": "Add method-level @PreAuthorize / @PostAuthorize (Spring Security). Verify ownership in the service layer. Deny by default with a global SecurityFilterChain.",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "Spring mapping with id path variable",
+          "regex": "@(?:GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping)\\s*\\([^)]*\\b(?:id|userId)\\b[^)]*\\)",
+          "flags": "g"
+        },
+        {
+          "description": "@PathVariable id",
+          "regex": "@PathVariable\\s+(?:Long|String|Integer)\\s+(?:id|userId)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Add method-level @PreAuthorize / @PostAuthorize (Spring Security). Verify ownership in the service layer. Deny by default with a global SecurityFilterChain.",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-JAVA-002",
+      "name": "Cryptographic Failures — MessageDigest with MD5/SHA-1",
+      "summary": "2 patterns match cryptographic failures in Java.",
+      "description": "Use BCrypt / Argon2 (Spring Security Crypto). Pin MessageDigest to SHA-256+. Move secrets to env / Vault.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "MessageDigest with MD5/SHA-1",
+          "regex": "MessageDigest\\.getInstance\\(\\s*['\"](?:MD5|SHA-?1)['\"]",
+          "flags": "g"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use BCrypt / Argon2 (Spring Security Crypto). Pin MessageDigest to SHA-256+. Move secrets to env / Vault.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-JAVA-003",
+      "name": "Injection — Statement (not PreparedStatement)",
+      "summary": "3 patterns match injection in Java.",
+      "description": "Use `PreparedStatement` with bind variables. Avoid Runtime.exec / ProcessBuilder with user-supplied argv. Run on a allowlisted command list.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "Statement (not PreparedStatement)",
+          "regex": "createStatement\\s*\\(\\s*\\)",
+          "flags": "g"
+        },
+        {
+          "description": "Runtime.exec()",
+          "regex": "\\bRuntime\\.getRuntime\\s*\\(\\s*\\)\\.exec\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "ProcessBuilder",
+          "regex": "\\bProcessBuilder\\s*\\(\\s*[\"'](?:sh|bash|cmd|powershell)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Use `PreparedStatement` with bind variables. Avoid Runtime.exec / ProcessBuilder with user-supplied argv. Run on a allowlisted command list.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-JAVA-004",
+      "name": "Security Misconfiguration — Wildcard ACAO header",
+      "summary": "Wildcard ACAO header detected in Java source.",
+      "description": "Configure WebSecurityConfigurerAdapter (or SecurityFilterChain bean) with explicit allowed origins. Disable debug in production.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "Wildcard ACAO header",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Configure WebSecurityConfigurerAdapter (or SecurityFilterChain bean) with explicit allowed origins. Disable debug in production.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-JAVA-005",
+      "name": "Identification and Authentication Failures — String.equals on password",
+      "summary": "String.equals on password detected in Java source.",
+      "description": "Use BCrypt.checkpw / Spring Security's BCryptPasswordEncoder. Enforce MFA via Spring Security's multi-factor plugins.",
+      "severity": "high",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "String.equals on password",
+          "regex": "\\.equals\\s*\\(\\s*(?:password|passwd|pwd)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Use BCrypt.checkpw / Spring Security's BCryptPasswordEncoder. Enforce MFA via Spring Security's multi-factor plugins.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-JAVA-006",
+      "name": "Security Logging and Monitoring Failures — System.out.println",
+      "summary": "System.out.println detected in Java source.",
+      "description": "Use SLF4J / Logback. Log auth, authorization and admin events with user id, IP, timestamp.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "System.out.println",
+          "regex": "System\\.out\\.print(?:ln)?\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Use SLF4J / Logback. Log auth, authorization and admin events with user id, IP, timestamp.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    }
+  ]
+}

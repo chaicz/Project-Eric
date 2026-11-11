@@ -6,8 +6,8 @@
  * Body: { "email": "user@example.com" }
  */
 
-require_once __DIR__ . '/../includes/Database.php';
-require_once __DIR__ . '/../includes/ResponseHelper.php';
+require_once __DIR__ . '/../../includes/Database.php';
+require_once __DIR__ . '/../../includes/ResponseHelper.php';
 
 header('Content-Type: application/json');
 

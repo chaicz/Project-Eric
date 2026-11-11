@@ -221,6 +221,8 @@ export const getSecurityStats = () => ({
   highVulnerabilities: 5,
   mediumVulnerabilities: 4,
   lowVulnerabilities: 3,
+  resolvedVulnerabilities: 0,
+  resolvedThisWeek: 0,
   scansCompleted: 24,
   lastScanDate: '2026-09-14T06:00:00Z',
   trend: 'improving', // improving, stable, worsening

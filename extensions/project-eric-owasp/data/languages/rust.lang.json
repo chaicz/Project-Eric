@@ -1,0 +1,303 @@
+{
+  "id": "rust",
+  "label": "Rust",
+  "extensions": [
+    "rs"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-RUST-001",
+      "name": "Broken Access Control — Actix route with {id} and no auth check",
+      "summary": "2 patterns match broken access control in Rust.",
+      "description": "Use Actix-Web middleware / extractors (`RequireAuth`) and ownership checks (`if resource.user_id != current_user.id`).",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "Actix route with {id} and no auth check",
+          "regex": "\\.route\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|user_id)[^}]*\\}(?:(?!abort_unless|abort_if|authorize|->can\\(|Gate::|->policy\\(|RequireAuth|require_auth|is_authenticated|current_user|AuthMiddleware|middleware::Auth)[\\s\\S])*?\\)\\s*(?:;|$)",
+          "flags": "g"
+        },
+        {
+          "description": "Path extractor takes id",
+          "regex": "web::Path<\\([^)]*(?:u64|usize|String)[^)]*\\)>(?![\\s\\S]{0,400}?(?:owner_id\\s*==|current_user|RequireAuth|require_auth|is_authenticated))",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Use Actix-Web middleware / extractors (`RequireAuth`) and ownership checks (`if resource.user_id != current_user.id`).",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-RUST-002",
+      "name": "Cryptographic Failures — Weak hash digest usage",
+      "summary": "2 patterns match cryptographic failures in Rust.",
+      "description": "Use `bcrypt` / `argon2` crates for passwords. Use `rand::OsRng` for tokens. Move to env / Vault.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "Weak hash digest usage",
+          "regex": "\\b(?:Md5|Sha1)::(?:new|default)",
+          "flags": "g"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use `bcrypt` / `argon2` crates for passwords. Use `rand::OsRng` for tokens. Move to env / Vault.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-RUST-003",
+      "name": "Injection — process::Command spawn",
+      "summary": "process::Command spawn detected in Rust source.",
+      "description": "Pass argv lists to `Command::new(\"ping\").arg(\"-c\").arg(\"1\").arg(host)`. Avoid shell metacharacters.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "process::Command spawn",
+          "regex": "Command::new\\s*\\(\\s*[\"'](?:sh|bash|zsh|cmd|powershell)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Pass argv lists to `Command::new(\"ping\").arg(\"-c\").arg(\"1\").arg(host)`. Avoid shell metacharacters.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A04-RUST-004",
+      "name": "Insecure Design — unwrap()/expect() on user-controlled value",
+      "summary": "unwrap()/expect() on user-controlled value detected in Rust source.",
+      "description": "Always handle parse errors gracefully on user-controlled data. Use the `?` operator or an explicit `match` instead of `unwrap()` / `expect()`.",
+      "severity": "medium",
+      "category": "A04",
+      "cwe": [
+        "CWE-209",
+        "CWE-256",
+        "CWE-501",
+        "CWE-522"
+      ],
+      "patterns": [
+        {
+          "description": "unwrap()/expect() on user-controlled value",
+          "regex": "(?:reqwest::|web::|actix_web::|axum::|std::env::args|std::env::var|env::args|env::var|Json|Path<|Query<|Form<|Body|headers?\\(\\)|cookies?\\(\\))[\\s\\S]{0,200}?\\.(?:unwrap|expect)\\s*\\(",
+          "flags": "g",
+          "multiline": true
+        }
+      ],
+      "fix": {
+        "title": "Remediate Insecure Design",
+        "hint": "Always handle parse errors gracefully on user-controlled data. Use the `?` operator or an explicit `match` instead of `unwrap()` / `expect()`.",
+        "docUrl": "https://owasp.org/Top10/A04_2021-Insecure_Design/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A04",
+          "url": "https://owasp.org/Top10/A04_2021-Insecure_Design/"
+        },
+        {
+          "label": "CWE-209",
+          "url": "https://cwe.mitre.org/data/definitions/209.html"
+        },
+        {
+          "label": "CWE-256",
+          "url": "https://cwe.mitre.org/data/definitions/256.html"
+        },
+        {
+          "label": "CWE-501",
+          "url": "https://cwe.mitre.org/data/definitions/501.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-RUST-005",
+      "name": "Security Logging and Monitoring Failures — println! (consider structured logger)",
+      "summary": "println! (consider structured logger) detected in Rust source.",
+      "description": "Use `log::info!` / `tracing::info!` with structured fields. Log auth + admin events.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "println! (consider structured logger)",
+          "regex": "println!\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Use `log::info!` / `tracing::info!` with structured fields. Log auth + admin events.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    },
+    {
+      "id": "A10-RUST-006",
+      "name": "Server-Side Request Forgery (SSRF) — reqwest outbound",
+      "summary": "reqwest outbound detected in Rust source.",
+      "description": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs.",
+      "severity": "high",
+      "category": "A10",
+      "cwe": [
+        "CWE-918"
+      ],
+      "patterns": [
+        {
+          "description": "reqwest outbound",
+          "regex": "reqwest::(?:get|Client::new|Client::builder)",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Server-Side Request Forgery (SSRF)",
+        "hint": "Validate and allowlist outbound URLs. Resolve DNS yourself to block private IPs.",
+        "docUrl": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A10",
+          "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/"
+        },
+        {
+          "label": "CWE-918",
+          "url": "https://cwe.mitre.org/data/definitions/918.html"
+        }
+      ]
+    }
+  ]
+}

@@ -6,9 +6,9 @@
  * Body: { "email": "...", "password": "...", "firstName": "...", "lastName": "..." }
  */
 
-require_once __DIR__ . '/../includes/Database.php';
-require_once __DIR__ . '/../includes/JWTAuth.php';
-require_once __DIR__ . '/../includes/ResponseHelper.php';
+require_once __DIR__ . '/../../includes/Database.php';
+require_once __DIR__ . '/../../includes/JWTAuth.php';
+require_once __DIR__ . '/../../includes/ResponseHelper.php';
 
 header('Content-Type: application/json');
 
@@ -95,13 +95,17 @@ try {
 
     sendResponse([
         'token' => $token,
-        'user' => [
+        'user' => buildUserPayload($db->fetchOne(
+            "SELECT id, email, first_name, last_name, name, role, avatar, avatar_url,
+                    experience, languages, security_focus, onboarding_complete, provider
+             FROM users WHERE id = ?",
+            [$userId]
+        ) ?: [
             'id' => $userId,
             'email' => $email,
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'role' => 'user'
-        ],
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]),
         'verificationRequired' => true
     ], 'Registration successful');
 

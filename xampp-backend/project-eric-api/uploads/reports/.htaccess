@@ -1,0 +1,10 @@
+# Generated PDF security reports are private.
+#
+# A report embeds the scanned source code, so it must only ever be
+# reached through the token endpoint (`/api/reports/download?token=...`),
+# which checks the expiry before it streams anything.
+#
+# This folder therefore denies every direct HTTP request. The API itself
+# reads the files through the filesystem, which this rule does not
+# affect.
+Require all denied

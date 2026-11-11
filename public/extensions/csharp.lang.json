@@ -19,14 +19,15 @@
       "patterns": [
         { "regex": "\\b(?:MD5|SHA1|SHA1Managed)\\.Create\\s*\\(", "weight": 3, "label": "System.Security.Cryptography weak hash" },
         { "regex": "\\bSystem\\.Security\\.Cryptography\\.MD5\\b", "weight": 3, "label": "MD5 namespace usage" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+        { "regex": "MD5CryptoServiceProvider\\b", "weight": 3, "label": "MD5CryptoServiceProvider" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" }
       ],
       "remediation": "Use `SHA256.Create()` or `SHA512.Create()` for general hashing, BCrypt.Net / Argon2 for passwords. Move secrets to env / Azure Key Vault."
     },
     "A03": {
       "patterns": [
         { "regex": "\\bnew\\s+SqlCommand\\s*\\(\\s*['\"][^'\"]*\\+", "weight": 4, "label": "SqlCommand built with concatenation" },
-        { "regex": "Process\\.Start\\s*\\(", "weight": 3, "label": "Process.Start shell" }
+        { "regex": "Process\\.Start\\s*\\(\\s*['\"]", "weight": 3, "label": "Process.Start shell" }
       ],
       "remediation": "Use `SqlCommand` with `Parameters.AddWithValue(...)`. Replace `Process.Start(string)` with `Process.Start(new ProcessStartInfo { FileName = …, Arguments = … })` (no shell)."
     },

@@ -1,0 +1,373 @@
+{
+  "id": "php",
+  "label": "PHP",
+  "extensions": [
+    "php"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A01-PHP-001",
+      "name": "Broken Access Control — Laravel route with {id} and no authorisation check",
+      "summary": "2 patterns match broken access control in PHP.",
+      "description": "Use Laravel Policies (`$this->authorize('view', $user)`). Apply middleware (`->middleware('can:update,user')`).",
+      "severity": "high",
+      "category": "A01",
+      "cwe": [
+        "CWE-22",
+        "CWE-285",
+        "CWE-639",
+        "CWE-862",
+        "CWE-863"
+      ],
+      "patterns": [
+        {
+          "description": "Laravel route with {id} and no authorisation check",
+          "regex": "Route::(?:get|post|put|delete)\\s*\\(\\s*['\"`][^'\"`]*\\{[^}]*?(?:id|userId)[^}]*\\}(?:(?!abort_unless|abort_if|authorize|->can\\(|Gate::|->policy\\()[\\s\\S])*?\\}\\);",
+          "flags": "g",
+          "multiline": true
+        },
+        {
+          "description": "Reads id from request with no authorisation check",
+          "regex": "\\$request->(?:input|get)\\(['\"](?:id|userId)['\"](?:(?!abort_unless|abort_if|authorize|->can\\(|Gate::|->policy\\()[\\s\\S])*?\\}\\);",
+          "flags": "g",
+          "multiline": true
+        }
+      ],
+      "fix": {
+        "title": "Remediate Broken Access Control",
+        "hint": "Use Laravel Policies (`$this->authorize('view', $user)`). Apply middleware (`->middleware('can:update,user')`).",
+        "docUrl": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A01",
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/"
+        },
+        {
+          "label": "CWE-22",
+          "url": "https://cwe.mitre.org/data/definitions/22.html"
+        },
+        {
+          "label": "CWE-285",
+          "url": "https://cwe.mitre.org/data/definitions/285.html"
+        },
+        {
+          "label": "CWE-639",
+          "url": "https://cwe.mitre.org/data/definitions/639.html"
+        }
+      ]
+    },
+    {
+      "id": "A02-PHP-002",
+      "name": "Cryptographic Failures — Weak hash algorithm",
+      "summary": "2 patterns match cryptographic failures in PHP.",
+      "description": "Use `password_hash($pwd, PASSWORD_BCRYPT)` and `password_verify`. Move secrets to env / Vault.",
+      "severity": "critical",
+      "category": "A02",
+      "cwe": [
+        "CWE-261",
+        "CWE-296",
+        "CWE-310",
+        "CWE-319",
+        "CWE-321",
+        "CWE-326",
+        "CWE-327",
+        "CWE-328",
+        "CWE-330",
+        "CWE-916"
+      ],
+      "patterns": [
+        {
+          "description": "Weak hash algorithm",
+          "regex": "\\bmd5\\s*\\(|\\bsha1\\s*\\(",
+          "flags": "gi"
+        },
+        {
+          "description": "Hardcoded credential literal",
+          "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]",
+          "flags": "gi"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Cryptographic Failures",
+        "hint": "Use `password_hash($pwd, PASSWORD_BCRYPT)` and `password_verify`. Move secrets to env / Vault.",
+        "docUrl": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A02",
+          "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/"
+        },
+        {
+          "label": "CWE-261",
+          "url": "https://cwe.mitre.org/data/definitions/261.html"
+        },
+        {
+          "label": "CWE-296",
+          "url": "https://cwe.mitre.org/data/definitions/296.html"
+        },
+        {
+          "label": "CWE-310",
+          "url": "https://cwe.mitre.org/data/definitions/310.html"
+        }
+      ]
+    },
+    {
+      "id": "A03-PHP-003",
+      "name": "Injection — eval/assert",
+      "summary": "5 patterns match injection in PHP.",
+      "description": "Use PDO with prepared statements (`$stmt = $pdo->prepare('SELECT … WHERE id = ?'); $stmt->execute([$id])`). Avoid `eval` / `assert`. Pass argv to Process / Symfony Process.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "eval/assert",
+          "regex": "\\beval\\s*\\(|\\bassert\\s*\\(",
+          "flags": "g"
+        },
+        {
+          "description": "PHP SQL with variable interpolation",
+          "regex": "\\b(?:mysql_query|mysqli_query|pg_query)\\s*\\(\\s*['\"][^'\"]*\\$\\w+",
+          "flags": "g"
+        },
+        {
+          "description": "PHP shell exec family",
+          "regex": "\\b(?:shell_exec|exec|system|passthru|popen|proc_open)\\s*\\(\\s*[\"'][^\"']*[\"']?\\s*\\.\\s*\\$",
+          "flags": "g"
+        },
+        {
+          "description": "PHP SQL built by string concatenation",
+          "regex": "([\"'])\\s*(?:SELECT|INSERT|UPDATE|DELETE)\\b(?:(?!\\1).)*\\1\\s*\\.\\s*\\$[a-zA-Z_]\\w*",
+          "flags": "gi"
+        },
+        {
+          "description": "Superglobal echoed without escaping",
+          "regex": "echo\\s+\\$(?:_GET|_POST|_REQUEST|_COOKIE|_SERVER)\\s*\\[",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Use PDO with prepared statements (`$stmt = $pdo->prepare('SELECT … WHERE id = ?'); $stmt->execute([$id])`). Avoid `eval` / `assert`. Pass argv to Process / Symfony Process.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-PHP-004",
+      "name": "Security Misconfiguration — Wildcard ACAO header",
+      "summary": "2 patterns match security misconfiguration in PHP.",
+      "description": "Set `APP_DEBUG=false` in production. Restrict CORS via `config/cors.php` to explicit origins.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "Wildcard ACAO header",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        },
+        {
+          "description": "Laravel debug=true / env=local",
+          "regex": "\\bAPP_DEBUG\\s*=\\s*true\\b|\\bAPP_ENV\\s*=\\s*local\\b",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Set `APP_DEBUG=false` in production. Restrict CORS via `config/cors.php` to explicit origins.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    },
+    {
+      "id": "A07-PHP-005",
+      "name": "Identification and Authentication Failures — password_verify (good practice, reduce score)",
+      "summary": "password_verify (good practice, reduce score) detected in PHP source.",
+      "description": "Use `password_verify($input, $user->password_hash)`. Compare JWTs with `JWT::verify` (firebase/php-jwt). Enforce MFA.",
+      "severity": "high",
+      "category": "A07",
+      "cwe": [
+        "CWE-255",
+        "CWE-259",
+        "CWE-287",
+        "CWE-288",
+        "CWE-290",
+        "CWE-294",
+        "CWE-295",
+        "CWE-297",
+        "CWE-300",
+        "CWE-302",
+        "CWE-304",
+        "CWE-306",
+        "CWE-307",
+        "CWE-346",
+        "CWE-384",
+        "CWE-521",
+        "CWE-613",
+        "CWE-620",
+        "CWE-640",
+        "CWE-798",
+        "CWE-940",
+        "CWE-1216"
+      ],
+      "patterns": [
+        {
+          "description": "password_verify (good practice, reduce score)",
+          "regex": "\\bpassword_verify\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Identification and Authentication Failures",
+        "hint": "Use `password_verify($input, $user->password_hash)`. Compare JWTs with `JWT::verify` (firebase/php-jwt). Enforce MFA.",
+        "docUrl": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A07",
+          "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/"
+        },
+        {
+          "label": "CWE-255",
+          "url": "https://cwe.mitre.org/data/definitions/255.html"
+        },
+        {
+          "label": "CWE-259",
+          "url": "https://cwe.mitre.org/data/definitions/259.html"
+        },
+        {
+          "label": "CWE-287",
+          "url": "https://cwe.mitre.org/data/definitions/287.html"
+        }
+      ]
+    },
+    {
+      "id": "A09-PHP-006",
+      "name": "Security Logging and Monitoring Failures — var_dump/print_r",
+      "summary": "var_dump/print_r detected in PHP source.",
+      "description": "Use Laravel's Log facade (`Log::info(...)`) or Monolog. Log auth + admin events with user id and IP.",
+      "severity": "low",
+      "category": "A09",
+      "cwe": [
+        "CWE-117",
+        "CWE-223",
+        "CWE-532",
+        "CWE-778"
+      ],
+      "patterns": [
+        {
+          "description": "var_dump/print_r",
+          "regex": "var_dump\\s*\\(|print_r\\s*\\(",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Logging and Monitoring Failures",
+        "hint": "Use Laravel's Log facade (`Log::info(...)`) or Monolog. Log auth + admin events with user id and IP.",
+        "docUrl": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A09",
+          "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/"
+        },
+        {
+          "label": "CWE-117",
+          "url": "https://cwe.mitre.org/data/definitions/117.html"
+        },
+        {
+          "label": "CWE-223",
+          "url": "https://cwe.mitre.org/data/definitions/223.html"
+        },
+        {
+          "label": "CWE-532",
+          "url": "https://cwe.mitre.org/data/definitions/532.html"
+        }
+      ]
+    }
+  ]
+}

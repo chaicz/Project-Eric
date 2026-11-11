@@ -37,6 +37,15 @@
   --accent-rose: #f43f5e;
   --accent-violet: #8b5cf6;
 
+  /* The accent the user picked on the Settings page. The values are
+     rewritten at runtime by `utils/accentColor.js` — these are the
+     defaults, so the app still has a colour before that runs. */
+  --accent-color: #3b82f6;
+  --accent-color-strong: #2563eb;
+  --accent-color-soft: rgba(59, 130, 246, 0.12);
+  --accent-color-ring: rgba(59, 130, 246, 0.30);
+  --accent-contrast: #ffffff;
+
   /* Background Colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
@@ -117,13 +126,13 @@ h4 { font-size: 1rem; font-weight: 600; }
 
 /* Selection */
 ::selection {
-  background-color: var(--primary-100);
-  color: var(--primary-800);
+  background-color: var(--accent-color);
+  color: var(--accent-contrast);
 }
 
 /* Focus Styles */
 *:focus-visible {
-  outline: 2px solid var(--primary-400);
+  outline: 2px solid var(--accent-color);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -153,8 +162,8 @@ h4 { font-size: 1rem; font-weight: 600; }
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  background: var(--primary-600);
-  color: white;
+  background: var(--accent-color);
+  color: var(--accent-contrast);
   font-weight: 500;
   font-size: 0.875rem;
   border-radius: var(--radius-md);
@@ -164,7 +173,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 }
 
 .btn-primary:hover {
-  background: var(--primary-700);
+  background: var(--accent-color-strong);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -213,8 +222,8 @@ h4 { font-size: 1rem; font-weight: 600; }
 
 .minimal-input:focus {
   outline: none;
-  border-color: var(--primary-400);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-color-ring);
 }
 
 .minimal-input::placeholder {
@@ -395,8 +404,8 @@ h4 { font-size: 1rem; font-weight: 600; }
   justify-content: center;
   font-weight: 600;
   font-size: 0.875rem;
-  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
-  color: white;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-color-strong));
+  color: var(--accent-contrast);
 }
 
 .avatar-sm { width: 32px; height: 32px; font-size: 0.75rem; }
@@ -724,6 +733,12 @@ h4 { font-size: 1rem; font-weight: 600; }
 @keyframes auth-float-stat {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50%      { transform: translateY(-14px) rotate(1deg); }
+}
+
+/* Live scan event rows in the BrandPanel activity feed */
+@keyframes auth-event-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Shared entrance + tiny animations */
@@ -1087,7 +1102,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   left: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--primary-500), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
   animation: scan-line-effect 2s linear infinite;
 }
 
@@ -1227,7 +1242,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 
 .focus-ring:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 3px var(--accent-color-ring);
 }
 
 /* Gradient Text Animation */
@@ -1489,7 +1504,7 @@ h4 { font-size: 1rem; font-weight: 600; }
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+  background: linear-gradient(135deg, var(--accent-color), #8b5cf6, #ec4899);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -1551,7 +1566,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 
 /* Text Gradient */
 .text-gradient {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+  background: linear-gradient(135deg, var(--accent-color), #8b5cf6, #ec4899);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1957,8 +1972,8 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
 /* Selection */
 html.dark ::selection {
-  background-color: rgba(59, 130, 246, 0.4);
-  color: #f8fafc;
+  background-color: var(--accent-color);
+  color: var(--accent-contrast);
 }
 
 /* Shadows for dark backgrounds — slightly deeper */
@@ -1979,12 +1994,12 @@ html.dark {
 
 /* Minimal Button - Primary in dark mode */
 html.dark .btn-primary {
-  background: #3b82f6 !important;
-  color: #ffffff !important;
+  background: var(--accent-color) !important;
+  color: var(--accent-contrast) !important;
 }
 html.dark .btn-primary:hover {
-  background: #2563eb !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+  background: var(--accent-color-strong) !important;
+  box-shadow: 0 0 0 3px var(--accent-color-ring) !important;
 }
 
 /* Minimal Button - Secondary in dark mode */
@@ -2259,6 +2274,88 @@ html.dark .glass-surface {
 html.dark .bg-slate-900 {
   background-color: #1e293b !important;
   color: #f1f5f9 !important;
+}
+
+/* ============================================
+   SIDEBAR NAVIGATION — theme-aware colours
+   ============================================
+   The sidebar used to hard-code Tailwind's blue (`bg-blue-600`,
+   `text-blue-600`, `from-blue-50 to-purple-50`). When the user picked a
+   different accent on the Settings -> Appearance tab, the rest of the app
+   followed the new colour but the sidebar stayed blue, which is what made
+   the sidebar look out of place with the theme.
+
+   These classes read the accent custom properties that
+   `utils/accentColor.js` publishes on `<html>`, so the sidebar follows
+   the same colour as the buttons elsewhere. `!important` is used because
+   the dark-mode block writes competing rules with the same specificity.
+   ============================================ */
+
+/* The active navigation pill */
+.eric-nav-active {
+  background-color: var(--accent-color) !important;
+  color: var(--accent-contrast) !important;
+  box-shadow: 0 4px 6px -1px var(--accent-color-ring) !important;
+}
+.eric-nav-active:hover {
+  background-color: var(--accent-color-strong) !important;
+  color: var(--accent-contrast) !important;
+}
+
+/* The active pill for the gradient variant (Tools section) */
+.eric-nav-active-gradient {
+  background-image: linear-gradient(
+    to right,
+    var(--accent-color),
+    var(--accent-color-strong)
+  ) !important;
+  color: var(--accent-contrast) !important;
+  box-shadow: 0 4px 6px -1px var(--accent-color-ring) !important;
+}
+.eric-nav-active-gradient:hover {
+  background-image: linear-gradient(
+    to right,
+    var(--accent-color-strong),
+    var(--accent-color-strong)
+  ) !important;
+  color: var(--accent-contrast) !important;
+}
+
+/* Accent-coloured text (icons, labels) inside the sidebar */
+.eric-accent-text {
+  color: var(--accent-color) !important;
+}
+
+/* A faint accent-tinted panel, used by the keyboard shortcut card */
+.eric-accent-soft {
+  background-color: var(--accent-color-soft) !important;
+  border-color: var(--accent-color-ring) !important;
+}
+
+/* Dark mode: the accent text stays on the accent colour, the soft panel
+   becomes a readable dark surface. */
+html.dark .eric-accent-text {
+  color: var(--accent-color) !important;
+}
+html.dark .eric-accent-soft {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+  border-color: rgba(51, 65, 85, 0.7) !important;
+}
+
+/* The generic dark-mode nav hover rule below would repaint the active
+   pill on hover, so the accent hover is restated with a higher
+   specificity. */
+html.dark nav a.eric-nav-active:hover,
+html.dark nav a.eric-nav-active-gradient:hover {
+  background-color: var(--accent-color-strong) !important;
+  color: var(--accent-contrast) !important;
+}
+html.dark nav a.eric-nav-active-gradient:hover {
+  background-image: linear-gradient(
+    to right,
+    var(--accent-color-strong),
+    var(--accent-color-strong)
+  ) !important;
 }
 
 /* Keyboard shortcut panel inside sidebar */
@@ -2948,8 +3045,24 @@ html.dark .status-dot.busy    { background: #f59e0b !important; }
    ============================================ */
 
 /* The wrapper that every route renders into. The `key` prop forces
-   a fresh mount per route, so the entry animation always plays. */
+   a fresh mount per route, so the entry animation always plays.
+
+   Neither the wrapper nor the animated layer may end up with a
+   `filter` or `transform`, because either one establishes a
+   containing block for `position: fixed` descendants. That would
+   make every fixed element inside a page (sticky headers, floating
+   nav, side rails) size and position itself against the full
+   document height instead of the viewport.
+
+   The entrance therefore animates opacity only. The subtle upward
+   motion is done with `margin-top`, which does not create a
+   containing block. */
 .page-transition-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.page-transition-inner {
   width: 100%;
   height: 100%;
   animation: page-transition-enter 0.45s cubic-bezier(0.65, 0, 0.35, 1) both;
@@ -2958,17 +3071,18 @@ html.dark .status-dot.busy    { background: #f59e0b !important; }
 @keyframes page-transition-enter {
   from {
     opacity: 0;
-    transform: translateY(12px);
-    filter: blur(4px);
+    margin-top: 12px;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    margin-top: 0;
   }
 }
 
-/* Slide animation variant for nested routes (Dashboard, IDE, etc.) */
+/* Slide animation variant for nested routes (Dashboard, IDE, etc.)
+   Uses margin rather than transform so that a fixed-position
+   descendant is not re-parented to this element as its containing
+   block. */
 .page-slide-enter {
   animation: page-slide-enter 0.4s cubic-bezier(0.65, 0, 0.35, 1) both;
 }
@@ -2976,17 +3090,18 @@ html.dark .status-dot.busy    { background: #f59e0b !important; }
 @keyframes page-slide-enter {
   from {
     opacity: 0;
-    transform: translateX(16px);
+    margin-left: 16px;
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    margin-left: 0;
   }
 }
 
 /* Reduced motion: respect user OS preference */
 @media (prefers-reduced-motion: reduce) {
   .page-transition-wrapper,
+  .page-transition-inner,
   .page-slide-enter {
     animation: none !important;
   }

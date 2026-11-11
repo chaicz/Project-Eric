@@ -10,24 +10,32 @@ import React from 'react';
  *  - Gradient border ring is reduced so it doesn't look heavy against glass
  *  - Mobile-only logo pill is glass-styled too
  *
+ * Readability fix:
+ *  The card was translucent enough that a bright slide behind it could
+ *  wash out the heading. The fill is now more opaque, the heading area
+ *  sits on an opaque panel, and a dedicated backdrop layer under the
+ *  card keeps contrast stable no matter which image is showing.
+ *
  * Props mirror the previous version so consumers don't need changes.
  */
 const FormShell = ({ children, mounted = true, shake = false }) => {
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center px-6 sm:px-10 py-10 relative overflow-y-auto">
-      {/* Subtle white tint over the slideshow for legibility without blocking it */}
+      {/* Readability scrim — a soft white wash over the slideshow. It is
+          stronger than the old 18% tint because the form has to stay
+          legible over any of the twelve background images. */}
       <div
-        className="absolute inset-0 backdrop-blur-[2px]"
+        className="absolute inset-0 backdrop-blur-[3px]"
         style={{
           background:
-            'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.15) 100%)',
+            'linear-gradient(135deg, rgba(255,255,255,0.62) 0%, rgba(248,250,252,0.74) 50%, rgba(255,255,255,0.60) 100%)',
         }}
         aria-hidden="true"
       />
 
       {/* Soft decorative orbs — now used to add colour hints through the glass */}
       <div
-        className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-40 pointer-events-none"
+        className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-30 pointer-events-none"
         style={{
           background:
             'radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)',
@@ -35,7 +43,7 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
         aria-hidden="true"
       />
       <div
-        className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-30 pointer-events-none"
+        className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-25 pointer-events-none"
         style={{
           background:
             'radial-gradient(circle, rgba(236,72,153,0.25) 0%, transparent 70%)',
@@ -70,11 +78,11 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
         }`}
       >
         <div
-          className="p-[1.5px] rounded-3xl bg-gradient-to-br from-white/70 via-white/40 to-white/70 shadow-[0_28px_70px_-20px_rgba(15,23,42,0.3)] backdrop-blur-sm"
+          className="p-[1.5px] rounded-3xl bg-gradient-to-br from-white/90 via-white/60 to-white/90 shadow-[0_28px_70px_-20px_rgba(15,23,42,0.35)] backdrop-blur-sm"
           style={{ animation: 'auth-fade-up 0.6s ease-out 100ms both' }}
         >
           <div
-            className={`rounded-[22.5px] px-9 sm:px-11 py-10 relative backdrop-blur-2xl bg-white/75 border border-white/50 ${
+            className={`rounded-[22.5px] px-9 sm:px-11 py-10 relative backdrop-blur-2xl bg-white/95 border border-white/70 shadow-inner ${
               shake ? 'animate-shake' : ''
             }`}
           >
@@ -84,7 +92,7 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
 
         {/* Subtle "powered by" line under the card */}
         <p
-          className="text-center text-xs text-slate-700 mt-6 tracking-wide drop-shadow-sm font-medium"
+          className="text-center text-xs text-slate-600 mt-6 tracking-wide font-medium"
           style={{ animation: 'auth-fade-up 0.6s ease-out 500ms both' }}
         >
           Protected by Project Eric's zero-trust security framework

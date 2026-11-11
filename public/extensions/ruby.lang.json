@@ -18,15 +18,16 @@
     "A02": {
       "patterns": [
         { "regex": "Digest::(?:MD5|SHA1)", "weight": 3, "label": "Digest::MD5 / Digest::SHA1" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" }
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" }
       ],
       "remediation": "Use `BCrypt::Password.create(pwd)` / `BCrypt::Password.create(string, cost: 12)`. Use `SecureRandom.hex(32)` for tokens. Move secrets to Rails credentials / Vault."
     },
     "A03": {
       "patterns": [
-        { "regex": "\\b(?:system|exec|`)\\s*[^,)]*\\+|`[^`]*#\\{[^}]*\\}[^`]*`", "weight": 4, "label": "Shell command with interpolation" }
+        { "regex": "\\b(?:system|exec|`)\\s*[^,)]*\\+|`[^`]*#\\{[^}]*\\}[^`]*`", "weight": 4, "label": "Shell command with interpolation" },
+        { "regex": "ERB\\.new\\([^)]*params", "weight": 4, "label": "ERB template built from user input" }
       ],
-      "remediation": "Pass argv lists to `Open3.capture3(cmd, *args)` (never a shell string). Use ActiveRecord (parameterised by default) instead of raw SQL."
+      "remediation": "Pass argv lists to `Open3.capture3(cmd, *args)` (never a shell string). Use ActiveRecord (parameterised by default) instead of raw SQL. Never build an ERB template from `params` — a user-supplied template is remote code execution; render a fixed template with sanitised values."
     },
     "A05": {
       "patterns": [

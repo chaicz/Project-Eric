@@ -1,0 +1,2 @@
+# Keeps the uploads folder in version control. The avatar files
+# themselves are written at runtime by the API.

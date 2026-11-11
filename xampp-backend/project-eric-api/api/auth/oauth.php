@@ -6,9 +6,9 @@
  * Body: { "provider": "github|google", "token": "...", "userData": {...} }
  */
 
-require_once __DIR__ . '/../includes/Database.php';
-require_once __DIR__ . '/../includes/JWTAuth.php';
-require_once __DIR__ . '/../includes/ResponseHelper.php';
+require_once __DIR__ . '/../../includes/Database.php';
+require_once __DIR__ . '/../../includes/JWTAuth.php';
+require_once __DIR__ . '/../../includes/ResponseHelper.php';
 
 header('Content-Type: application/json');
 
@@ -37,7 +37,9 @@ try {
     
     // Check if user exists with this OAuth ID
     $user = $db->fetchOne(
-        "SELECT id, email, first_name, last_name, role, is_active 
+        "SELECT id, email, first_name, last_name, name, role, avatar, avatar_url,
+                experience, languages, security_focus, onboarding_complete, provider,
+                is_active, oauth_provider, oauth_id
          FROM users WHERE oauth_provider = ? AND oauth_id = ?",
         [$provider, $oauthId]
     );
@@ -45,7 +47,9 @@ try {
     // If not found, try to find by email
     if (!$user) {
         $user = $db->fetchOne(
-            "SELECT id, email, first_name, last_name, role, is_active, oauth_provider 
+            "SELECT id, email, first_name, last_name, name, role, avatar, avatar_url,
+                    experience, languages, security_focus, onboarding_complete, provider,
+                    is_active, oauth_provider
              FROM users WHERE email = ?",
             [$email]
         );
@@ -75,13 +79,7 @@ try {
 
         sendResponse([
             'token' => $token,
-            'user' => [
-                'id' => $user['id'],
-                'email' => $user['email'],
-                'firstName' => $user['first_name'],
-                'lastName' => $user['last_name'],
-                'role' => $user['role']
-            ],
+            'user' => buildUserPayload($user),
             'isNewUser' => false
         ], 'OAuth login successful');
     } else {
@@ -117,13 +115,14 @@ try {
 
         sendResponse([
             'token' => $token,
-            'user' => [
+            'user' => buildUserPayload([
                 'id' => $userId,
                 'email' => $email,
-                'firstName' => $firstName ?: substr($email, 0, strpos($email, '@')),
-                'lastName' => $lastName ?: '',
-                'role' => 'user'
-            ],
+                'first_name' => $firstName ?: substr($email, 0, strpos($email, '@')),
+                'last_name' => $lastName ?: '',
+                'role' => 'user',
+                'provider' => $provider,
+            ]),
             'isNewUser' => true
         ], 'OAuth registration successful', 201);
     }

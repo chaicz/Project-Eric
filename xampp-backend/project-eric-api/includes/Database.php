@@ -17,8 +17,15 @@ class Database {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ];
-            
+
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+            // `time_zone` is a session variable, so it has to be set on every
+            // connection. Without this, MySQL's `CURRENT_TIMESTAMP` follows the
+            // operating system's clock while PHP writes UTC — the two
+            // disagree, and a single event ends up with two timestamps that
+            // are hours apart. See the note in config/config.php.
+            $this->connection->exec("SET time_zone = '+00:00'");
         } catch (PDOException $e) {
             $this->sendErrorResponse("Database connection failed: " . $e->getMessage(), 500);
         }

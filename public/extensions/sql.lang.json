@@ -21,7 +21,8 @@
   ],
   "dangerousApis": [
     "EXEC", "EXECUTE", "xp_cmdshell", "sp_executesql",
-    "DROP TABLE", "TRUNCATE", "DELETE FROM", "UPDATE "
+    "DROP TABLE", "TRUNCATE", "DELETE FROM", "UPDATE ",
+    "||"
   ],
   "domSinks": [],
   "networkApis": [],
@@ -38,7 +39,10 @@
         { "regex": "\\bEXEC\\s*\\(|\\bEXECUTE\\s*\\(", "weight": 4, "label": "SQL EXEC/EXECUTE (dynamic SQL)" },
         { "regex": "xp_cmdshell\\s*\\(", "weight": 4, "label": "xp_cmdshell (RCE from SQL Server)" },
         { "regex": "['\"][^'\"]*(?:SELECT|INSERT|UPDATE|DELETE)[^'\"]*['\"]\\s*\\+\\s*@?\\w+", "weight": 4, "label": "Dynamic SQL via concatenation" },
-        { "regex": "\\bsp_executesql\\s*\\(", "weight": 3, "label": "sp_executesql (review inputs)" }
+        { "regex": "\\bsp_executesql\\s*\\(", "weight": 3, "label": "sp_executesql (review inputs)" },
+        { "regex": "\\|\\|\\s*\\(?\\s*(?:SELECT|INSERT|UPDATE|DELETE|UNION|WITH)\\b", "weight": 4, "label": "Dynamic identifier / statement interpolation" },
+        { "regex": "['\"]\\s*\\|\\|\\s*['\"]", "weight": 4, "label": "String concatenation via || operator" },
+        { "regex": "\\b(?:ORDER\\s+BY|GROUP\\s+BY|LIMIT|OFFSET|TABLE)\\s+(?:'[^']*'\\s*\\|\\||\\|\\|\\s*'[^']*'|@?\\w+\\s*\\|\\|)", "weight": 4, "label": "Interpolated ORDER BY / GROUP BY / table name" }
       ]
     },
     "A05": {

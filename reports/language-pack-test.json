@@ -1,0 +1,301 @@
+{
+  "generatedAt": "2026-11-10T01:51:30.628Z",
+  "webLangs": [
+    "cpp",
+    "csharp",
+    "css",
+    "go",
+    "html",
+    "java",
+    "javascript",
+    "php",
+    "python",
+    "ruby",
+    "rust",
+    "sql",
+    "typescript"
+  ],
+  "generated": [
+    "cpp",
+    "csharp",
+    "css",
+    "go",
+    "html",
+    "java",
+    "javascript",
+    "php",
+    "python",
+    "ruby",
+    "rust",
+    "sql",
+    "typescript"
+  ],
+  "missing": [],
+  "extra": [],
+  "skipped": [],
+  "results": [
+    {
+      "id": "javascript",
+      "ruleCount": 24,
+      "vulnFindings": [
+        {
+          "ruleId": "A02-003",
+          "category": "A02",
+          "line": 1
+        },
+        {
+          "ruleId": "A07-002",
+          "category": "A07",
+          "line": 1
+        },
+        {
+          "ruleId": "A02-JAVASCRIPT-002",
+          "category": "A02",
+          "line": 1
+        },
+        {
+          "ruleId": "A03-JAVASCRIPT-003",
+          "category": "A03",
+          "line": 2
+        },
+        {
+          "ruleId": "A03-001",
+          "category": "A03",
+          "line": 3
+        },
+        {
+          "ruleId": "A03-003",
+          "category": "A03",
+          "line": 2
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "typescript",
+      "ruleCount": 24,
+      "vulnFindings": [
+        {
+          "ruleId": "A07-TYPESCRIPT-006",
+          "category": "A07",
+          "line": 1
+        },
+        {
+          "ruleId": "A10-001",
+          "category": "A10",
+          "line": 2
+        },
+        {
+          "ruleId": "A10-TYPESCRIPT-009",
+          "category": "A10",
+          "line": 2
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "python",
+      "ruleCount": 24,
+      "vulnFindings": [
+        {
+          "ruleId": "A08-001",
+          "category": "A08",
+          "line": 2
+        },
+        {
+          "ruleId": "A03-PYTHON-003",
+          "category": "A03",
+          "line": 4
+        },
+        {
+          "ruleId": "A03-PYTHON-003",
+          "category": "A03",
+          "line": 4
+        },
+        {
+          "ruleId": "A08-PYTHON-007",
+          "category": "A08",
+          "line": 2
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "sql",
+      "ruleCount": 18,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-001",
+          "category": "A03",
+          "line": 1
+        },
+        {
+          "ruleId": "A03-SQL-001",
+          "category": "A03",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "java",
+      "ruleCount": 21,
+      "vulnFindings": [
+        {
+          "ruleId": "A02-JAVA-002",
+          "category": "A02",
+          "line": 1
+        },
+        {
+          "ruleId": "A03-001",
+          "category": "A03",
+          "line": 2
+        },
+        {
+          "ruleId": "A02-001",
+          "category": "A02",
+          "line": 1
+        },
+        {
+          "ruleId": "A02-001",
+          "category": "A02",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "php",
+      "ruleCount": 21,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-PHP-003",
+          "category": "A03",
+          "line": 2
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "go",
+      "ruleCount": 22,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-001",
+          "category": "A03",
+          "line": 1
+        },
+        {
+          "ruleId": "A03-GO-003",
+          "category": "A03",
+          "line": 2
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "rust",
+      "ruleCount": 21,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-RUST-003",
+          "category": "A03",
+          "line": 2
+        },
+        {
+          "ruleId": "A04-RUST-004",
+          "category": "A04",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "ruby",
+      "ruleCount": 22,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-RUBY-003",
+          "category": "A03",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "cpp",
+      "ruleCount": 18,
+      "vulnFindings": [
+        {
+          "ruleId": "A02-CPP-001",
+          "category": "A02",
+          "line": 2
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "csharp",
+      "ruleCount": 21,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-001",
+          "category": "A03",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "html",
+      "ruleCount": 17,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-HTML-001",
+          "category": "A03",
+          "line": 1
+        },
+        {
+          "ruleId": "A03-003",
+          "category": "A03",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "css",
+      "ruleCount": 17,
+      "vulnFindings": [
+        {
+          "ruleId": "A03-CSS-001",
+          "category": "A03",
+          "line": 1
+        }
+      ],
+      "safeFindings": []
+    },
+    {
+      "id": "mcp",
+      "ruleCount": 24,
+      "vulnFindings": [
+        {
+          "ruleId": "MCP-A03-001",
+          "category": "A03",
+          "line": 5
+        },
+        {
+          "ruleId": "MCP-A05-001",
+          "category": "A05",
+          "line": 4
+        },
+        {
+          "ruleId": "MCP-A05-001",
+          "category": "A05",
+          "line": 4
+        }
+      ],
+      "safeFindings": []
+    }
+  ]
+}

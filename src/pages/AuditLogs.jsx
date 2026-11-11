@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ClipboardList, 
   Search, 
@@ -21,9 +21,80 @@ import {
 import { useToast } from '../components/Toast';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
+import { dashboardAPI } from '../services/api';
+import { useApp } from '../context/AppContext';
+
+// The API records what happened ("SCAN_COMPLETED", "login", ...). The page
+// renders a small set of known events, so each stored action is mapped onto
+// the closest one and anything unknown becomes a plain "Activity" entry.
+const ACTION_ALIASES = {
+  SCAN_COMPLETED: 'security_scan',
+  security_scan: 'security_scan',
+  VULNERABILITY_FIXED: 'vulnerability_fixed',
+  vulnerability_fixed: 'vulnerability_fixed',
+  VULNERABILITY_OPENED: 'critical_vulnerability',
+  critical_vulnerability: 'critical_vulnerability',
+  API_KEY_CREATED: 'api_key_created',
+  api_key_created: 'api_key_created',
+  TEAM_MEMBER_INVITED: 'team_invite',
+  team_invite: 'team_invite',
+  TEAM_MEMBER_REMOVED: 'team_invite',
+  TEAM_MEMBER_ROLE_CHANGED: 'team_invite',
+  LOGIN: 'login',
+  login: 'login',
+  REGISTER: 'login',
+  register: 'login',
+  failed_login: 'failed_login',
+  LOGOUT: 'settings_changed',
+  logout: 'settings_changed',
+  PROFILE_UPDATED: 'settings_changed',
+  SETTINGS_CHANGED: 'settings_changed',
+  settings_changed: 'settings_changed',
+  PROJECT_CREATED: 'security_scan',
+  INTEGRATION_CONNECTED: 'settings_changed',
+  INTEGRATION_DISCONNECTED: 'settings_changed',
+};
+
+const describeDetails = (details) => {
+  if (!details) return 'Activity recorded.';
+  if (typeof details === 'string') return details;
+  if (typeof details !== 'object') return String(details);
+  const parts = Object.entries(details)
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+  return parts.length ? parts.join(' · ') : 'Activity recorded.';
+};
+
+const normaliseLog = (row, actorName, actorEmail) => {
+  const action = ACTION_ALIASES[row.action] || 'activity';
+  const resource = row.resourceType
+    ? `${row.resourceType}${row.resourceId ? ': ' + row.resourceId : ''}`
+    : 'Account';
+
+  return {
+    id: row.id,
+    timestamp: row.createdAt,
+    action,
+    actor: actorName || 'You',
+    actorEmail: actorEmail || '',
+    resource,
+    details: describeDetails(row.details),
+    ip: row.ipAddress || 'N/A',
+    status: 'success',
+    severity:
+      action === 'critical_vulnerability'
+        ? 'error'
+        : action === 'api_key_created' || action === 'failed_login'
+          ? 'warning'
+          : 'info',
+  };
+};
 
 const AuditLogs = () => {
   const { showToast } = useToast();
+  const { user } = useApp();
+  const userName = user?.name || user?.email || 'You';
+  const userEmail = user?.email || '';
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -61,111 +132,34 @@ const AuditLogs = () => {
 
   // Handle refresh
   const handleRefresh = async () => {
-    setIsRefreshing(true);
     showToast('Refreshing audit logs...', 'info');
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsRefreshing(true);
+    await loadLogs();
     setIsRefreshing(false);
     showToast('Audit logs refreshed!');
   };
 
-  const logs = [
-    { 
-      id: 1, 
-      timestamp: '2024-01-17 14:32:15',
-      action: 'security_scan',
-      actor: 'Sarah Chen',
-      actorEmail: 'sarah.chen@company.com',
-      resource: 'Project: E-Commerce API',
-      details: 'Completed OWASP vulnerability scan',
-      ip: '192.168.1.105',
-      status: 'success',
-      severity: 'info'
-    },
-    { 
-      id: 2, 
-      timestamp: '2024-01-17 14:15:42',
-      action: 'vulnerability_fixed',
-      actor: 'Marcus Johnson',
-      actorEmail: 'marcus.j@company.com',
-      resource: 'Vulnerability: SQL Injection (CWE-89)',
-      details: 'Marked as fixed after code remediation',
-      ip: '192.168.1.112',
-      status: 'success',
-      severity: 'success'
-    },
-    { 
-      id: 3, 
-      timestamp: '2024-01-17 13:58:23',
-      action: 'api_key_created',
-      actor: 'Sarah Chen',
-      actorEmail: 'sarah.chen@company.com',
-      resource: 'API Key: CI/CD Integration',
-      details: 'New API key created with scan permissions',
-      ip: '192.168.1.105',
-      status: 'success',
-      severity: 'warning'
-    },
-    { 
-      id: 4, 
-      timestamp: '2024-01-17 13:45:11',
-      action: 'critical_vulnerability',
-      actor: 'System',
-      actorEmail: 'system@secureide',
-      resource: 'Project: Auth Service',
-      details: 'Critical SQL Injection detected in /api/login endpoint',
-      ip: 'N/A',
-      status: 'alert',
-      severity: 'error'
-    },
-    { 
-      id: 5, 
-      timestamp: '2024-01-17 12:30:05',
-      action: 'team_invite',
-      actor: 'Sarah Chen',
-      actorEmail: 'sarah.chen@company.com',
-      resource: 'User: new.user@company.com',
-      details: 'Invited as Developer role',
-      ip: '192.168.1.105',
-      status: 'success',
-      severity: 'info'
-    },
-    { 
-      id: 6, 
-      timestamp: '2024-01-17 11:22:18',
-      action: 'login',
-      actor: 'Emily Watson',
-      actorEmail: 'emily.w@company.com',
-      resource: 'Session',
-      details: 'Successful login via GitHub OAuth',
-      ip: '203.0.113.42',
-      status: 'success',
-      severity: 'info'
-    },
-    { 
-      id: 7, 
-      timestamp: '2024-01-17 10:15:33',
-      action: 'failed_login',
-      actor: 'Unknown',
-      actorEmail: 'admin@malicious.com',
-      resource: 'Session',
-      details: 'Failed login attempt - invalid credentials',
-      ip: '198.51.100.23',
-      status: 'failed',
-      severity: 'warning'
-    },
-    { 
-      id: 8, 
-      timestamp: '2024-01-17 09:45:00',
-      action: 'settings_changed',
-      actor: 'Sarah Chen',
-      actorEmail: 'sarah.chen@company.com',
-      resource: 'Organization Settings',
-      details: 'Updated webhook URL configuration',
-      ip: '192.168.1.105',
-      status: 'success',
-      severity: 'info'
-    },
-  ];
+  // The account's own activity trail.
+  //
+  // These entries used to be a fixed demo list: a GitHub OAuth login that
+  // never happened, a failed login from a made-up IP, a SQL injection in
+  // somebody else's project. The API records what actually happened.
+  const [logs, setLogs] = useState([]);
+
+  const loadLogs = useCallback(async () => {
+    try {
+      const data = await dashboardAPI.getAuditLogs();
+      const list = Array.isArray(data?.logs) ? data.logs : [];
+      setLogs(list.map((l) => normaliseLog(l, userName, userEmail)));
+    } catch {
+      setLogs([]);
+    }
+  }, [userName, userEmail]);
+
+  useEffect(() => {
+    setMounted(true);
+    loadLogs();
+  }, [loadLogs]);
 
   const logTypes = [
     { id: 'all', label: 'All Events' },
@@ -184,6 +178,9 @@ const AuditLogs = () => {
     login: { icon: Activity, color: 'text-slate-600', bg: 'bg-slate-50', label: 'Login' },
     failed_login: { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Failed Login' },
     settings_changed: { icon: Activity, color: 'text-slate-600', bg: 'bg-slate-50', label: 'Settings Changed' },
+    // Anything the API records that this page does not have a dedicated
+    // look for still renders as a plain activity entry.
+    activity: { icon: Activity, color: 'text-slate-600', bg: 'bg-slate-50', label: 'Activity' },
   };
 
   const severityConfig = {

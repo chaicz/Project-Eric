@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -16,6 +16,7 @@ import {
 import { useToast } from '../components/Toast';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
+import { dashboardAPI } from '../services/api';
 
 const Team = () => {
   const { showToast } = useToast();
@@ -31,63 +32,34 @@ const Team = () => {
     setMounted(true);
   }, []);
 
-  const [teamMembers, setTeamMembers] = useState([
-    { 
-      id: 1, 
-      name: 'Sarah Chen', 
-      email: 'sarah.chen@company.com',
-      role: 'admin',
-      status: 'online',
-      avatar: 'SC',
-      joinedAt: '2024-01-10',
-      lastActive: 'Just now'
-    },
-    { 
-      id: 2, 
-      name: 'Marcus Johnson', 
-      email: 'marcus.j@company.com',
-      role: 'developer',
-      status: 'online',
-      avatar: 'MJ',
-      joinedAt: '2024-01-12',
-      lastActive: '5 min ago'
-    },
-    { 
-      id: 3, 
-      name: 'Emily Watson', 
-      email: 'emily.w@company.com',
-      role: 'analyst',
-      status: 'offline',
-      avatar: 'EW',
-      joinedAt: '2024-01-14',
-      lastActive: '2 hours ago'
-    },
-    { 
-      id: 4, 
-      name: 'Alex Kim', 
-      email: 'alex.kim@company.com',
-      role: 'developer',
-      status: 'online',
-      avatar: 'AK',
-      joinedAt: '2024-01-15',
-      lastActive: '1 hour ago'
-    },
-    { 
-      id: 5, 
-      name: 'Jordan Lee', 
-      email: 'jordan.l@company.com',
-      role: 'viewer',
-      status: 'offline',
-      avatar: 'JL',
-      joinedAt: '2024-01-16',
-      lastActive: '1 day ago'
-    },
-  ]);
+  // The account's own team.
+  //
+  // This roster used to be a fixed set of demo people at @company.com, so
+  // every account - including a brand-new one - saw five colleagues it
+  // never invited. The API owns the roster now.
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [teamName, setTeamName] = useState('');
+  const [isLoadingTeam, setIsLoadingTeam] = useState(true);
 
-  const [pendingInvites, setPendingInvites] = useState([
-    { id: 1, email: 'new.user@company.com', role: 'developer', sentAt: '2024-01-16' },
-    { id: 2, email: 'intern@company.com', role: 'viewer', sentAt: '2024-01-17' },
-  ]);
+  const loadTeam = useCallback(async () => {
+    try {
+      const data = await dashboardAPI.getTeamMembers();
+      setTeamMembers(Array.isArray(data?.members) ? data.members : []);
+      setPendingInvites(Array.isArray(data?.invitations) ? data.invitations : []);
+      setTeamName(data?.team?.name || '');
+    } catch {
+      setTeamMembers([]);
+      setPendingInvites([]);
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    loadTeam();
+  }, [loadTeam]);
 
   // Handle send invitation
   const handleSendInvitation = async (e) => {
@@ -96,23 +68,23 @@ const Team = () => {
       showToast('Please enter an email address', 'error');
       return;
     }
-    
+
     setIsSending(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const newInvite = {
-      id: Date.now(),
-      email: inviteEmail,
-      role: inviteRole,
-      sentAt: new Date().toISOString().split('T')[0]
-    };
-    
-    setPendingInvites(prev => [...prev, newInvite]);
-    setInviteEmail('');
-    setInviteRole('viewer');
-    setShowInviteModal(false);
-    setIsSending(false);
-    showToast(`Invitation sent to ${newInvite.email}!`);
+    try {
+      const created = await dashboardAPI.inviteTeamMember(inviteEmail.trim(), inviteRole);
+      setPendingInvites((prev) => [
+        { id: created.id, email: created.email, role: created.role, sentAt: new Date().toISOString() },
+        ...prev,
+      ]);
+      setInviteEmail('');
+      setInviteRole('viewer');
+      setShowInviteModal(false);
+      showToast(`Invitation sent to ${created.email}!`);
+    } catch (err) {
+      showToast(err?.message || 'Could not send the invitation', 'error');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Handle resend invitation
@@ -125,23 +97,39 @@ const Team = () => {
 
   // Handle revoke invitation
   const handleRevokeInvite = (invite) => {
-    if (window.confirm(`Revoke invitation for ${invite.email}?`)) {
-      setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
-      showToast(`Invitation for ${invite.email} revoked`, 'info');
-    }
+    if (!window.confirm(`Revoke invitation for ${invite.email}?`)) return;
+    setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+    dashboardAPI.removeTeamMember(invite.id, 'invitation').catch(() => loadTeam());
+    showToast(`Invitation for ${invite.email} revoked`, 'info');
   };
 
   // Handle remove member
   const handleRemoveMember = (member) => {
-    if (window.confirm(`Remove ${member.name} from the team?`)) {
-      setTeamMembers(prev => prev.filter(m => m.id !== member.id));
-      showToast(`${member.name} has been removed from the team`, 'info');
-    }
+    if (!window.confirm(`Remove ${member.name} from the team?`)) return;
+    setTeamMembers((prev) => prev.filter((m) => m.id !== member.id));
+    dashboardAPI.removeTeamMember(member.id).catch(() => loadTeam());
+    showToast(`${member.name} has been removed from the team`, 'info');
   };
 
   // Handle edit member
   const handleEditMember = (member) => {
-    showToast(`Opening edit form for ${member.name}...`, 'info');
+    if (member.role === 'owner') {
+      showToast("The team owner's role cannot be changed.", 'info');
+      return;
+    }
+    const answer = window.prompt(
+      `New role for ${member.name}?\n\nadmin, developer, analyst or viewer:`,
+      member.role
+    );
+    if (!answer) return;
+    const role = answer.trim().toLowerCase();
+    if (!['admin', 'developer', 'analyst', 'viewer'].includes(role)) {
+      showToast('That role is not one of admin, developer, analyst or viewer.', 'error');
+      return;
+    }
+    setTeamMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, role } : m)));
+    dashboardAPI.updateTeamMember(member.id, role).catch(() => loadTeam());
+    showToast(`${member.name} is now a ${role}.`, 'success');
   };
 
   const roles = [
@@ -160,6 +148,7 @@ const Team = () => {
   });
 
   const roleConfig = {
+    owner: { bg: 'bg-amber-50', text: 'text-amber-600', label: 'Owner' },
     admin: { bg: 'bg-violet-50', text: 'text-violet-600', label: 'Admin' },
     developer: { bg: 'bg-blue-50', text: 'text-blue-600', label: 'Developer' },
     analyst: { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'Analyst' },
@@ -284,7 +273,7 @@ const Team = () => {
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white text-sm font-semibold">
-                          {member.avatar}
+                          {member.avatar || member.initials}
                         </div>
                         <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${statusConfig[member.status]}`} />
                       </div>

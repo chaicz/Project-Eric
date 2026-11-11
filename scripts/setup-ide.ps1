@@ -20,7 +20,7 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference    = "SilentlyContinue"
 
 # ---- Configuration ----------------------------------------------------------
-$CodeServerVersion = "4.141.0"  # pin a known-good release
+$CodeServerVersion = "4.143.1"  # pin a known-good release
 $InstallDir        = "C:\tools\code-server"
 $WorkspaceDir      = "C:\Users\Public\project-eric-ide"
 $ConfigDir         = Join-Path $env:USERPROFILE ".config\code-server"
@@ -46,7 +46,7 @@ Write-OK "PowerShell ready"
 $zipPath = Join-Path $env:TEMP "code-server-$CodeServerVersion-windows-amd64.tar.gz"
 $url     = "https://github.com/coder/code-server/releases/download/v$CodeServerVersion/code-server-$CodeServerVersion-windows-amd64.tar.gz"
 
-if (Test-Path (Join-Path $InstallDir "bin\code-server.exe")) {
+if (Test-Path (Join-Path $InstallDir "bin\code-server.cmd")) {
     Write-OK "code-server already installed at $InstallDir"
 } else {
     Write-Step "Downloading code-server v$CodeServerVersion"
@@ -168,19 +168,21 @@ if (Test-Path (Join-Path $ericCollab "package.json")) {
     Write-Warn "extensions\eric-collab not found — skipping Eric Collab build"
 }
 
-# ---- Step 7: Pre-install CodeTogether / Live Share / Eclipse Java pack ------
+# ---- Step 7: Pre-install the collaboration + toolchain extensions ----------
 # Eric Collab is the recommended option (above). The extensions here are
 # fallbacks / alternatives for teams that already use them. They are pulled
 # from the Open VSX marketplace that code-server uses by default.
+#
+# Only the extensions this project actually uses are listed. Adding more
+# here is safe, but every extra gallery extension is another folder the
+# scanner has to validate - keep this list short and deliberate.
 $exts = @(
-    @{ id = "genuitecllc.codetogether";          label = "CodeTogether (real-time rooms)" },
-    @{ id = "ms-vsliveshare.vsliveshare";        label = "VS Live Share (Microsoft)" },
-    @{ id = "vscjava.vscode-java-pack";          label = "Extension Pack for Java (Eclipse-equivalent)" },
     @{ id = "redhat.java";                        label = "Language Support for Java (Red Hat)" },
     @{ id = "vscjava.vscode-java-debug";          label = "Debugger for Java" },
-    @{ id = "vscjava.vscode-maven";              label = "Maven for Java" },
-    @{ id = "vscjava.vscode-java-test";          label = "Java Test Runner" },
-    @{ id = "ms-python.python";                  label = "Python (ms-python)" }
+    @{ id = "vscjava.vscode-maven";               label = "Maven for Java" },
+    @{ id = "vscjava.vscode-java-test";           label = "Java Test Runner" },
+    @{ id = "vscjava.vscode-java-dependency";     label = "Project Manager for Java" },
+    @{ id = "ms-python.python";                   label = "Python (ms-python)" }
 )
 
 if (Test-Path $cs) {

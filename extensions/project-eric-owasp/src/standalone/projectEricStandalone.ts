@@ -97,14 +97,18 @@ export interface ScanOptions {
 export function scan(code: string, optionsOrLanguage?: ScanOptions | string): ScanResult {
   ensurePack();
   const opts = normaliseOptions(optionsOrLanguage);
-  const language = opts.language ?? inferLanguageForCode(code);
+  // The contract is "always returns a ScanResult — never throws", so a
+  // non-string input (null / undefined / number) is coerced rather than
+  // crashing inside the scanner's text.split() call.
+  const text = typeof code === 'string' ? code : code == null ? '' : String(code);
+  const language = opts.language ?? inferLanguageForCode(text);
   if (!language) {
-    return emptyResult('', code);
+    return emptyResult('', text);
   }
   return scanner.scanCode({
     uri: opts.pack ? 'inline://inline' : 'inline://inline',
     language,
-    text: code,
+    text,
     minSeverity: opts.minSeverity,
     skipCategories: opts.skipCategories,
     rules: opts.rules,
@@ -162,24 +166,57 @@ export function languages(): string[] {
  */
 export function inferLanguageForCode(text: string): string | null {
   ensurePack();
-  const byContent = packLoader.languageIdForContent(text);
+  const src = typeof text === 'string' ? text : text == null ? '' : String(text);
+  const byContent = packLoader.languageIdForContent(src);
   if (byContent) return byContent;
-  // crude language sniff — uses heuristics, not real parsing
-  if (/\bdef\s+\w+\s*\(|\bimport\s+\w+\b|:(\s|\n|$)/.test(text)) return 'python';
-  if (/\bfunction\s+\w+|\bconst\s+\w+\s*=|=>\s*\{|document\.|window\./.test(text)) {
-    return 'javascript';
+
+  // Weighted signal table. Scoring beats a fixed if/else chain here: a
+  // JavaScript file that happens to contain "SELECT ... FROM" must not be
+  // classified as SQL, and a TypeScript interface must not be read as a
+  // CSS rule. Each language accumulates evidence and the strongest match
+  // wins; ties break toward the earlier (more specific) entry.
+  const SIGNALS: Array<[string, RegExp, number]> = [
+    // --- definitive anchors ---
+    ['php', /<\?php\b/g, 6],
+    ['css', /@media\b|@import\b|@charset\b/g, 6],
+    ['html', /<!DOCTYPE\s+html|<html[\s>]|<div[\s>]|<body[\s>]/gi, 6],
+    ['go', /\bfunc\s+\w+\s*\(|\bpackage\s+main\b|\bfmt\.\w+\(/g, 6],
+    ['rust', /\bfn\s+\w+\s*\(|\blet\s+mut\b|\bimpl\s+\w+/g, 6],
+    ['cpp', /#include\s*[<"]|\bstd::/g, 6],
+    ['csharp', /\busing\s+System\b|\bnamespace\s+\w+|\bpublic\s+(?:static\s+)?(?:class|void|int|string)\b/g, 6],
+    ['java', /\bpublic\s+(?:static\s+)?(?:class|void|int|String)\b|\bSystem\.out\.|\bpackage\s+[\w.]+;/g, 6],
+    ['python', /\bdef\s+\w+\s*\(|\bclass\s+\w+\s*\(|\bimport\s+\w+\b|\bfrom\s+\w+\s+import\b|__\w+__/g, 6],
+    ['ruby', /\bputs\b|\brequire\s+['"]|\bdo\s*\||\bend\b\s*$/gm, 6],
+    ['typescript', /\binterface\s+\w+\s*\{|\btype\s+\w+\s*=|\benum\s+\w+\s*\{|:\s*(?:string|number|boolean|void|unknown|any)\b/g, 5],
+    ['sql', /\bSELECT\b[\s\S]*\bFROM\b|\bINSERT\s+INTO\b|\bUPDATE\b[\s\S]*\bSET\b|\bCREATE\s+TABLE\b/gi, 5],
+
+    // --- weaker signals ---
+    ['javascript', /\bfunction\s+\w+|\bconst\s+\w+\s*=|=>\s*\{|document\.|window\.|\brequire\s*\(/g, 3],
+    ['python', /:\s*(?:int|str|bool|float|bytes|list|dict|set|tuple|None)\b/g, 3],
+    ['css', /[.#]?[\w-]+\s*\{[^}]*[:;][^}]*\}/g, 2],
+  ];
+
+  const scores = new Map<string, number>();
+  for (const [lang, re, weight] of SIGNALS) {
+    re.lastIndex = 0;
+    const matches = src.match(re);
+    if (matches && matches.length > 0) {
+      // Cap the per-language contribution so one keyword repeated 50
+      // times cannot outvote a genuine second-language signal.
+      scores.set(lang, (scores.get(lang) ?? 0) + Math.min(matches.length, 5) * weight);
+    }
   }
-  if (/<\/?[a-z][^>]*>/i.test(text) && /\bclass\s+="/.test(text)) return 'html';
-  if (/^\s*(?:#[\w-]+\s*\{|[\w-]+\s*:\s*[^;}]+;)/m.test(text)) return 'css';
-  if (/\bSELECT\b.*\bFROM\b/is.test(text)) return 'sql';
-  if (/^\s*package\s+\w+;|class\s+\w+\s*\{/.test(text)) return 'java';
-  if (/^\s*<\?php/.test(text)) return 'php';
-  if (/^\s*func\s+\w+\(|^\s*package\s+main/.test(text)) return 'go';
-  if (/^\s*fn\s+\w+\s*\(/.test(text)) return 'rust';
-  if (/^\s*#.*$|require\s+['"]|class\s+\w+\s*</m.test(text)) return 'ruby';
-  if (/using\s+System;|namespace\s+\w+\s*\{/.test(text)) return 'csharp';
-  if (/#include\s*<|int\s+main\s*\(/.test(text)) return 'cpp';
-  return null;
+
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const [lang] of SIGNALS) {
+    const score = scores.get(lang) ?? 0;
+    if (score > bestScore) {
+      bestScore = score;
+      best = lang;
+    }
+  }
+  return best;
 }
 
 function inferMcpLanguage(text: string): string | null {

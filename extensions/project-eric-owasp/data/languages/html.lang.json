@@ -1,0 +1,157 @@
+{
+  "id": "html",
+  "label": "HTML",
+  "extensions": [
+    "html",
+    "htm"
+  ],
+  "flags": "g",
+  "rules": [
+    {
+      "id": "A03-HTML-001",
+      "name": "Injection — Inline script using unsafe sinks",
+      "summary": "3 patterns match injection in HTML.",
+      "description": "Avoid inline event handlers and javascript: URIs. Move all logic to CSP-compatible script files. Use textContent / setAttribute over innerHTML. Set a strict Content-Security-Policy.",
+      "severity": "critical",
+      "category": "A03",
+      "cwe": [
+        "CWE-20",
+        "CWE-74",
+        "CWE-75",
+        "CWE-77",
+        "CWE-78",
+        "CWE-79",
+        "CWE-80",
+        "CWE-83",
+        "CWE-87",
+        "CWE-88",
+        "CWE-89",
+        "CWE-91",
+        "CWE-94",
+        "CWE-95",
+        "CWE-96",
+        "CWE-97",
+        "CWE-98",
+        "CWE-113",
+        "CWE-116",
+        "CWE-138"
+      ],
+      "patterns": [
+        {
+          "description": "Inline script using unsafe sinks",
+          "regex": "<script[^>]*>[\\s\\S]{0,200}?(?:innerHTML|document\\.write|eval\\s*\\()",
+          "flags": "g"
+        },
+        {
+          "description": "Inline event handler sinks",
+          "regex": "\\son(?:click|load|error|mouseover)\\s*=\\s*['\"][^'\"]*?(?:location\\s*=|document\\.cookie)",
+          "flags": "g"
+        },
+        {
+          "description": "javascript: URI",
+          "regex": "javascript:[^'\"\\s>]*",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Injection",
+        "hint": "Avoid inline event handlers and javascript: URIs. Move all logic to CSP-compatible script files. Use textContent / setAttribute over innerHTML. Set a strict Content-Security-Policy.",
+        "docUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A03",
+          "url": "https://owasp.org/Top10/A03_2021-Injection/"
+        },
+        {
+          "label": "CWE-20",
+          "url": "https://cwe.mitre.org/data/definitions/20.html"
+        },
+        {
+          "label": "CWE-74",
+          "url": "https://cwe.mitre.org/data/definitions/74.html"
+        },
+        {
+          "label": "CWE-75",
+          "url": "https://cwe.mitre.org/data/definitions/75.html"
+        }
+      ]
+    },
+    {
+      "id": "A05-HTML-002",
+      "name": "Security Misconfiguration — X-Frame-Options meta (good practice)",
+      "summary": "4 patterns match security misconfiguration in HTML.",
+      "description": "Set CSP, X-Frame-Options, X-Content-Type-Options headers in HTTP responses (or via meta). Restrict CORS to explicit origins. A page with no Content-Security-Policy has no browser-side defence against injected script — send it as an HTTP header, which is stronger than a meta tag.",
+      "severity": "medium",
+      "category": "A05",
+      "cwe": [
+        "CWE-2",
+        "CWE-11",
+        "CWE-13",
+        "CWE-15",
+        "CWE-16",
+        "CWE-260",
+        "CWE-315",
+        "CWE-520",
+        "CWE-526",
+        "CWE-537",
+        "CWE-541",
+        "CWE-547",
+        "CWE-611",
+        "CWE-614",
+        "CWE-756",
+        "CWE-776",
+        "CWE-942",
+        "CWE-1004",
+        "CWE-1032"
+      ],
+      "patterns": [
+        {
+          "description": "X-Frame-Options meta (good practice)",
+          "regex": "<meta[^>]+http-equiv\\s*=\\s*['\"]X-Frame-Options['\"]",
+          "flags": "g"
+        },
+        {
+          "description": "CSP meta tag (good practice)",
+          "regex": "<meta[^>]+http-equiv\\s*=\\s*['\"]Content-Security-Policy['\"]",
+          "flags": "g"
+        },
+        {
+          "description": "No Content-Security-Policy",
+          "regex": "<html\\b(?![^]*Content-Security-Policy)",
+          "flags": "gi"
+        },
+        {
+          "description": "Wildcard ACAO",
+          "regex": "Access-Control-Allow-Origin['\":\\s]+['\"`]\\*['\"`]",
+          "flags": "g"
+        }
+      ],
+      "fix": {
+        "title": "Remediate Security Misconfiguration",
+        "hint": "Set CSP, X-Frame-Options, X-Content-Type-Options headers in HTTP responses (or via meta). Restrict CORS to explicit origins. A page with no Content-Security-Policy has no browser-side defence against injected script — send it as an HTTP header, which is stronger than a meta tag.",
+        "docUrl": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+      },
+      "safeToAutoFix": false,
+      "references": [
+        {
+          "label": "OWASP A05",
+          "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+        },
+        {
+          "label": "CWE-2",
+          "url": "https://cwe.mitre.org/data/definitions/2.html"
+        },
+        {
+          "label": "CWE-11",
+          "url": "https://cwe.mitre.org/data/definitions/11.html"
+        },
+        {
+          "label": "CWE-13",
+          "url": "https://cwe.mitre.org/data/definitions/13.html"
+        }
+      ]
+    }
+  ]
+}

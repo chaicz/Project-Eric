@@ -20,7 +20,7 @@
       "patterns": [
         { "regex": "hashlib\\.(?:md5|sha1)", "weight": 3, "label": "hashlib.md5 / hashlib.sha1" },
         { "regex": "\\b(?:md5|sha1)\\s*\\(", "weight": 3, "label": "Weak hash algorithm" },
-        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "weight": 4, "label": "Hardcoded credential literal" },
+        { "regex": "(?:api[_-]?key|secret|token|password|passwd|pwd)\\s*[:=]\\s*['\"]([^'\"]{8,})['\"]", "flags": "gi", "weight": 4, "label": "Hardcoded credential literal" },
         { "regex": "random\\.random\\(|random\\.randint\\(", "weight": 1, "label": "non-csprng random module" }
       ],
       "remediation": "Use bcrypt / argon2 (passlib.hash) for passwords, sha-256+ for general hashing. Use `secrets` module for tokens. Load secrets from env / vault."
@@ -30,15 +30,17 @@
         { "regex": "\\bexec\\s*\\(|\\bcompile\\s*\\(", "weight": 3, "label": "exec() / compile()" },
         { "regex": "\\b(?:os\\.system|subprocess\\.(?:run|call|check_output|Popen))\\s*\\([^)]*\\+", "weight": 4, "label": "OS command built with concatenation" },
         { "regex": "\\b(?:cursor|conn|c)\\.(?:execute|executemany)\\s*\\(\\s*['\"][^'\"]*\\{[^}]*?\\}", "weight": 4, "label": "DB execute with f-string SQL" },
-        { "regex": "\\.format\\(\\s*[^)]*\\)\\s*$", "weight": 3, "label": "String-format into SQL/command" }
+        { "regex": "\\.format\\(\\s*[^)]*\\)\\s*$", "weight": 3, "label": "String-format into SQL/command" },
+        { "regex": "subprocess\\.[A-Za-z_]+\\([^)]*shell\\s*=\\s*True", "weight": 4, "label": "subprocess with shell=True" }
       ],
       "remediation": "Use parameterised queries (`cursor.execute('SELECT … WHERE id = %s', (id,))`). Avoid `os.system` / `subprocess` with strings; pass argv lists. Use `ast.literal_eval` instead of `eval`."
     },
     "A04": {
       "patterns": [
-        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" }
+        { "regex": "\\b(TODO|FIXME|XXX|HACK)\\b[^\\n]{0,80}?(?:auth|password|security|crypto|secret)", "weight": 2, "label": "Security TODO/FIXME" },
+        { "regex": "^\\s*assert\\s+(?:isinstance|hasattr|getattr)\\(", "flags": "m", "weight": 2, "label": "assert used as a security check" }
       ],
-      "remediation": "Add rate-limits with Flask-Limiter / SlowAPI. Resolve security-related TODO/FIXME comments before shipping."
+      "remediation": "Add rate-limits with Flask-Limiter / SlowAPI. Resolve security-related TODO/FIXME comments before shipping. Never use `assert` to enforce a security invariant — `python -O` strips assertions entirely, so the check silently disappears in production."
     },
     "A05": {
       "patterns": [

@@ -162,6 +162,20 @@ function listRooms() {
       name,
       clients: e.conns.size,
       lastSave: e.lastSave || null,
+      // The awareness states the server currently holds for this room.
+      // A peer that is still connected but missing here has been dropped
+      // from presence — this is how you tell "disconnected" apart from
+      // "connected but never published".
+      awareness: Array.from(e.awareness.getStates().entries()).map(
+        ([clientId, state]) => ({
+          clientId,
+          userId: (state && state.user && state.user.userId) || null,
+          name: (state && state.user && state.user.name) || null,
+          permission: (state && state.permission) || null,
+          filePath: (state && state.filePath) || null,
+          fileUri: (state && state.fileUri) || null,
+        })
+      ),
       bytes: (() => {
         try { return fs.statSync(roomFile(name)).size; } catch { return 0; }
       })(),
@@ -257,7 +271,26 @@ wss.on('connection', (ws, req) => {
           ws.send(encoding.toUint8Array(encoder));
         }
       } else if (messageType === MESSAGE_AWARENESS) {
-        awarenessProtocol.applyAwarenessUpdate(entry.awareness, decoding.readVarUint8Array(decoder), ws);
+        const payload = decoding.readVarUint8Array(decoder);
+        if (process.env.YJS_TRACE_AWARENESS) {
+          // Decode just enough of the awareness frame to log which
+          // clientIDs are being published and with what clock.
+          try {
+            const d2 = decoding.createDecoder(payload);
+            const n = decoding.readVarUint(d2);
+            const ids = [];
+            for (let i = 0; i < n; i++) {
+              const cid = decoding.readVarUint(d2);
+              const clk = decoding.readVarUint(d2);
+              const st = JSON.parse(decoding.readVarString(d2));
+              ids.push(`${cid}@clk${clk}${st === null ? '(null)' : `(${st.user && st.user.userId || 'anon'})`}`);
+            }
+            console.log(`[yjs][aw] ${room} <- ${ids.join(' ')}`);
+          } catch (e) {
+            console.log(`[yjs][aw] ${room} <- <undecodable>`);
+          }
+        }
+        awarenessProtocol.applyAwarenessUpdate(entry.awareness, payload, ws);
       }
     } catch (e) {
       if (process.env.YJS_DEBUG) console.error(`[yjs] bad frame in ${room}: ${e.message}`);

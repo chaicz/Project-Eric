@@ -29,7 +29,11 @@ const TUNNEL_ENDPOINT = '/api/collab/tunnel';
 const SESSION_ENDPOINT = '/api/collab/session';
 
 /** Default room code format: 4 + 4 characters from a no-ambiguity set. */
-const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L
+// The alphabet is shared with the Eric Collab extension
+// (extensions/eric-collab/src/roomManager.ts), so the two must agree on
+// the set of characters a room code may contain. It leaves out 0, O, 1
+// and I so the codes can be read out loud without ambiguity.
+const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 /**
  * Generate a room code in the same shape the VS Code extension uses

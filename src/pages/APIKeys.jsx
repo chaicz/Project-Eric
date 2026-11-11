@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bot,
   Key,
@@ -52,6 +52,7 @@ import {
   hasAIKey,
   detectProvider,
 } from '../services/aiService';
+import { dashboardAPI } from '../services/api';
 
 const AIApiKeys = () => {
   const { showToast } = useToast();
@@ -61,56 +62,40 @@ const AIApiKeys = () => {
   const [visibleKeys, setVisibleKeys] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedFeature, setExpandedFeature] = useState(null);
-  const [apiKeys, setApiKeys] = useState([
-    { 
-      id: 1, 
-      name: 'SecureAI Primary',
-      key: 'ai_sk_4f8d9e2a1b3c5d6e7f8g9h0i1j2k3l4m',
-      prefix: 'ai_sk_',
-      createdAt: '2024-01-10',
-      lastUsed: '2024-01-17 14:32',
-      status: 'active',
-      usageToday: 245,
-      quota: 1000
-    },
-    { 
-      id: 2, 
-      name: 'Sandbox Execution',
-      key: 'ai_sb_9h8g7f6e5d4c3b2a1z0y9x8w7v6u5t4s',
-      prefix: 'ai_sb_',
-      createdAt: '2024-01-12',
-      lastUsed: '2024-01-17 10:15',
-      status: 'active',
-      usageToday: 89,
-      quota: 500
-    },
-    { 
-      id: 3, 
-      name: 'OWASP Scanner',
-      key: 'ai_ow_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p',
-      prefix: 'ai_ow_',
-      createdAt: '2024-01-15',
-      lastUsed: '2024-01-16 22:45',
-      status: 'active',
-      usageToday: 34,
-      quota: 200
-    },
-    { 
-      id: 4, 
-      name: 'Development Test',
-      key: 'ai_dt_q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6j',
-      prefix: 'ai_dt_',
-      createdAt: '2024-01-16',
-      lastUsed: 'Never',
-      status: 'inactive',
-      usageToday: 0,
-      quota: 100
-    },
-  ]);
+  // The account's own keys.
+  //
+  // This list used to be a fixed set of demo keys, so every account saw a
+  // "SecureAI Primary" key with a real-looking secret in it. The API owns
+  // the list now.
+  const [apiKeys, setApiKeys] = useState([]);
+  const [usageStats, setUsageStats] = useState(null);
+
+  const loadKeys = useCallback(async () => {
+    try {
+      const data = await dashboardAPI.getApiKeys();
+      setApiKeys(
+        (Array.isArray(data?.apiKeys) ? data.apiKeys : []).map((k) => ({
+          ...k,
+          // Keys that already existed come back masked — their secret
+          // is not retrievable any more.
+          isSecretVisible: false,
+        }))
+      );
+    } catch {
+      setApiKeys([]);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    loadKeys();
+    // The statistics on the overview tab are counted from this account's
+    // own projects, scans and findings.
+    dashboardAPI
+      .getProfile()
+      .then((data) => setUsageStats(data?.stats || null))
+      .catch(() => setUsageStats(null));
+  }, [loadKeys]);
 
   // --- AI provider config (persisted to localStorage) ----------------------
   const [aiConfig, setAiConfig] = useState(() => getAIConfig());
@@ -180,39 +165,44 @@ const AIApiKeys = () => {
     }
   };
 
-  // Generate random API key
-  const generateApiKey = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let key = 'ai_sk_';
-    for (let i = 0; i < 32; i++) {
-      key += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return key;
-  };
-
   // Handle add new key
-  const handleAddKey = () => {
-    const newKey = {
-      id: Date.now(),
-      name: 'New API Key',
-      key: generateApiKey(),
-      prefix: 'ai_sk_',
-      createdAt: new Date().toISOString().split('T')[0],
-      lastUsed: 'Never',
-      status: 'active',
-      usageToday: 0,
-      quota: 500
-    };
-    setApiKeys(prev => [newKey, ...prev]);
-    showToast('New API key generated!');
+  const handleAddKey = async () => {
+    const name = window.prompt('Name for the new API key:', 'New API Key');
+    if (!name || !name.trim()) return;
+    try {
+      const created = await dashboardAPI.createApiKey(name.trim());
+      setApiKeys((prev) => [
+        {
+          id: created.id,
+          name: created.name,
+          key: created.key,
+          prefix: created.prefix,
+          createdAt: created.createdAt,
+          lastUsed: null,
+          status: created.status,
+          usageToday: 0,
+          quota: 500,
+          // The secret is only handed out once, at creation time. Older
+          // keys come back masked, so the copy button is disabled for
+          // them instead of copying a value that cannot be used.
+          isSecretVisible: true,
+        },
+        ...prev,
+      ]);
+      showToast('New API key generated — copy it now, it is not shown again.');
+    } catch (err) {
+      showToast(err?.message || 'Could not create the API key', 'error');
+    }
   };
 
   // Handle delete key
-  const handleDeleteKey = (keyId) => {
-    if (window.confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
-      setApiKeys(prev => prev.filter(k => k.id !== keyId));
-      showToast('API key deleted', 'info');
+  const handleDeleteKey = async (keyId) => {
+    if (!window.confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+      return;
     }
+    setApiKeys((prev) => prev.filter((k) => k.id !== keyId));
+    dashboardAPI.deleteApiKey(keyId).catch(() => loadKeys());
+    showToast('API key deleted', 'info');
   };
 
   // Handle configure key
@@ -254,16 +244,25 @@ const AIApiKeys = () => {
   };
 
   // OWASP Configuration
+  // The scan figures come from this account's own history, not from a
+  // fixed demo set.
   const owaspConfig = {
     owaspTop10: true,
     customRules: true,
     autoScan: true,
     severityThreshold: 'medium',
-    lastScan: '2024-01-17 14:30',
-    totalScans: 127
+    lastScan: usageStats?.lastScanAt || 'Never',
+    totalScans: usageStats?.scans ?? 0,
+    criticalFound: usageStats?.criticalFindings ?? 0,
+    resolved: usageStats?.findingsFixed ?? 0
   };
 
   // IDE Feature Status
+  //
+  // The numbers on these cards used to be fixed demo values (1,247 sandbox
+  // executions, 3,456 AI suggestions). They are now counted from this
+  // account's own scans and findings, so a new account reads zero and the
+  // demo account reads its own history.
   const featureStatus = [
     {
       id: 'debug-sandbox',
@@ -271,7 +270,13 @@ const AIApiKeys = () => {
       icon: Bug,
       description: 'Execute code in an isolated sandbox environment with full debugging capabilities',
       status: 'operational',
-      stats: { executions: 1247, avgTime: '245ms', successRate: 99.2 },
+      stats: {
+        // The sandbox runs in the browser, so there is no server-side
+        // usage to report. The card shows the real limits it runs under.
+        execution: 'Local',
+        timeout: `${sandboxConfig.maxExecutionTime / 1000}s`,
+        memory: `${sandboxConfig.maxMemory}MB`,
+      },
       capabilities: [
         { name: 'Breakpoint Debugging', enabled: true },
         { name: 'Step-through Execution', enabled: true },
@@ -293,38 +298,50 @@ const AIApiKeys = () => {
       icon: Shield,
       description: 'Automated security vulnerability detection following OWASP Top 10 guidelines',
       status: 'operational',
-      stats: { scans: 127, vulnerabilities: 23, criticalFixed: 18 },
+      stats: {
+        scans: usageStats?.scans ?? 0,
+        vulnerabilities: usageStats?.findings ?? 0,
+        criticalFixed: usageStats?.findingsFixed ?? 0,
+      },
       capabilities: [
         { name: 'OWASP Top 10 Scanning', enabled: true },
         { name: 'SQL Injection Detection', enabled: true },
-        { name: 'XSS Vulnerability Check', enabled: true },
-        { name: 'Authentication Analysis', enabled: true },
-        { name: 'Cryptography Review', enabled: true },
-        { name: 'Dependency Scanning', enabled: true },
+        { name: 'XSS Prevention Check', enabled: true },
+        { name: 'CSRF Token Validation', enabled: true },
+        { name: 'Weak Cryptography Flag', enabled: true },
+        { name: 'Insecure Dependencies', enabled: true },
       ],
-      standards: [
-        'OWASP Top 10 (2026)',
-        'CWE Top 25',
-        'SANS Top 25',
-        'PCI-DSS Compliance'
-      ]
+      security: [
+        'All analysis runs in your browser',
+        'Source code never leaves the device',
+        'Only finding metadata is stored',
+        'Findings are scoped to your account',
+      ],
+      standards: ['OWASP Top 10 (2026)', 'CWE', 'CVSS v3.1']
     },
     {
       id: 'ai-assistant',
       name: 'AI Code Assistant',
       icon: Bot,
       description: 'Intelligent code completion, refactoring suggestions, and security guidance',
-      status: 'operational',
-      stats: { suggestions: 3456, acceptRate: 78.5, avgResponseTime: '890ms' },
+      status: hasAIKey() ? 'operational' : 'setup_required',
+      stats: {
+        suggestions: hasAIKey() ? 'Ready' : 'No key',
+        acceptRate: aiConfig.provider ? aiConfig.provider : 'Not set',
+        avgResponseTime: aiConfig.model ? aiConfig.model : 'Choose a model',
+      },
       capabilities: [
-        { name: 'Real-time Code Completion', enabled: true },
-        { name: 'Security Recommendations', enabled: true },
-        { name: 'Code Refactoring', enabled: true },
-        { name: 'Documentation Generation', enabled: true },
-        { name: 'Bug Explanation', enabled: true },
-        { name: 'Performance Hints', enabled: true },
+        { name: 'Code Completion', enabled: true },
+        { name: 'Security Explanations', enabled: true },
+        { name: 'Refactoring Suggestions', enabled: true },
+        { name: 'Vulnerability Fixes', enabled: true },
+      ],
+      security: [
+        'Your key is stored for your account only',
+        'Keys never travel to another browser profile',
+        'Requests go straight to the provider you chose',
       ]
-    }
+    },
   ];
 
   const filteredKeys = apiKeys.filter(key => 
@@ -336,16 +353,22 @@ const AIApiKeys = () => {
   const totalQuota = apiKeys.reduce((sum, k) => sum + (k.quota || 0), 0);
 
   const copyToClipboard = (text, id) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => {
+      showToast('Could not copy the key to the clipboard', 'error');
+    });
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const toggleKeyVisibility = (id) => {
-    setVisibleKeys(prev => ({ ...prev, [id]: !prev[id] }));
+    setVisibleKeys((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // The API masks the secret of every key it did not just hand out, so
+  // showing or copying it is only possible for a newly created key.
   const maskKey = (key) => {
+    if (!key) return '';
+    if (key.length <= 20) return key;
     return key.slice(0, 10) + '•'.repeat(key.length - 20) + key.slice(-10);
   };
 
@@ -353,6 +376,7 @@ const AIApiKeys = () => {
     switch (status) {
       case 'operational': return 'bg-emerald-50 text-emerald-600';
       case 'warning': return 'bg-amber-50 text-amber-600';
+      case 'setup_required': return 'bg-amber-50 text-amber-600';
       case 'error': return 'bg-red-50 text-red-600';
       default: return 'bg-slate-50 text-slate-600';
     }
@@ -362,6 +386,7 @@ const AIApiKeys = () => {
     switch (status) {
       case 'operational': return <CheckCircle2 className="w-3.5 h-3.5" />;
       case 'warning': return <AlertTriangle className="w-3.5 h-3.5" />;
+      case 'setup_required': return <AlertTriangle className="w-3.5 h-3.5" />;
       case 'error': return <XCircle className="w-3.5 h-3.5" />;
       default: return <Activity className="w-3.5 h-3.5" />;
     }
@@ -479,16 +504,16 @@ const AIApiKeys = () => {
                   {feature.id === 'debug-sandbox' && (
                     <>
                       <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.executions.toLocaleString()}</div>
-                        <div className="text-xs text-slate-500">Executions</div>
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.execution}</div>
+                        <div className="text-xs text-slate-500">Execution</div>
                       </div>
                       <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.avgTime}</div>
-                        <div className="text-xs text-slate-500">Avg Time</div>
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.timeout}</div>
+                        <div className="text-xs text-slate-500">Timeout</div>
                       </div>
                       <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-emerald-600">{feature.stats.successRate}%</div>
-                        <div className="text-xs text-slate-500">Success</div>
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.memory}</div>
+                        <div className="text-xs text-slate-500">Memory</div>
                       </div>
                     </>
                   )}
@@ -511,16 +536,16 @@ const AIApiKeys = () => {
                   {feature.id === 'ai-assistant' && (
                     <>
                       <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.suggestions.toLocaleString()}</div>
-                        <div className="text-xs text-slate-500">Suggestions</div>
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.suggestions}</div>
+                        <div className="text-xs text-slate-500">Status</div>
                       </div>
                       <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="text-lg font-bold text-violet-600">{feature.stats.acceptRate}%</div>
-                        <div className="text-xs text-slate-500">Accept Rate</div>
+                        <div className="text-lg font-bold text-violet-600 capitalize">{feature.stats.acceptRate}</div>
+                        <div className="text-xs text-slate-500">Provider</div>
                       </div>
                       <div className="text-center p-2 bg-slate-50 rounded-lg">
                         <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{feature.stats.avgResponseTime}</div>
-                        <div className="text-xs text-slate-500">Response</div>
+                        <div className="text-xs text-slate-500">Model</div>
                       </div>
                     </>
                   )}
@@ -717,13 +742,27 @@ const AIApiKeys = () => {
                       </code>
                       <button
                         onClick={() => toggleKeyVisibility(apiKey.id)}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        disabled={!apiKey.isSecretVisible}
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={
+                          apiKey.isSecretVisible
+                            ? visibleKeys[apiKey.id] ? 'Hide' : 'Show'
+                            : 'This key is masked. Delete it and create a new one to get the secret.'
+                        }
+                        aria-label={visibleKeys[apiKey.id] ? 'Hide key' : 'Show key'}
                       >
                         {visibleKeys[apiKey.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={() => copyToClipboard(apiKey.key, apiKey.id)}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        disabled={!apiKey.isSecretVisible}
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={
+                          apiKey.isSecretVisible
+                            ? 'Copy key'
+                            : 'This key is masked. Delete it and create a new one to get the secret.'
+                        }
+                        aria-label="Copy key"
                       >
                         {copiedId === apiKey.id ? (
                           <Check className="w-4 h-4 text-emerald-500" />
@@ -955,11 +994,11 @@ const AIApiKeys = () => {
                 <div className="text-sm text-slate-500 mt-1">Total Scans</div>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl text-center">
-                <div className="text-3xl font-bold text-red-600">12</div>
+                <div className="text-3xl font-bold text-red-600">{owaspConfig.criticalFound}</div>
                 <div className="text-sm text-slate-500 mt-1">Critical Found</div>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl text-center">
-                <div className="text-3xl font-bold text-emerald-600">{owaspConfig.totalScans - 12}</div>
+                <div className="text-3xl font-bold text-emerald-600">{owaspConfig.resolved}</div>
                 <div className="text-sm text-slate-500 mt-1">Fixed/Resolved</div>
               </div>
               <div className="p-4 bg-slate-50 rounded-xl text-center">
@@ -1020,9 +1059,13 @@ const AIApiKeys = () => {
                       <div className="text-sm text-slate-500">Minimum severity to report</div>
                     </div>
                   </div>
-                  <select className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200">
+                  <select
+                    value="medium"
+                    onChange={() => {}}
+                    className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200"
+                  >
                     <option value="low">Low & Above</option>
-                    <option value="medium" selected>Medium & Above</option>
+                    <option value="medium">Medium & Above</option>
                     <option value="high">High & Above</option>
                     <option value="critical">Critical Only</option>
                   </select>

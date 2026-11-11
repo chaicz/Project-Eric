@@ -1,0 +1,475 @@
+{
+  "capturedAt": "2026-11-04T15:08:27.018Z",
+  "shots": [
+    {
+      "index": 1,
+      "file": "01-public-landing.png",
+      "label": "public-landing",
+      "title": "Landing page",
+      "section": "Public",
+      "note": "The marketing entry point, shown to a visitor who is not signed in.",
+      "url": "/landing"
+    },
+    {
+      "index": 2,
+      "file": "02-public-login.png",
+      "label": "public-login",
+      "title": "Sign in",
+      "section": "Public",
+      "note": "The login form a new user comes back to after signing up.",
+      "url": "/login"
+    },
+    {
+      "index": 3,
+      "file": "03-public-signup.png",
+      "label": "public-signup",
+      "title": "Create your account",
+      "section": "Public",
+      "note": "The signup form with a valid password: the strength meter and the four password rules all pass.",
+      "url": "/signup"
+    },
+    {
+      "index": 4,
+      "file": "04-public-forgot-password.png",
+      "label": "public-forgot-password",
+      "title": "Forgot password",
+      "section": "Public",
+      "note": "The password recovery request form.",
+      "url": "/forgot-password"
+    },
+    {
+      "index": 5,
+      "file": "05-public-terms.png",
+      "label": "public-terms",
+      "title": "Terms of Service",
+      "section": "Public",
+      "note": "The terms page linked from the signup form.",
+      "url": "/terms-of-service"
+    },
+    {
+      "index": 6,
+      "file": "06-public-privacy.png",
+      "label": "public-privacy",
+      "title": "Privacy Policy",
+      "section": "Public",
+      "note": "The privacy page linked from the signup form.",
+      "url": "/privacy-policy"
+    },
+    {
+      "index": 7,
+      "file": "07-app-dashboard.png",
+      "label": "app-dashboard",
+      "title": "Dashboard",
+      "section": "Dashboard",
+      "note": "The landing page of the signed-in app: security score, recent scans and the quick actions.",
+      "url": "/dashboard"
+    },
+    {
+      "index": 8,
+      "file": "08-owasp-scanner-idle.png",
+      "label": "owasp-scanner-idle",
+      "title": "OWASP scanner — ready",
+      "section": "OWASP Scanner",
+      "note": "The scanner before anything is submitted: mode picker, editor and the language selector.",
+      "url": "/owasp"
+    },
+    {
+      "index": 9,
+      "file": "09-owasp-scanner-uploaded.png",
+      "label": "owasp-scanner-uploaded",
+      "title": "OWASP scanner — file loaded",
+      "section": "OWASP Scanner",
+      "note": "The vulnerable PHP file uploaded. The language was detected automatically and the line/character counters updated.",
+      "url": "/owasp"
+    },
+    {
+      "index": 10,
+      "file": "10-owasp-scanner-results.png",
+      "label": "owasp-scanner-results",
+      "title": "OWASP scan results",
+      "section": "OWASP Scanner",
+      "note": "The finished scan: the security score, the per-category cards and the \"Send to\" hand-off bar.",
+      "url": "/owasp"
+    },
+    {
+      "index": 11,
+      "file": "11-owasp-finding-detail.png",
+      "label": "owasp-finding-detail",
+      "title": "A single finding, opened",
+      "section": "OWASP Scanner",
+      "note": "One category expanded: the description, the CWE, the highlighted source line and the remediation steps.",
+      "url": "/owasp"
+    },
+    {
+      "index": 12,
+      "file": "12-owasp-report-dialog.png",
+      "label": "owasp-report-dialog",
+      "title": "PDF report ready",
+      "section": "OWASP Scanner",
+      "note": "The popup shown once the report is built: the score, the issue count, the page count and the 24-hour deletion notice.",
+      "url": "/owasp"
+    },
+    {
+      "index": 13,
+      "file": "13-owasp-report-stored.png",
+      "label": "owasp-report-stored",
+      "title": "Report stored for 24 hours",
+      "section": "OWASP Scanner",
+      "note": "The stored copy: an unguessable download link and the countdown until the server deletes it.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf",
+      "file": "owasp-top10-2026-security-report.pdf",
+      "label": "owasp-top10-2026-security-report",
+      "title": "OWASP Top 10 (2026) Security Report (PDF)",
+      "section": "OWASP Scanner",
+      "note": "The PDF the OWASP scanner generated for the uploaded vulnerable file (50 KB, 6 pages). It sits in this same folder as the screenshots, and each page is rendered next to it as pdf-page-NN.png.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf-1",
+      "file": "pdf-page-01.png",
+      "label": "owasp-pdf-page-1",
+      "title": "OWASP report PDF — page 1",
+      "section": "OWASP Scanner",
+      "note": "A rendered page of the PDF report the scanner produced.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf-2",
+      "file": "pdf-page-02.png",
+      "label": "owasp-pdf-page-2",
+      "title": "OWASP report PDF — page 2",
+      "section": "OWASP Scanner",
+      "note": "A rendered page of the PDF report the scanner produced.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf-3",
+      "file": "pdf-page-03.png",
+      "label": "owasp-pdf-page-3",
+      "title": "OWASP report PDF — page 3",
+      "section": "OWASP Scanner",
+      "note": "A rendered page of the PDF report the scanner produced.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf-4",
+      "file": "pdf-page-04.png",
+      "label": "owasp-pdf-page-4",
+      "title": "OWASP report PDF — page 4",
+      "section": "OWASP Scanner",
+      "note": "A rendered page of the PDF report the scanner produced.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf-5",
+      "file": "pdf-page-05.png",
+      "label": "owasp-pdf-page-5",
+      "title": "OWASP report PDF — page 5",
+      "section": "OWASP Scanner",
+      "note": "A rendered page of the PDF report the scanner produced.",
+      "url": "/owasp"
+    },
+    {
+      "index": "pdf-6",
+      "file": "pdf-page-06.png",
+      "label": "owasp-pdf-page-6",
+      "title": "OWASP report PDF — page 6",
+      "section": "OWASP Scanner",
+      "note": "A rendered page of the PDF report the scanner produced.",
+      "url": "/owasp"
+    },
+    {
+      "index": 14,
+      "file": "14-app-analysis.png",
+      "label": "app-analysis",
+      "title": "Security analysis",
+      "section": "Analysis",
+      "note": "The findings from the scan, broken down by severity.",
+      "url": "/analysis"
+    },
+    {
+      "index": 15,
+      "file": "15-app-threats.png",
+      "label": "app-threats",
+      "title": "Threat intelligence",
+      "section": "Threats",
+      "note": "The same findings framed as threats, with the categories that passed.",
+      "url": "/threats"
+    },
+    {
+      "index": 16,
+      "file": "16-app-reports.png",
+      "label": "app-reports",
+      "title": "Reports",
+      "section": "Reports",
+      "note": "The report history. The scan made a moment ago is listed here with its score and its export options.",
+      "url": "/reports"
+    },
+    {
+      "index": 17,
+      "file": "17-app-team.png",
+      "label": "app-team",
+      "title": "Team",
+      "section": "Team",
+      "note": "The team page for a brand-new account: no members yet, and the invite button.",
+      "url": "/team"
+    },
+    {
+      "index": 18,
+      "file": "18-app-team-invite-modal.png",
+      "label": "app-team-invite-modal",
+      "title": "Invite a team member",
+      "section": "Team",
+      "note": "The invite dialog: the email address and the role that is assigned.",
+      "url": "/team"
+    },
+    {
+      "index": 19,
+      "file": "19-app-about-team.png",
+      "label": "app-about-team",
+      "title": "About the team",
+      "section": "About",
+      "note": "The developers behind Project Eric.",
+      "url": "/about-team"
+    },
+    {
+      "index": 20,
+      "file": "20-app-api-keys-overview.png",
+      "label": "app-api-keys-overview",
+      "title": "API keys — feature overview",
+      "section": "API Keys",
+      "note": "What each part of the key system is for and whether it is configured.",
+      "url": "/api-keys"
+    },
+    {
+      "index": 21,
+      "file": "21-app-api-keys-keys.png",
+      "label": "app-api-keys-keys",
+      "title": "API keys — the keys",
+      "section": "API Keys",
+      "note": "The the keys tab of the API keys page.",
+      "url": "/api-keys"
+    },
+    {
+      "index": 22,
+      "file": "22-app-api-keys-sandbox.png",
+      "label": "app-api-keys-sandbox",
+      "title": "API keys — sandbox configuration",
+      "section": "API Keys",
+      "note": "The sandbox configuration tab of the API keys page.",
+      "url": "/api-keys"
+    },
+    {
+      "index": 23,
+      "file": "23-app-api-keys-owasp.png",
+      "label": "app-api-keys-owasp",
+      "title": "API keys — OWASP scanner settings",
+      "section": "API Keys",
+      "note": "The OWASP scanner settings tab of the API keys page.",
+      "url": "/api-keys"
+    },
+    {
+      "index": 24,
+      "file": "24-app-api-keys-provider.png",
+      "label": "app-api-keys-provider",
+      "title": "API keys — AI provider",
+      "section": "API Keys",
+      "note": "The AI provider tab of the API keys page.",
+      "url": "/api-keys"
+    },
+    {
+      "index": 25,
+      "file": "25-app-audit-logs.png",
+      "label": "app-audit-logs",
+      "title": "Audit logs",
+      "section": "Audit Logs",
+      "note": "The activity trail for the account. Every action the new user took is listed here.",
+      "url": "/audit-logs"
+    },
+    {
+      "index": 26,
+      "file": "26-app-integrations.png",
+      "label": "app-integrations",
+      "title": "Integrations",
+      "section": "Integrations",
+      "note": "The connected services and the button that links each one.",
+      "url": "/integrations"
+    },
+    {
+      "index": 27,
+      "file": "27-app-notifications.png",
+      "label": "app-notifications",
+      "title": "Notifications",
+      "section": "Notifications",
+      "note": "The notification centre for the account.",
+      "url": "/notifications"
+    },
+    {
+      "index": 28,
+      "file": "28-app-notification-preferences.png",
+      "label": "app-notification-preferences",
+      "title": "Notification preferences",
+      "section": "Notifications",
+      "note": "The preferences modal: which alerts the account wants, and how they are delivered.",
+      "url": "/notifications"
+    },
+    {
+      "index": 29,
+      "file": "29-app-settings-profile.png",
+      "label": "app-settings-profile",
+      "title": "Settings — profile",
+      "section": "Settings",
+      "note": "The profile tab: the account details and the avatar.",
+      "url": "/settings"
+    },
+    {
+      "index": 30,
+      "file": "30-app-settings-security.png",
+      "label": "app-settings-security",
+      "title": "Settings — security",
+      "section": "Settings",
+      "note": "Password, the two-factor card and the API key list.",
+      "url": "/settings?tab=security"
+    },
+    {
+      "index": 31,
+      "file": "31-app-settings-notifications.png",
+      "label": "app-settings-notifications",
+      "title": "Settings — notifications",
+      "section": "Settings",
+      "note": "The per-account alert switches.",
+      "url": "/settings?tab=notifications"
+    },
+    {
+      "index": 32,
+      "file": "32-app-settings-appearance.png",
+      "label": "app-settings-appearance",
+      "title": "Settings — appearance",
+      "section": "Settings",
+      "note": "The theme buttons and the accent colour swatches.",
+      "url": "/settings?tab=appearance"
+    },
+    {
+      "index": 33,
+      "file": "33-app-settings-integrations.png",
+      "label": "app-settings-integrations",
+      "title": "Settings — integrations",
+      "section": "Settings",
+      "note": "The same connected services, with the connect and disconnect buttons.",
+      "url": "/settings?tab=integrations"
+    },
+    {
+      "index": 34,
+      "file": "34-app-settings-billing.png",
+      "label": "app-settings-billing",
+      "title": "Settings — billing",
+      "section": "Settings",
+      "note": "The plan, the usage counters and the payment method.",
+      "url": "/settings?tab=billing"
+    },
+    {
+      "index": 35,
+      "file": "35-app-settings-help.png",
+      "label": "app-settings-help",
+      "title": "Settings — help and tour",
+      "section": "Settings",
+      "note": "The tour restart and the page-tip reset.",
+      "url": "/settings?tab=help"
+    },
+    {
+      "index": 36,
+      "file": "36-app-dark-mode.png",
+      "label": "app-dark-mode",
+      "title": "Dark theme",
+      "section": "Settings",
+      "note": "The same interface in the dark theme, picked on the appearance tab.",
+      "url": "/settings?tab=appearance"
+    },
+    {
+      "index": 37,
+      "file": "37-app-profile.png",
+      "label": "app-profile",
+      "title": "Profile",
+      "section": "Profile",
+      "note": "The profile page: the achievements, the skills and the project activity.",
+      "url": "/profile"
+    },
+    {
+      "index": 38,
+      "file": "38-app-search-menu.png",
+      "label": "app-search-menu",
+      "title": "Search menu",
+      "section": "Navigation",
+      "note": "The quick-jump menu in the header.",
+      "url": "/dashboard"
+    },
+    {
+      "index": 39,
+      "file": "39-app-help-menu.png",
+      "label": "app-help-menu",
+      "title": "Help menu",
+      "section": "Navigation",
+      "note": "The help and support menu.",
+      "url": "/dashboard"
+    },
+    {
+      "index": 40,
+      "file": "40-app-profile-menu.png",
+      "label": "app-profile-menu",
+      "title": "Account menu",
+      "section": "Navigation",
+      "note": "The account menu in the top right corner.",
+      "url": "/dashboard"
+    },
+    {
+      "index": 41,
+      "file": "41-app-sandbox.png",
+      "label": "app-sandbox",
+      "title": "Sandbox",
+      "section": "Sandbox",
+      "note": "The in-browser IDE: the file tree, the editor and the output pane.",
+      "url": "/sandbox"
+    },
+    {
+      "index": 42,
+      "file": "42-app-owasp-analysis.png",
+      "label": "app-owasp-analysis",
+      "title": "OWASP analysis workbench",
+      "section": "IDE",
+      "note": "The OWASP analysis page with the code-server workbench embedded alongside it.",
+      "url": "/owasp-analysis"
+    },
+    {
+      "index": 43,
+      "file": "43-app-ide.png",
+      "label": "app-ide",
+      "title": "Live IDE",
+      "section": "IDE",
+      "note": "The Live IDE page: the status of Vite and code-server, and the button that opens the workbench.",
+      "url": "/ide"
+    },
+    {
+      "index": 44,
+      "file": "44-app-collab.png",
+      "label": "app-collab",
+      "title": "Live collaboration",
+      "section": "Collaboration",
+      "note": "The collaboration page: the session state, the public link and the guest instructions.",
+      "url": "/collab"
+    },
+    {
+      "index": 45,
+      "file": "45-public-viewer.png",
+      "label": "public-viewer",
+      "title": "Collab viewer",
+      "section": "Public",
+      "note": "The public viewer a guest opens through a share link.",
+      "url": "/viewer"
+    }
+  ],
+  "problems": [],
+  "consoleErrors": []
+}

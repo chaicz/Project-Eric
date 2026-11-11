@@ -6,9 +6,9 @@
  * Header: Authorization: Bearer <token>
  */
 
-require_once __DIR__ . '/../includes/Database.php';
-require_once __DIR__ . '/../includes/JWTAuth.php';
-require_once __DIR__ . '/../includes/ResponseHelper.php';
+require_once __DIR__ . '/../../includes/Database.php';
+require_once __DIR__ . '/../../includes/JWTAuth.php';
+require_once __DIR__ . '/../../includes/ResponseHelper.php';
 
 header('Content-Type: application/json');
 

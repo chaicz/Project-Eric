@@ -64,18 +64,6 @@ const AboutTeam = () => {
       linkedin: '#'
     },
     {
-      id: 'nuur',
-      name: 'Nuur Ashya Lara Binti Araman',
-      studentId: '102789246',
-      role: 'Security / Semgrep Developer / Testing & Evaluation',
-      bio: 'Owns testing and evaluation for the security stack, making sure every Semgrep rule and detection is accurate, reliable, and useful on real-world code.',
-      avatar: 'NA',
-      photo: photo('Nuur Ashya LaraBinti Araman.png'),
-      skills: ['Semgrep', 'Testing', 'Evaluation', 'OWASP'],
-      github: '#',
-      linkedin: '#'
-    },
-    {
       id: 'cheng',
       name: 'Cheng Zu Chai',
       studentId: '106765596',
