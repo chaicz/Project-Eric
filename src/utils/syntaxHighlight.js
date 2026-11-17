@@ -142,16 +142,22 @@ const getCombined = (lang) => {
 };
 
 // Map our editor's `language` state onto a highlighter key.
+// Accepts either the already-mapped key or the raw editor state so the
+// OWASP page can pass (language, mode, dialect) straight through
+// without double-mapping.
 export const highlightLanguage = (language, mode, dialect) => {
+  if (language === 'sql' || language === 'generic') return language;
   if (mode === 'sql') return 'sql';
   if (language === 'other') return 'generic';
   return language || 'generic';
 };
 
 // Render `code` for `language` to an HTML string with span wrappers.
-export const highlight = (code, language) => {
+// The caller may pass the already-mapped key or the raw editor state:
+// `highlight(code, language, mode, dialect)` maps exactly once.
+export const highlight = (code, language, mode, dialect) => {
   if (!code) return '';
-  const { re, types } = getCombined(highlightLanguage(language));
+  const { re, types } = getCombined(highlightLanguage(language, mode, dialect));
   // Force the global flag
   const rx = re.flags.includes('g') ? re : new RegExp(re.source, re.flags + 'g');
 

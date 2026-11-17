@@ -542,7 +542,7 @@ const LanguageTestsPanel = ({ results, isRunning, filter, onFilter, onRun, onSto
             className={`w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               isRunning
                 ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                : 'bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white'
+                : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white'
             }`}
           >
             {isRunning ? (
@@ -825,7 +825,7 @@ const AssistantPanel = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 backdrop-blur">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white">
           <Bot className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
@@ -856,7 +856,7 @@ const AssistantPanel = ({
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
             {m.role === 'assistant' && (
-              <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white">
+              <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white">
                 <Bot className="w-3.5 h-3.5" />
               </div>
             )}
@@ -894,7 +894,7 @@ const AssistantPanel = ({
         ))}
         {busy && (
           <div className="flex gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white">
               <Bot className="w-3.5 h-3.5" />
             </div>
             <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm text-slate-500 dark:text-slate-400 inline-flex items-center gap-2">
@@ -1688,9 +1688,9 @@ const Sandbox = () => {
     <div className="relative h-[calc(100vh-56px)] flex flex-col">
       {/* Background grid + glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute inset-0 opacity-[0.04]"
+        <div className="absolute inset-0 opacity-[0.05]"
              style={{
-               backgroundImage: 'linear-gradient(#0f172a 1px, transparent 1px), linear-gradient(90deg, #0f172a 1px, transparent 1px)',
+               backgroundImage: 'linear-gradient(rgba(100,116,139,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.6) 1px, transparent 1px)',
                backgroundSize: '52px 52px',
              }} />
         <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.10] animate-orb-1 blur-3xl"
@@ -1737,7 +1737,7 @@ const Sandbox = () => {
             className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
               isTestingAll
                 ? 'bg-amber-500 text-white hover:bg-amber-600'
-                : 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600'
+                : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700'
             }`}
             title="Run a sample through every language's runner and report pass/warning/fail"
           >
@@ -1791,14 +1791,16 @@ const Sandbox = () => {
             onClick={() => setShowRightPane((v) => !v)}
             className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 hover:shadow-lg ${
               showRightPane
-                ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-violet-500/30'
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-violet-500/30'
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
             title={showRightPane ? 'Hide AI assistant (preview returns to right)' : 'Open AI assistant on the right'}
           >
             <Bot className="w-4 h-4" /> AI Assistant
             {showRightPane && (
-              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/25 text-[10px] font-bold">×</span>
+              /* A dark chip, not a white one: `bg-white/25` lightened the
+                 gradient and pulled the white `×` down to 3.3:1. */
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-black/25 text-[10px] font-bold">×</span>
             )}
           </button>
 
@@ -1811,14 +1813,16 @@ const Sandbox = () => {
             onClick={() => setShowPreviewPane((v) => !v)}
             className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 hover:shadow-lg ${
               showPreviewPane
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/30'
+                ? 'bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-emerald-500/30'
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
             title={showPreviewPane ? 'Hide preview on the right' : 'Show preview on the right'}
           >
             <Eye className="w-4 h-4" /> Preview
             {showPreviewPane && (
-              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/25 text-[10px] font-bold">×</span>
+              /* A dark chip, not a white one: `bg-white/25` lightened the
+                 gradient and pulled the white `×` down to 3.3:1. */
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-black/25 text-[10px] font-bold">×</span>
             )}
           </button>
 
@@ -1829,14 +1833,16 @@ const Sandbox = () => {
             onClick={() => setShowLeftPane((v) => !v)}
             className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 hover:shadow-lg ${
               showLeftPane
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/30'
+                ? 'bg-gradient-to-r from-amber-700 to-orange-700 text-white shadow-amber-500/30'
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
             title={showLeftPane ? 'Hide file explorer' : 'Show file explorer'}
           >
             <FolderOpen className="w-4 h-4" /> Explorer
             {showLeftPane && (
-              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/25 text-[10px] font-bold">×</span>
+              /* A dark chip, not a white one: `bg-white/25` lightened the
+                 gradient and pulled the white `×` down to 3.3:1. */
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-black/25 text-[10px] font-bold">×</span>
             )}
           </button>
 
@@ -2109,7 +2115,7 @@ const Sandbox = () => {
                           }
                         }}
                         spellCheck={false}
-                        className="absolute inset-0 w-full h-full p-4 pl-14 font-mono text-sm leading-6 text-transparent caret-white bg-transparent resize-none outline-none"
+                        className="code-overlay-textarea absolute inset-0 w-full h-full p-4 pl-14 font-mono text-sm leading-6 text-transparent caret-white bg-transparent resize-none outline-none"
                       />
                     </div>
                   </>

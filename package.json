@@ -21,6 +21,8 @@
     "test": "node --import ./tests/helpers/setup.mjs --test \"tests/unit/*.test.mjs\"",
     "test:unit": "node --import ./tests/helpers/setup.mjs --test \"tests/unit/*.test.mjs\"",
     "test:all": "node scripts/run-all-tests.cjs",
+    "test:hard-mode": "node tests/owasp-hard-mode/run-hard-mode-tests.mjs",
+    "test:hard-mode:verbose": "node tests/owasp-hard-mode/run-hard-mode-tests.mjs --verbose",
     "test:routes": "node scripts/check-route-coverage.cjs",
     "test:e2e": "node scripts/e2e-walkthrough.cjs",
     "test:recorded": "node scripts/recorded-walkthrough.cjs",

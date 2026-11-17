@@ -32,7 +32,7 @@ try {
     $db = Database::getInstance();
 
     $rows = $db->fetchAll(
-        "SELECT id, action, resource_type, resource_id, details, ip_address, created_at
+        "SELECT id, action, resource_type, resource_id, details, details_text, ip_address, created_at
          FROM audit_logs
          WHERE user_id = ?
          ORDER BY created_at DESC, id DESC
@@ -41,12 +41,19 @@ try {
     );
 
     $logs = array_map(static function ($l) {
+        // New rows store structured JSON in `details`; the seeded demo
+        // rows store plain text in `details_text`. Prefer the JSON and
+        // fall back to the text so neither shape renders as blank.
+        $details = $l['details'] ? json_decode($l['details'], true) : null;
+        if ($details === null && isset($l['details_text']) && $l['details_text'] !== null && $l['details_text'] !== '') {
+            $details = $l['details_text'];
+        }
         return [
             'id'           => (int) $l['id'],
             'action'       => $l['action'],
             'resourceType' => $l['resource_type'],
             'resourceId'   => $l['resource_id'],
-            'details'      => $l['details'] ? json_decode($l['details'], true) : null,
+            'details'      => $details,
             'ipAddress'    => $l['ip_address'],
             'createdAt'    => toUtcIso($l['created_at']),
         ];

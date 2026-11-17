@@ -89,6 +89,107 @@ function luminance({ r, g, b }) {
 }
 
 /**
+ * The WCAG contrast ratio between two colours.
+ *
+ * @param {{r: number, g: number, b: number}} a
+ * @param {{r: number, g: number, b: number}} b
+ * @returns {number} 1 (identical) to 21 (black on white)
+ */
+function contrastRatio(a, b) {
+  const la = luminance(a);
+  const lb = luminance(b);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Near-black used for text on a light accent. */
+const DARK_CONTRAST = { r: 15, g: 23, b: 42 }; // #0F172A
+/** White used for text on a dark accent. */
+const LIGHT_CONTRAST = { r: 255, g: 255, b: 255 };
+
+/**
+ * Picks the text colour that reads best on top of the accent.
+ *
+ * The choice is made by comparing the actual contrast ratios of white
+ * and near-black against the accent, rather than by a luminance
+ * threshold. A threshold gets the answer wrong for the mid-tone
+ * colours: on the default blue (#3B82F6) white scores 3.68:1 while
+ * near-black scores 4.85:1, so the threshold picked the less readable
+ * option and the active navigation pill fell under the 4.5:1 AA floor.
+ *
+ * @param {{r: number, g: number, b: number}} rgb
+ * @returns {string} the hex colour to paint on top of the accent
+ */
+function contrastOn(rgb) {
+  const onLight = contrastRatio(rgb, DARK_CONTRAST);
+  const onDark = contrastRatio(rgb, LIGHT_CONTRAST);
+  return onLight > onDark ? '#0F172A' : '#FFFFFF';
+}
+
+/**
+ * Mixes a colour towards black.
+ *
+ * @param {{r: number, g: number, b: number}} rgb
+ * @param {number} amount 0 (unchanged) to 1 (black)
+ * @returns {string} an `rgb()` string
+ */
+function mixFrom(rgb, amount) {
+  const r = Math.round(rgb.r * (1 - amount));
+  const g = Math.round(rgb.g * (1 - amount));
+  const b = Math.round(rgb.b * (1 - amount));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * The surface the accent text sits on in dark mode: the sidebar's
+ * `bg-slate-900/40` panel over the page background.
+ */
+const DARK_ACCENT_SURFACE = { r: 23, g: 32, b: 50 };
+
+/**
+ * A lighter version of the accent, for text on a dark surface.
+ *
+ * The accent colour itself is tuned to be a FILL — a button background
+ * with a label on top of it. Used as the label colour on a dark panel
+ * it lands just under the AA floor: the default blue scores 4.43:1 on
+ * the sidebar panel, violet 3.85:1 and slate 2.15:1.
+ *
+ * Mixing towards white lifts the colour until it clears 4.5:1, so the
+ * accent still reads as the accent but the label is legible.
+ *
+ * @param {{r: number, g: number, b: number}} rgb
+ * @returns {string} the hex colour to paint accent text with
+ */
+function accentTextColor(rgb) {
+  const MIN_CONTRAST = 4.5;
+  for (let step = 0.15; step <= 0.85; step += 0.05) {
+    const candidate = {
+      r: Math.round(rgb.r + (255 - rgb.r) * step),
+      g: Math.round(rgb.g + (255 - rgb.g) * step),
+      b: Math.round(rgb.b + (255 - rgb.b) * step),
+    };
+    if (contrastRatio(candidate, DARK_ACCENT_SURFACE) >= MIN_CONTRAST) {
+      return `#${[candidate.r, candidate.g, candidate.b]
+        .map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase()}`;
+    }
+  }
+  // Nothing in the mix reached the threshold — fall back to the lightest
+  // step, which comes closest.
+  const lightest = {
+    r: Math.round(rgb.r + (255 - rgb.r) * 0.85),
+    g: Math.round(rgb.g + (255 - rgb.g) * 0.85),
+    b: Math.round(rgb.b + (255 - rgb.b) * 0.85),
+  };
+  return `#${[lightest.r, lightest.g, lightest.b]
+    .map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()}`;
+}
+
+/**
  * Every shade the stylesheet needs, derived from one colour.
  *
  * @param {string} hex
@@ -103,25 +204,74 @@ export function accentShades(hex) {
       strong: '#2563EB',
       soft: 'rgba(59, 130, 246, 0.12)',
       ring: 'rgba(59, 130, 246, 0.30)',
-      contrast: '#FFFFFF',
+      contrast: '#0F172A',
+      contrastStrong: '#0F172A',
+      text: '#5895F7',
     };
   }
 
-  // The hover shade is the colour mixed with black, so a light accent
-  // still gets a darker hover state instead of a washed-out one.
-  const mix = (amount) => {
-    const r = Math.round(rgb.r * (1 - amount));
-    const g = Math.round(rgb.g * (1 - amount));
-    const b = Math.round(rgb.b * (1 - amount));
-    return `rgb(${r}, ${g}, ${b})`;
+  // Some mid-tones sit in a dead zone where neither white nor near-black
+  // reaches the 4.5:1 AA threshold — violet (#8B5CF6) scores 4.23:1 with
+  // white and 4.22:1 with near-black. For those the fill itself is
+  // darkened until the label on top of it clears the threshold.
+  //
+  // Only the *base* fill is checked. The darker `strong` shade is used
+  // for hover states and for the gradient navigation pill, and a darker
+  // fill is always easier to read with a near-black label — but it can
+  // be easier with a white one. Forcing one label colour to work for
+  // both shades is what produced the unreadable pill, so the label
+  // colour is chosen for the base fill and the pill paints that same
+  // fill rather than a gradient that ends on the opposite side of the
+  // threshold.
+  const MIN_CONTRAST = 4.5;
+  const readable = (candidate) =>
+    contrastRatio(candidate, DARK_CONTRAST) >= MIN_CONTRAST ||
+    contrastRatio(candidate, LIGHT_CONTRAST) >= MIN_CONTRAST;
+
+  let base = normalized;
+  let fill = rgb;
+  let contrast = contrastOn(rgb);
+
+  if (!readable(fill)) {
+    for (let step = 0.02; step <= 0.6; step += 0.02) {
+      fill = {
+        r: Math.round(rgb.r * (1 - step)),
+        g: Math.round(rgb.g * (1 - step)),
+        b: Math.round(rgb.b * (1 - step)),
+      };
+      contrast = contrastOn(fill);
+      if (readable(fill)) {
+        base = `#${[fill.r, fill.g, fill.b]
+          .map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'))
+          .join('')
+          .toUpperCase()}`;
+        break;
+      }
+    }
+  }
+
+  const strong = mixFrom(fill, 0.18);
+  const strongRgb = {
+    r: Math.round(fill.r * 0.82),
+    g: Math.round(fill.g * 0.82),
+    b: Math.round(fill.b * 0.82),
   };
 
   return {
-    base: normalized,
-    strong: mix(0.18),
+    base,
+    // The hover shade is derived from the *adjusted* fill, so it stays
+    // in the same colour family as the base colour.
+    strong,
     soft: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`,
     ring: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.30)`,
-    contrast: luminance(rgb) > 0.55 ? '#0F172A' : '#FFFFFF',
+    contrast,
+    // A label colour for the hover shade, which is darker than the base
+    // and can fall on the other side of the contrast threshold.
+    contrastStrong: contrastOn(strongRgb),
+    // The accent used as TEXT on a dark surface. The base shade is
+    // tuned to be a fill, and as a label on the dark sidebar panel it
+    // sits just under the AA floor.
+    text: accentTextColor(rgb),
   };
 }
 
@@ -146,6 +296,8 @@ export function applyAccentColor(hex) {
   root.style.setProperty('--accent-color-soft', shades.soft);
   root.style.setProperty('--accent-color-ring', shades.ring);
   root.style.setProperty('--accent-contrast', shades.contrast);
+  root.style.setProperty('--accent-contrast-strong', shades.contrastStrong);
+  root.style.setProperty('--accent-text', shades.text);
   return normalized;
 }
 

@@ -520,7 +520,7 @@ export default function EricCollabLiteViewer() {
           className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
         >
           <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-700 to-cyan-700 flex items-center justify-center text-white">
               <Code2 className="w-5 h-5" />
             </div>
             <div>
@@ -598,7 +598,7 @@ export default function EricCollabLiteViewer() {
           <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800">
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-md"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-700 to-cyan-700 hover:from-emerald-800 hover:to-cyan-800 text-white shadow-md"
             >
               <Wifi className="w-4 h-4" />
               {hasRoom ? 'Join room' : 'Connect'}
@@ -620,7 +620,7 @@ export default function EricCollabLiteViewer() {
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-700 to-cyan-700 flex items-center justify-center text-white">
               <Code2 className="w-4 h-4" />
             </div>
             <div>

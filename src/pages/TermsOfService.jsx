@@ -107,21 +107,21 @@ const TermsOfService = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+              className="flex items-center gap-2 text-slate-600 dark:text-slate-300 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               <span className="font-medium">Back</span>
             </button>
             <Link to="/" className="flex items-center gap-2">
               <img src="/Logo.png" alt="Logo" className="w-8 h-8" />
-              <span className="font-bold text-slate-900">Project Eric</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100">Project Eric</span>
             </Link>
             <div className="w-20" />
           </div>
@@ -136,13 +136,13 @@ const TermsOfService = () => {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 mb-6 shadow-xl shadow-blue-500/30">
             <Scale className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4">
             Terms of Service
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
             Please read these terms carefully before using Project Eric. They govern your use of our security-first development platform.
           </p>
-          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               Last updated: September 19, 2026
@@ -151,7 +151,7 @@ const TermsOfService = () => {
         </div>
 
         {/* Quick Summary */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Shield className="w-5 h-5" />
@@ -167,13 +167,13 @@ const TermsOfService = () => {
               { icon: Users, title: 'Account Security', desc: 'Keep your credentials safe and secure' },
               { icon: FileText, title: 'Stay Informed', desc: 'Check for updates to these terms' },
             ].map((item, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 hover:bg-blue-50 transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+              <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <item.icon className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 text-sm">{item.title}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{item.title}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -181,7 +181,7 @@ const TermsOfService = () => {
         </div>
 
         {/* Full Terms */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="bg-slate-800 px-6 py-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <FileText className="w-5 h-5" />
@@ -193,17 +193,17 @@ const TermsOfService = () => {
               <div key={index} className="p-0">
                 <button
                   onClick={() => toggleSection(index)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <span className="font-semibold text-slate-900">{section.title}</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{section.title}</span>
                   {expandedSections[index] ? (
-                    <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    <ChevronUp className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    <ChevronDown className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
                   )}
                 </button>
                 {expandedSections[index] && (
-                  <div className="px-6 pb-5 text-slate-600 leading-relaxed">
+                  <div className="px-6 pb-5 text-slate-600 dark:text-slate-300 leading-relaxed">
                     {section.content.split('\n').map((paragraph, pIndex) => (
                       paragraph.startsWith('•') ? (
                         <div key={pIndex} className="flex gap-2 mt-2">
@@ -228,7 +228,7 @@ const TermsOfService = () => {
           <p className="text-blue-100 mb-4">Our legal team is here to help with any questions you may have.</p>
           <a 
             href="mailto:legal@project-eric.com" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-100 text-blue-600 dark:text-blue-700 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-white transition-colors"
           >
             <Mail className="w-5 h-5" />
             Contact Legal Team
@@ -236,14 +236,14 @@ const TermsOfService = () => {
         </div>
 
         {/* Footer Navigation */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-500">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
           <span>View also:</span>
           <div className="flex gap-4">
-            <Link to="/privacy-policy" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/privacy-policy" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
               Privacy Policy
             </Link>
             <span className="text-slate-300">|</span>
-            <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
               Reset Password
             </Link>
           </div>

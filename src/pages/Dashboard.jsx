@@ -44,6 +44,7 @@ import {
   Layout,
   FileText,
   Layers,
+  X,
 } from 'lucide-react';
 import { getSecurityStats, mockProjects, mockVulnerabilities, OWASP_CATEGORIES } from '../utils/securityData';
 import { readUserScoped, writeUserScoped } from '../utils/userStorage';
@@ -329,10 +330,23 @@ const applyPendingScans = (base, pending = []) => {
   next.scansCompleted = (next.scansCompleted || 0) + extraScans;
   next.codeLinesAnalyzed = (next.codeLinesAnalyzed || 0) + extraLines;
 
-  // The score is recomputed the same way the scanner computes it, so the
-  // dashboard and the scanner never disagree about the same scan.
-  const penalty = (counts.critical || 0) * 8 + (counts.high || 0) * 5 + (counts.medium || 0) * 3 + (counts.low || 0) * 1;
-  next.secureScore = Math.max(0, Math.min(100, (next.secureScore || 100) - penalty));
+  // The score uses the same formula the scanner uses, so the dashboard and
+  // the scanner never disagree about the same scan.
+  //
+  // The scanner scores a scan as `100 - totalIssues * 4`, where
+  // `totalIssues` is the sum of every finding's `count` — the number of
+  // individual issues, not the number of categories that raised them.
+  // A severity-weighted penalty was used here before, and the two
+  // formulas disagreed: one scan reported 72 on the scanner page and 73
+  // on the dashboard.
+  //
+  // The pending scans carry their own score, so that score is what the
+  // dashboard shows for them. The stored score is left alone — it is the
+  // backend's number and is not the dashboard's to recompute.
+  const pendingScore = pending.find((s) => typeof s?.score === 'number')?.score;
+  if (typeof pendingScore === 'number') {
+    next.secureScore = pendingScore;
+  }
 
   if (counts.critical > 0) next.trend = 'worsening';
 
@@ -372,16 +386,31 @@ const Dashboard = () => {
   const projects = snapshot?.projects ?? null;
   const recentVulns = snapshot?.recentVulnerabilities ?? null;
 
+  // The figures the page shows, the findings it lists and the category
+  // matrix all have to come from the same place. Mixing them is how the
+  // dashboard ended up claiming "15 open findings" while every OWASP
+  // category read zero.
+  //
+  // The API is the source of truth. The fixture set stands in only when
+  // the API could not be reached, or when it answered without any
+  // findings to show — and the mock stats are only used alongside the
+  // mock findings, never on their own.
+  const useFixtures = !apiStats && dataSource !== 'loading' && !recentVulns?.length;
+
   const stats = useMemo(
-    () =>
-      applyPendingScans(
-        apiStats || (dataSource === 'loading' ? EMPTY_STATS : getSecurityStats()),
-        unpersistedScans
-      ),
-    [apiStats, unpersistedScans, dataSource]
+    () => {
+      const base = apiStats
+        ? apiStats
+        : dataSource === 'loading'
+        ? EMPTY_STATS
+        : useFixtures
+        ? getSecurityStats()
+        : EMPTY_STATS;
+      return applyPendingScans(base, unpersistedScans);
+    },
+    [apiStats, unpersistedScans, dataSource, useFixtures]
   );
 
-  const useFixtures = dataSource === 'offline' && !apiStats;
   const displayProjects = projects ?? (useFixtures ? mockProjects : []);
   const displayVulns = (recentVulns ?? (useFixtures ? mockVulnerabilities : [])).slice(0, 5);
 
@@ -396,13 +425,17 @@ const Dashboard = () => {
     OWASP_CATEGORIES.forEach((cat) => {
       counts[cat.id] = 0;
     });
-    if (!recentVulns) return counts;
-    recentVulns.forEach((v) => {
+    // Count the same list the page displays. When the backend has no
+    // rows the page falls back to the fixture set, and the category
+    // matrix has to fall back with it — otherwise the headline says
+    // "15 open findings" while every category reads zero.
+    const source = recentVulns ?? (useFixtures ? mockVulnerabilities : []);
+    source.forEach((v) => {
       const id = String(v.owaspId || '').toUpperCase();
       if (id in counts) counts[id] += 1;
     });
     return counts;
-  }, [snapshot, recentVulns]);
+  }, [snapshot, recentVulns, useFixtures]);
 
   useEffect(() => {
     const hasSeenHint = localStorage.getItem('dashboard_hint_seen');
@@ -416,6 +449,22 @@ const Dashboard = () => {
     const tick = setInterval(() => setTime(new Date()), 30_000);
     return () => clearInterval(tick);
   }, []);
+
+  // The hint floats over the bottom-right corner, where the Activity
+  // feed lives. As soon as the reader scrolls, the panel moves under
+  // the hint and the last rows are hidden behind it, so the hint
+  // steps aside instead of covering the content.
+  useEffect(() => {
+    if (!shortcutHint) return undefined;
+    const onScroll = () => setShortcutHint(false);
+    const scroller = document.querySelector('main');
+    window.addEventListener('scroll', onScroll, { passive: true });
+    scroller?.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      scroller?.removeEventListener('scroll', onScroll);
+    };
+  }, [shortcutHint]);
 
   const refreshFromApi = useCallback(async () => {
     setRefreshing(true);
@@ -1198,7 +1247,13 @@ const Dashboard = () => {
                   title="Activity"
                   subtitle="What changed, most recent first"
                   className="h-full"
-                  bodyClass="p-3 max-h-[420px] overflow-y-auto"
+                  /* The feed scrolls inside the panel body. A fixed
+                     `max-h` stopped the body 16px short of the card's
+                     bottom edge, so the last row was clipped against the
+                     section's `overflow-hidden` and looked cut off.
+                     `max-h-full` lets the body fill the card and scroll
+                     within its own rounded edge. */
+                  bodyClass="p-3 max-h-full overflow-y-auto"
                 >
                   <ActivityStream
                     events={activityEvents}
@@ -1609,7 +1664,7 @@ const Dashboard = () => {
                   <Cpu className="w-3.5 h-3.5 text-white/80 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="text-[10px] font-bold text-white">Code mode</div>
-                    <div className="text-[10px] text-emerald-50/75 leading-snug mt-0.5">
+                    <div className="text-[10px] text-emerald-50 leading-snug mt-0.5">
                       JS · TS · Python · Java · Go · C# · PHP · Ruby · Rust · C++
                     </div>
                   </div>
@@ -1618,7 +1673,7 @@ const Dashboard = () => {
                   <Lock className="w-3.5 h-3.5 text-white/80 mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="text-[10px] font-bold text-white">In-browser</div>
-                    <div className="text-[10px] text-emerald-50/75 leading-snug mt-0.5">
+                    <div className="text-[10px] text-emerald-50 leading-snug mt-0.5">
                       Static analysis only — your code never leaves the device.
                     </div>
                   </div>
@@ -1808,9 +1863,20 @@ const Dashboard = () => {
 
         {/* ==========================================================
             KEYBOARD HINT
-            ========================================================== */}
+            ==========================================================
+            The hint floats over the bottom-right of the page, which is
+            where the Activity feed lives. It was a dead overlay: it
+            could not be dismissed, and it hid the last rows of the
+            feed behind its opaque panel. Clicking it now dismisses it
+            for the rest of the session, and scrolling the page away
+            hides it as well. */}
         {shortcutHint && (
-          <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
+          <button
+            type="button"
+            onClick={() => setShortcutHint(false)}
+            title="Dismiss this hint"
+            className="fixed bottom-6 right-6 z-50 animate-slide-up text-left"
+          >
             <div className="bg-slate-900/95 backdrop-blur-xl text-white px-4 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3">
               <Command className="w-5 h-5 text-blue-400" />
               <div className="text-xs">
@@ -1822,8 +1888,9 @@ const Dashboard = () => {
                   <kbd className="px-1 bg-white/10 rounded">N</kbd> findings
                 </p>
               </div>
+              <X className="w-4 h-4 text-slate-400 flex-shrink-0" />
             </div>
-          </div>
+          </button>
         )}
       </div>
 

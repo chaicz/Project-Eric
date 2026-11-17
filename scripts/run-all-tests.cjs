@@ -13,6 +13,7 @@ const SUITES = [
   { name: 'route coverage', cwd: ROOT, cmd: 'node', args: ['scripts/check-route-coverage.cjs'] },
   { name: 'owasp 10-language fixtures', cwd: ROOT, cmd: 'node', args: ['scripts/test-owasp-10-languages.cjs'] },
   { name: 'owasp secure reference files', cwd: ROOT, cmd: 'node', args: ['scripts/test-owasp-secure-clean.cjs'] },
+  { name: 'owasp hard mode', cwd: ROOT, cmd: 'node', args: ['tests/owasp-hard-mode/run-hard-mode-tests.mjs'] },
   { name: 'language packs (repo)', cwd: ROOT, cmd: 'node', args: ['scripts/test-language-packs.cjs'] },
   { name: 'language packs (installed)', cwd: ROOT, cmd: 'node', args: ['scripts/test-installed-language-packs.cjs'] },
   { name: 'text diff', cwd: ROOT, cmd: 'node', args: ['scripts/test-text-diff.cjs'] },

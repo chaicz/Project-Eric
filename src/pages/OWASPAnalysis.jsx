@@ -1105,9 +1105,9 @@ const OWASPAnalysis = () => {
     <div className="relative min-h-[calc(100vh-56px)] p-6 lg:p-8">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute inset-0 opacity-[0.04]"
+        <div className="absolute inset-0 opacity-[0.05]"
              style={{
-               backgroundImage: 'linear-gradient(#0f172a 1px, transparent 1px), linear-gradient(90deg, #0f172a 1px, transparent 1px)',
+               backgroundImage: 'linear-gradient(rgba(100,116,139,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.6) 1px, transparent 1px)',
                backgroundSize: '52px 52px',
              }} />
         <div className="absolute w-[700px] h-[700px] rounded-full opacity-[0.12] animate-orb-1 blur-3xl"
@@ -1354,7 +1354,7 @@ const OWASPAnalysis = () => {
               <button
                 onClick={openCodeServerPopup}
                 disabled={codeServerStatus !== 'running'}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-md shadow-blue-500/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white shadow-md shadow-blue-500/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 Open in new window
@@ -1608,8 +1608,8 @@ const OWASPAnalysis = () => {
                           <Shield className="w-3.5 h-3.5" />
                           {results.summary}
                         </div>
-                        <p className="text-sm text-slate-600 mt-3 leading-relaxed">
-                          Found <strong>{results.totalIssues}</strong> issue{results.totalIssues === 1 ? '' : 's'} across <strong>{totalCount}</strong> OWASP categories in <strong>{results.scanTime}</strong>.
+                        <p className="text-sm text-slate-600 dark:text-slate-300 mt-3 leading-relaxed">
+                          Found <strong>{results.totalIssues}</strong>{` ${results.totalIssues === 1 ? 'issue' : 'issues'} across `}<strong>{totalCount}</strong>{' OWASP categories in '}<strong>{results.scanTime}</strong>.
                         </p>
                       </div>
                     </div>
@@ -1832,7 +1832,7 @@ const OWASPAnalysis = () => {
           <div className="lg:col-span-1">
             <div className="glass-strong rounded-2xl flex flex-col overflow-hidden h-[760px] sticky top-4">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200/60 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/60 backdrop-blur">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white">
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1878,7 +1878,7 @@ const OWASPAnalysis = () => {
                     {aiMessages.map((m, i) => (
                       <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
                         {m.role === 'assistant' && (
-                          <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white">
+                          <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white">
                             <Bot className="w-3.5 h-3.5" />
                           </div>
                         )}
@@ -1895,7 +1895,7 @@ const OWASPAnalysis = () => {
                     ))}
                     {aiBusy && (
                       <div className="flex gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white">
                           <Bot className="w-3.5 h-3.5" />
                         </div>
                         <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm text-slate-500 dark:text-slate-400 inline-flex items-center gap-2">
@@ -1947,7 +1947,7 @@ const OWASPAnalysis = () => {
                     <button
                       onClick={generateAutoFix}
                       disabled={generatingFix || !hasAIKey()}
-                      className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50"
+                      className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-700 to-teal-700 text-white hover:from-emerald-800 hover:to-teal-800 disabled:opacity-50"
                     >
                       {generatingFix ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                       Generate fix

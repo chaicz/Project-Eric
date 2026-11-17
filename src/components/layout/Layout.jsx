@@ -905,7 +905,11 @@ const Layout = () => {
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                  /* `red-700` rather than `red-500`: the count is 10px
+                     white text, and red-500 only scores 3.76:1 against
+                     it. red-700 scores 6.47:1, which stays clear of the
+                     4.5:1 floor even while the badge pulses. */
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-700 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
                     {unreadCount}
                   </span>
                 )}

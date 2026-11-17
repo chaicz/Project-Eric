@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { authAPI } from '../services/api';
 import BackgroundSlideshow from '../components/BackgroundSlideshow';
 import BrandPanel from '../components/auth/BrandPanel';
 import FormShell from '../components/auth/FormShell';
 import FadeIn from '../components/auth/FadeIn';
 import AuthInput from '../components/auth/AuthInput';
+import SocialAuthButtons from '../components/auth/SocialAuthButtons';
 import {
   Eye,
   EyeOff,
@@ -13,8 +15,6 @@ import {
   Lock,
   ArrowRight,
   CheckCircle2,
-  Github,
-  Chrome,
   Shield,
   Loader2,
   AlertCircle,
@@ -140,7 +140,7 @@ const PasswordStrength = ({ value }) => {
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, loginWithTwoFactor, loginWithOAuth } = useApp();
+  const { login, loginWithTwoFactor, setUser } = useApp();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -244,14 +244,28 @@ const Login = () => {
     }
   };
 
-  const handleOAuth = async (provider) => {
+  /**
+   * Open the shared preview account.
+   *
+   * This does not contact Google. The API creates the preview account
+   * once, gives it a normal team and JWT session, and returns the same
+   * user shape as a password sign-in.
+   */
+  const handleGooglePreviewLogin = async () => {
     setIsLoading(true);
     setAuthError('');
+
     try {
-      await loginWithOAuth(provider);
-      navigate('/onboarding');
-    } catch (err) {
-      setAuthError(err.message || `Could not sign in with ${provider}.`);
+      const data = await authAPI.oauthPreviewLogin();
+      const previewUser = data?.user;
+      if (!previewUser) {
+        throw new Error('The preview sign-in did not return a user.');
+      }
+
+      setUser(previewUser);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      setAuthError(error?.message || 'The preview sign-in could not be started.');
       setIsLoading(false);
     }
   };
@@ -326,6 +340,18 @@ const Login = () => {
           </span>
         </button>
 
+        {/* Social sign-in — Google and GitHub. Google is a local
+            preview button: it opens a browser-only session and goes
+            straight to the dashboard without contacting Google or the
+            database. GitHub keeps the normal OAuth sign-in. */}
+        <SocialAuthButtons
+          action="login"
+          disabled={isLoading}
+          onError={setAuthError}
+          onPreviewLogin={handleGooglePreviewLogin}
+          dividerLabel="or sign in with"
+        />
+
         <div className="relative mb-5">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-slate-200" />
@@ -337,7 +363,7 @@ const Login = () => {
           </div>
         </div>
 
-        <form onSubmit={twoFactor ? handleTwoFactorSubmit : handleSubmit} className="space-y-5">
+        <form onSubmit={twoFactor ? handleTwoFactorSubmit : handleSubmit} noValidate className="space-y-5">
           {twoFactor ? (
             /* ---- The second step: the code from the authenticator app ---- */
             <>
@@ -601,42 +627,6 @@ const Login = () => {
             </>
           )}
         </form>
-
-        {/* Divider */}
-        <FadeIn delay={350}>
-          <div className="relative my-7">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-4 bg-white text-[11px] uppercase tracking-[0.18em] text-slate-400 font-semibold">
-                or continue with
-              </span>
-            </div>
-          </div>
-        </FadeIn>
-
-        {/* Social */}
-        <FadeIn delay={400}>
-          <div className="grid grid-cols-2 gap-3.5">
-            <button
-              type="button"
-              onClick={() => handleOAuth('github')}
-              className="group relative flex items-center justify-center gap-2.5 py-3 rounded-xl bg-white border border-slate-200 hover:border-slate-400 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Github className="w-5 h-5 text-slate-800 transition-transform duration-300 group-hover:scale-110" />
-              <span>GitHub</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOAuth('google')}
-              className="group relative flex items-center justify-center gap-2.5 py-3 rounded-xl bg-white border border-slate-200 hover:border-slate-400 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Chrome className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              <span>Google</span>
-            </button>
-          </div>
-        </FadeIn>
 
         {/* Footer — Trust indicators */}
         <FadeIn delay={450}>

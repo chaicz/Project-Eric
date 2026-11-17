@@ -61,9 +61,9 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex">
       {/* Left Panel - Decorative */}
-      <div className="hidden lg:flex lg:w-1/2 bg-white relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-white dark:bg-slate-900 relative overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Gradient Orbs */}
@@ -93,9 +93,9 @@ const ForgotPassword = () => {
           />
           {/* Subtle Grid Pattern */}
           <div 
-            className="absolute inset-0 opacity-[0.03]" 
+            className="absolute inset-0 opacity-[0.05]" 
             style={{
-              backgroundImage: `linear-gradient(#0f172a 1px, transparent 1px), linear-gradient(90deg, #0f172a 1px, transparent 1px)`,
+              backgroundImage: `linear-gradient(rgba(100,116,139,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.6) 1px, transparent 1px)`,
               backgroundSize: '40px 40px'
             }} 
           />
@@ -107,22 +107,22 @@ const ForgotPassword = () => {
           <Link to="/" className="flex items-center gap-3 mb-16">
             <img src="/Logo.png" alt="Logo" className="w-12 h-12" />
             <div>
-              <span className="text-xl font-bold text-slate-900">Project Eric</span>
-              <div className="text-xs text-slate-400">Security Platform</div>
+              <span className="text-xl font-bold text-slate-900 dark:text-slate-100">Project Eric</span>
+              <div className="text-xs text-slate-400 dark:text-slate-500">Security Platform</div>
             </div>
           </Link>
 
           {/* Main Text */}
           <div className="mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full mb-6">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Secure Password Recovery</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-500/15 rounded-full mb-6">
+              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Secure Password Recovery</span>
             </div>
-            <h1 className="text-4xl font-bold text-slate-900 leading-tight mb-4">
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
               Reset Your<br />
-              <span className="text-blue-600">Password</span>
+              <span className="text-blue-600 dark:text-blue-400">Password</span>
             </h1>
-            <p className="text-lg text-slate-500 max-w-md leading-relaxed">
+            <p className="text-lg text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
               Don't worry, we've got you covered. Enter your email and we'll send you a secure link to reset your password.
             </p>
           </div>
@@ -135,12 +135,12 @@ const ForgotPassword = () => {
               { title: 'Quick Recovery', desc: 'Get back to securing your code in minutes' },
             ].map((feature, index) => (
               <div key={index} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900 text-sm">{feature.title}</div>
-                  <div className="text-xs text-slate-500">{feature.desc}</div>
+                  <div className="font-medium text-slate-900 dark:text-slate-100 text-sm">{feature.title}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{feature.desc}</div>
                 </div>
               </div>
             ))}
@@ -148,25 +148,25 @@ const ForgotPassword = () => {
         </div>
 
         {/* Decorative Circle */}
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-gradient-to-br from-blue-100 to-slate-100 rounded-full opacity-50" />
-        <div className="absolute -bottom-48 -right-48 w-[500px] h-[500px] border border-slate-100 rounded-full" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-gradient-to-br from-blue-100 to-slate-100 dark:from-blue-950 dark:to-slate-900 rounded-full opacity-50" />
+        <div className="absolute -bottom-48 -right-48 w-[500px] h-[500px] border border-slate-100 dark:border-slate-800 rounded-full" />
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 bg-transparent dark:bg-slate-950/60">
         {/* Mobile Logo */}
         <div className="absolute top-6 left-6 flex items-center gap-2 lg:hidden">
           <img src="/Logo.png" alt="Logo" className="w-10 h-10" />
-          <span className="text-lg font-bold text-slate-900">Project Eric</span>
+          <span className="text-lg font-bold text-slate-900 dark:text-slate-100">Project Eric</span>
         </div>
 
         {/* Form */}
         <div className={`w-full max-w-md transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          
+
           {/* Back Button */}
           <button
             onClick={() => navigate('/login')}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-700 mb-8 transition-colors"
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 mb-8 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium">Back to login</span>
@@ -179,16 +179,16 @@ const ForgotPassword = () => {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
                   <KeyRound className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Forgot your password?</h2>
-                <p className="text-slate-500">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Forgot your password?</h2>
+                <p className="text-slate-500 dark:text-slate-400">
                   No worries, we'll send you a secure reset link. Enter your email address below.
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} noValidate className="space-y-5">
                 {/* Email Input */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700">Email Address</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input
@@ -199,8 +199,10 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       className={`w-full pl-12 pr-4 py-3 rounded-xl border ${
-                        error ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-white'
-                      } text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100`}
+                        error
+                          ? 'border-red-300 bg-red-50 dark:border-red-500/60 dark:bg-red-500/10'
+                          : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'
+                      } text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20`}
                       placeholder="name@company.com"
                       autoFocus
                     />
@@ -234,12 +236,12 @@ const ForgotPassword = () => {
               </form>
 
               {/* Help Text */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/30">
                 <div className="flex items-start gap-3">
-                  <Keyboard className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <Keyboard className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900 mb-1">Remember your password?</p>
-                    <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+                    <p className="font-medium text-blue-900 dark:text-blue-200 mb-1">Remember your password?</p>
+                    <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                       Sign in instead
                     </Link>
                   </div>
@@ -260,36 +262,36 @@ const ForgotPassword = () => {
                 </p>
 
                 {/* Email Preview Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6 text-left">
-                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6 text-left">
+                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
                       <img src="/Logo.png" alt="Logo" className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-900 text-sm">Project Eric</p>
-                      <p className="text-xs text-slate-500">security@project-eric.com</p>
+                      <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">Project Eric</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">security@project-eric.com</p>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600 mb-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                     We received a request to reset your password. Click the button below to create a new password.
                   </p>
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl py-3 px-4 text-center">
                     <span className="text-white font-semibold text-sm">Reset Password</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-4">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-4">
                     This link will expire in 1 hour for your security.
                   </p>
                 </div>
 
                 {/* Didn't receive email */}
                 <div className="space-y-4">
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     Didn't receive the email? Check your spam folder or:
                   </p>
                   <button
                     onClick={handleResendEmail}
                     disabled={isLoading}
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-2 mx-auto disabled:opacity-50"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm flex items-center gap-2 mx-auto disabled:opacity-50"
                   >
                     {isLoading ? (
                       <>
@@ -306,10 +308,10 @@ const ForgotPassword = () => {
                 </div>
 
                 {/* Back to login */}
-                <div className="mt-8 pt-6 border-t border-slate-100">
-                  <Link 
-                    to="/login" 
-                    className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 font-medium transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Back to Sign In
@@ -320,12 +322,12 @@ const ForgotPassword = () => {
           )}
 
           {/* Footer Links */}
-          <div className="mt-8 flex items-center justify-center gap-4 text-sm text-slate-500">
-            <Link to="/terms-of-service" className="hover:text-slate-700 transition-colors">
+          <div className="mt-8 flex items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <Link to="/terms-of-service" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
               Terms
             </Link>
-            <span className="text-slate-300">|</span>
-            <Link to="/privacy-policy" className="hover:text-slate-700 transition-colors">
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <Link to="/privacy-policy" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
               Privacy
             </Link>
           </div>

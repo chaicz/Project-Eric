@@ -146,21 +146,21 @@ To exercise these rights, contact privacy@project-eric.com.`
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+              className="flex items-center gap-2 text-slate-600 dark:text-slate-300 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               <span className="font-medium">Back</span>
             </button>
             <Link to="/" className="flex items-center gap-2">
               <img src="/Logo.png" alt="Logo" className="w-8 h-8" />
-              <span className="font-bold text-slate-900">Project Eric</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100">Project Eric</span>
             </Link>
             <div className="w-20" />
           </div>
@@ -175,13 +175,13 @@ To exercise these rights, contact privacy@project-eric.com.`
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mb-6 shadow-xl shadow-emerald-500/30">
             <Shield className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4">
             Privacy Policy
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
             Your privacy matters to us. Learn how we collect, use, and protect your data while providing top-tier security scanning services.
           </p>
-          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
             <span className="flex items-center gap-1">
               <Lock className="w-4 h-4" />
               Last updated: September 19, 2026
@@ -213,7 +213,7 @@ To exercise these rights, contact privacy@project-eric.com.`
           ].map((item, index) => (
             <div 
               key={index} 
-              className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center hover:shadow-lg transition-all ${
+              className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 text-center hover:shadow-lg transition-all ${
                 item.color === 'emerald' ? 'hover:border-emerald-200' : 
                 item.color === 'teal' ? 'hover:border-teal-200' : 
                 'hover:border-cyan-200'
@@ -230,15 +230,15 @@ To exercise these rights, contact privacy@project-eric.com.`
                   'text-cyan-600'
                 }`} />
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">{item.title}</h3>
-              <p className="text-sm text-slate-500">{item.desc}</p>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-2">{item.title}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">{item.desc}</p>
             </div>
           ))}
         </div>
 
         {/* Privacy Highlights */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8 overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-6 py-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Shield className="w-5 h-5" />
               Your Privacy Commitments
@@ -258,8 +258,8 @@ To exercise these rights, contact privacy@project-eric.com.`
                   <Check className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">{item.desc}</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-0.5">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -267,7 +267,7 @@ To exercise these rights, contact privacy@project-eric.com.`
         </div>
 
         {/* Data Categories */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 overflow-hidden">
           <div className="bg-slate-800 px-6 py-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <Database className="w-5 h-5" />
@@ -286,11 +286,11 @@ To exercise these rights, contact privacy@project-eric.com.`
                   <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
                     <item.icon className="w-5 h-5 text-teal-600" />
                   </div>
-                  <h3 className="font-semibold text-slate-900">{item.title}</h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">{item.title}</h3>
                 </div>
                 <ul className="space-y-1">
                   {item.items.map((subItem, i) => (
-                    <li key={i} className="text-sm text-slate-500 flex items-center gap-2">
+                    <li key={i} className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
                       {subItem}
                     </li>
@@ -302,7 +302,7 @@ To exercise these rights, contact privacy@project-eric.com.`
         </div>
 
         {/* Full Policy */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="bg-slate-800 px-6 py-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <FileText className="w-5 h-5" />
@@ -314,17 +314,17 @@ To exercise these rights, contact privacy@project-eric.com.`
               <div key={index} className="p-0">
                 <button
                   onClick={() => toggleSection(index)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <span className="font-semibold text-slate-900">{section.title}</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{section.title}</span>
                   {expandedSections[index] ? (
-                    <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    <ChevronUp className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                    <ChevronDown className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
                   )}
                 </button>
                 {expandedSections[index] && (
-                  <div className="px-6 pb-5 text-slate-600 leading-relaxed">
+                  <div className="px-6 pb-5 text-slate-600 dark:text-slate-300 leading-relaxed">
                     {section.content.split('\n').map((paragraph, pIndex) => (
                       paragraph.startsWith('•') ? (
                         <div key={pIndex} className="flex gap-2 mt-2">
@@ -343,7 +343,7 @@ To exercise these rights, contact privacy@project-eric.com.`
         </div>
 
         {/* Contact CTA */}
-        <div className="mt-8 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-8 text-center text-white">
+        <div className="mt-8 bg-gradient-to-r from-emerald-700 to-teal-700 rounded-2xl p-8 text-center text-white">
           <Mail className="w-12 h-12 mx-auto mb-4 opacity-90" />
           <h3 className="text-xl font-bold mb-2">Questions about your privacy?</h3>
           <p className="text-emerald-100 mb-4">Our privacy team is dedicated to protecting your data and answering your questions.</p>
@@ -357,14 +357,14 @@ To exercise these rights, contact privacy@project-eric.com.`
         </div>
 
         {/* Footer Navigation */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-500">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
           <span>View also:</span>
           <div className="flex gap-4">
-            <Link to="/terms-of-service" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/terms-of-service" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
               Terms of Service
             </Link>
             <span className="text-slate-300">|</span>
-            <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
               Reset Password
             </Link>
           </div>

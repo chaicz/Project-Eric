@@ -266,7 +266,10 @@ const Team = () => {
           </thead>
           <tbody>
             {filteredMembers.map((member) => {
-              const role = roleConfig[member.role];
+              // The roster comes from the server, so a role it does not
+              // know is rendered as a viewer rather than crashing the
+              // whole page on `role.bg`.
+              const role = roleConfig[member.role] || roleConfig.viewer;
               return (
                 <tr key={member.id}>
                   <td>
@@ -329,7 +332,10 @@ const Team = () => {
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Pending Invitations</h2>
           <div className="space-y-3">
             {pendingInvites.map((invite) => {
-              const role = roleConfig[invite.role];
+              // An invitation the server created with a role this build
+              // does not know renders as a viewer invite rather than
+              // crashing the whole page on `role.text`.
+              const role = roleConfig[invite.role] || roleConfig.viewer;
               return (
                 <div key={invite.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
                   <div className="flex items-center gap-3">

@@ -257,17 +257,38 @@ export const DetectorGrid = ({ findings = [], onSelect, activeId = null, running
 // A bigger, clearer version of the old ring, with the risk band written
 // out so the number has a meaning attached to it.
 // ---------------------------------------------------------------------------
-export const ScoreGauge = ({ score = 0, size = 180, summary = null, findings = 0 }) => {
-  const clamped = Math.max(0, Math.min(100, score));
+export const ScoreGauge = ({
+  score = null,
+  size = 180,
+  summary = null,
+  findings = 0,
+  running = false,
+  completed = 0,
+  total = 10,
+  idle = false,
+}) => {
+  const showIdle = idle && !running;
+  const clamped = Math.max(0, Math.min(100, score ?? 0));
   const stroke = 14;
   const radius = size / 2 - stroke / 2 - 4;
   const cx = size / 2;
   const cy = size / 2;
   const circumference = 2 * Math.PI * radius;
-  const dash = (clamped / 100) * circumference;
+  const dash = showIdle ? 0 : (clamped / 100) * circumference;
 
   const color = clamped >= 85 ? '#10b981' : clamped >= 65 ? '#f59e0b' : '#ef4444';
   const band = clamped >= 85 ? 'Low risk' : clamped >= 65 ? 'Medium risk' : 'High risk';
+
+  // A score computed from only some of the detectors is not a verdict on
+  // the snippet. While the scan is still running the gauge shows the
+  // progress instead, so a partially-scanned snippet never reads as a
+  // clean "Low risk" result.
+  const label = showIdle ? 'No scan yet' : running ? 'Scanning…' : summary || band;
+  const caption = showIdle
+    ? 'Run a scan to get a score'
+    : running
+    ? `${completed} of ${total} detectors done`
+    : `${findings} ${findings === 1 ? 'finding' : 'findings'} raised`;
 
   return (
     <div className="relative flex flex-col items-center" style={{ width: size }}>
@@ -286,18 +307,21 @@ export const ScoreGauge = ({ score = 0, size = 180, summary = null, findings = 0
           cy={cy}
           r={radius}
           fill="none"
-          stroke={color}
+          stroke={running ? '#3b82f6' : color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circumference}`}
           className="transition-all duration-1000 ease-out"
-          style={{ filter: `drop-shadow(0 0 6px ${color}55)` }}
+          style={{ filter: `drop-shadow(0 0 6px ${running ? '#3b82f655' : `${color}55`})` }}
         />
       </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-4xl font-bold tabular-nums leading-none" style={{ color }}>
-          {clamped}
+        <span
+          className="text-4xl font-bold tabular-nums leading-none text-slate-400 dark:text-slate-300"
+          style={showIdle || running ? undefined : { color: running ? '#3b82f6' : color }}
+        >
+          {showIdle ? '—' : clamped}
         </span>
         <span className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">
           / 100
@@ -305,12 +329,13 @@ export const ScoreGauge = ({ score = 0, size = 180, summary = null, findings = 0
       </div>
 
       <div className="mt-2 text-center">
-        <p className="text-xs font-bold" style={{ color }}>
-          {summary || band}
+        <p
+          className={`text-xs font-bold ${showIdle ? 'text-slate-400 dark:text-slate-500' : ''}`}
+          style={showIdle ? undefined : { color: running ? '#3b82f6' : color }}
+        >
+          {label}
         </p>
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-          {findings} finding{findings === 1 ? '' : 's'} raised
-        </p>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{caption}</p>
       </div>
     </div>
   );
@@ -546,7 +571,7 @@ export const RunHistoryStrip = ({ runs = [], onSelect }) => {
                 {r.mode === 'sql' ? 'SQL' : 'Code'} · {r.language}
               </span>
               <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                {r.issues} issue{r.issues === 1 ? '' : 's'} · {r.summary}
+                {`${r.issues} ${r.issues === 1 ? 'issue' : 'issues'} · ${r.summary}`}
               </span>
             </span>
             <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono flex-shrink-0">
@@ -565,14 +590,28 @@ export const RunHistoryStrip = ({ runs = [], onSelect }) => {
 // The scanner used to hand over a result with no interpretation. These
 // three lines turn the raw status into an instruction.
 // ---------------------------------------------------------------------------
-export const TriageGuide = ({ totalIssues = 0, fail = 0, warn = 0 }) => {
+export const TriageGuide = ({ totalIssues = 0, fail = 0, warn = 0, idle = false }) => {
+  if (idle) {
+    return (
+      <div className="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40">
+        <ScanLine className="w-4 h-4 flex-shrink-0 mt-0.5 text-slate-400" />
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">No scan yet</p>
+          <p className="text-[11px] mt-0.5 leading-relaxed text-slate-500 dark:text-slate-400">
+            Paste a snippet on the left and press Run OWASP Scan. Guidance will appear here.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const tips = [];
 
   if (fail > 0) {
     tips.push({
       Icon: Flame,
       tone: 'rose',
-      title: `${fail} categor${fail === 1 ? 'y' : 'ies'} failed`,
+      title: fail === 1 ? '1 category failed' : `${fail} categories failed`,
       body: 'A failed detector matched a concrete vulnerable pattern. Expand the card to see the evidence line and the CWE.',
     });
   }
@@ -580,7 +619,7 @@ export const TriageGuide = ({ totalIssues = 0, fail = 0, warn = 0 }) => {
     tips.push({
       Icon: AlertTriangle,
       tone: 'amber',
-      title: `${warn} categor${warn === 1 ? 'y' : 'ies'} need review`,
+      title: warn === 1 ? '1 category needs review' : `${warn} categories need review`,
       body: 'A warning means the pattern is suspicious but not conclusive. Read the evidence before changing the code.',
     });
   }

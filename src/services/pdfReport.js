@@ -1833,7 +1833,10 @@ const drawFinding = (layout, finding, allLines, index, total) => {
   }
   // ---- Reference implementation -----------------------------------------
   if (suggestion.before && suggestion.after) {
-    drawSubHeading(layout, 'Reference implementation', COLOR.ink, 40);
+    // The "before" chip sits on its own row below the heading, so the
+    // chip can never overlap the heading text. `keepWith` reserves room
+    // for the heading, its rule and the first chip together.
+    drawSubHeading(layout, 'Reference implementation', COLOR.ink, 44);
 
     const block = (label, code, accent) => {
       const prepared = prepareCodeLines(code);
@@ -1851,10 +1854,15 @@ const drawFinding = (layout, finding, allLines, index, total) => {
       const chipText = cleanText(label).toUpperCase();
       const chipWidth = doc.getTextWidth(chipText) + 12;
 
+      // The chip is drawn below the heading's rule, on a row of its
+      // own. The chip's top edge is the cursor, and its text baseline
+      // sits one font size below it, so the chip never reaches up
+      // into the heading above.
+      const chipTop = layout.y + 2;
       doc.setFillColor(accent[0], accent[1], accent[2]);
-      doc.roundedRect(MARGIN, layout.y - SIZE.tiny, chipWidth, SIZE.tiny + 6, 3, 3, 'F');
+      doc.roundedRect(MARGIN, chipTop, chipWidth, SIZE.tiny + 6, 3, 3, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.text(chipText, MARGIN + 6, layout.y + SIZE.tiny);
+      doc.text(chipText, MARGIN + 6, chipTop + SIZE.tiny);
 
       layout.down(SIZE.tiny + 12);
 

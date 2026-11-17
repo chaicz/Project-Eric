@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-11-17T10:27:30.214Z",
+  "passed": 68,
+  "failed": 0,
+  "total": 68,
+  "fixtures": [
+    {
+      "id": "a01-idor",
+      "language": "php",
+      "category": "A01",
+      "label": "Object fetched by a user-supplied id with no ownership check"
+    },
+    {
+      "id": "a02-password-hash",
+      "language": "python",
+      "category": "A02",
+      "label": "Password stored with a fast digest instead of a password KDF"
+    },
+    {
+      "id": "a02-secret-literal",
+      "language": "javascript",
+      "category": "A02",
+      "label": "Credential assigned a literal value in source"
+    },
+    {
+      "id": "a02-tls-verification",
+      "language": "python",
+      "category": "A02",
+      "label": "TLS certificate verification disabled on an outbound request"
+    },
+    {
+      "id": "a03-sql-concat",
+      "language": "javascript",
+      "category": "A03",
+      "label": "SQL statement built by template-literal interpolation"
+    },
+    {
+      "id": "a03-command-shell",
+      "language": "python",
+      "category": "A03",
+      "label": "Command executed through a shell with user input"
+    },
+    {
+      "id": "a03-eval",
+      "language": "php",
+      "category": "A03",
+      "label": "User input evaluated as code"
+    },
+    {
+      "id": "a04-no-rate-limit",
+      "language": "javascript",
+      "category": "A04",
+      "label": "Login handler with no rate limiting"
+    },
+    {
+      "id": "a04-csrf-disabled",
+      "language": "python",
+      "category": "A04",
+      "label": "CSRF protection disabled"
+    },
+    {
+      "id": "a05-cors-wildcard",
+      "language": "javascript",
+      "category": "A05",
+      "label": "CORS allows every origin"
+    },
+    {
+      "id": "a05-stack-trace",
+      "language": "javascript",
+      "category": "A05",
+      "label": "Exception detail returned to the client"
+    },
+    {
+      "id": "a07-auth-bypass",
+      "language": "javascript",
+      "category": "A07",
+      "label": "Protected route continues without a valid session"
+    },
+    {
+      "id": "a07-cookie-flags",
+      "language": "python",
+      "category": "A07",
+      "label": "Session cookie without HttpOnly or Secure"
+    },
+    {
+      "id": "a08-pickle",
+      "language": "python",
+      "category": "A08",
+      "label": "Untrusted data deserialised with pickle"
+    },
+    {
+      "id": "a08-unverified-download",
+      "language": "python",
+      "category": "A08",
+      "label": "Downloaded script piped straight into a shell"
+    },
+    {
+      "id": "a09-secret-logged",
+      "language": "python",
+      "category": "A09",
+      "label": "Password written to the log"
+    },
+    {
+      "id": "a10-ssrf",
+      "language": "python",
+      "category": "A10",
+      "label": "Outbound request to a user-supplied URL"
+    },
+    {
+      "id": "a10-open-redirect",
+      "language": "javascript",
+      "category": "A10",
+      "label": "Redirect target taken from the request"
+    }
+  ],
+  "failures": []
+}

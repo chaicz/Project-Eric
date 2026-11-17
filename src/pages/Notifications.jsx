@@ -97,6 +97,15 @@ const Notifications = () => {
     warning: { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-l-amber-500' },
     success: { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-l-emerald-500' },
     info: { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-l-blue-500' },
+    // Aliases for the shapes the API / mock server returns. Without
+    // these the lookup below is undefined and the page crashes.
+    vulnerability: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-l-red-500' },
+    critical: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-l-red-500' },
+    scan: { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-l-emerald-500' },
+    threat: { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-l-amber-500' },
+    report: { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-l-blue-500' },
+    team: { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-l-blue-500' },
+    dependency: { icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-l-amber-500' },
   };
 
   const filteredNotifications = notifications.filter(notif => {
@@ -262,7 +271,7 @@ const Notifications = () => {
           </div>
         ) : (
           filteredNotifications.map((notif) => {
-            const config = typeConfig[notif.type];
+            const config = typeConfig[notif.type] || typeConfig.info;
             const Icon = config.icon;
             
             return (

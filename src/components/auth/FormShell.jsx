@@ -21,14 +21,30 @@ import React from 'react';
 const FormShell = ({ children, mounted = true, shake = false }) => {
   return (
     <div className="w-full lg:w-1/2 flex items-center justify-center px-6 sm:px-10 py-10 relative overflow-y-auto">
-      {/* Readability scrim — a soft white wash over the slideshow. It is
+      {/* Readability scrim — a soft wash over the slideshow. It is
           stronger than the old 18% tint because the form has to stay
-          legible over any of the twelve background images. */}
+          legible over any of the twelve background images.
+
+          In dark mode the wash is a dark one. The global dark-mode rules
+          repaint the slate text colours for a dark surface, so a light
+          scrim underneath them left the form card with pale text on a
+          pale panel — the heading and the helper copy both disappeared. */}
       <div
         className="absolute inset-0 backdrop-blur-[3px]"
         style={{
           background:
             'linear-gradient(135deg, rgba(255,255,255,0.62) 0%, rgba(248,250,252,0.74) 50%, rgba(255,255,255,0.60) 100%)',
+        }}
+        aria-hidden="true"
+      />
+      {/* The dark-mode counterpart of the scrim above. It is a separate
+          element rather than a second inline style on the same one,
+          because the inline `background` always wins over a class. */}
+      <div
+        className="absolute inset-0 backdrop-blur-[3px] hidden dark:block"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(11,18,32,0.72) 0%, rgba(15,23,42,0.82) 50%, rgba(11,18,32,0.70) 100%)',
         }}
         aria-hidden="true"
       />
@@ -62,10 +78,10 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
           />
         </div>
         <div className="leading-tight">
-          <div className="text-base font-bold text-slate-900 drop-shadow-sm">
+          <div className="text-base font-bold text-slate-900 dark:text-slate-100 drop-shadow-sm">
             Project Eric
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-slate-600">
+          <div className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-400">
             Security Platform
           </div>
         </div>
@@ -78,11 +94,11 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
         }`}
       >
         <div
-          className="p-[1.5px] rounded-3xl bg-gradient-to-br from-white/90 via-white/60 to-white/90 shadow-[0_28px_70px_-20px_rgba(15,23,42,0.35)] backdrop-blur-sm"
-          style={{ animation: 'auth-fade-up 0.6s ease-out 100ms both' }}
+          className="p-[1.5px] rounded-3xl bg-gradient-to-br from-white/90 via-white/60 to-white/90 dark:from-slate-700/80 dark:via-slate-800/60 dark:to-slate-700/80 shadow-[0_28px_70px_-20px_rgba(15,23,42,0.35)] backdrop-blur-sm"
+          style={{ animation: 'auth-fade-up 0.6s ease-out 100ms forwards' }}
         >
           <div
-            className={`rounded-[22.5px] px-9 sm:px-11 py-10 relative backdrop-blur-2xl bg-white/95 border border-white/70 shadow-inner ${
+            className={`rounded-[22.5px] px-9 sm:px-11 py-10 relative backdrop-blur-2xl bg-white/95 dark:bg-slate-900/95 border border-white/70 dark:border-slate-700/70 shadow-inner ${
               shake ? 'animate-shake' : ''
             }`}
           >
@@ -92,8 +108,8 @@ const FormShell = ({ children, mounted = true, shake = false }) => {
 
         {/* Subtle "powered by" line under the card */}
         <p
-          className="text-center text-xs text-slate-600 mt-6 tracking-wide font-medium"
-          style={{ animation: 'auth-fade-up 0.6s ease-out 500ms both' }}
+          className="text-center text-xs text-slate-600 dark:text-slate-400 mt-6 tracking-wide font-medium"
+          style={{ animation: 'auth-fade-up 0.6s ease-out 500ms forwards' }}
         >
           Protected by Project Eric's zero-trust security framework
         </p>

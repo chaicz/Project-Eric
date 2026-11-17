@@ -260,6 +260,9 @@ export const AppProvider = ({ children }) => {
 
   const register = async ({ name, email, password }) => {
     // The API stores the display name split across first/last name.
+    // A one-word display name has no last name, but the database column
+    // is NOT NULL, so an empty string is stored rather than rejecting a
+    // valid account because the user did not type a surname.
     const trimmed = String(name || '').trim();
     const parts = trimmed.split(/\s+/);
     const firstName = parts.shift() || trimmed;
@@ -270,28 +273,6 @@ export const AppProvider = ({ children }) => {
     if (!user) throw new Error('Registration succeeded but no user was returned.');
     // Keep the full display name the user typed.
     setUser({ ...user, name: trimmed || user.name });
-    return user;
-  };
-
-  const loginWithOAuth = async (provider) => {
-    // The OAuth endpoint expects an oauth id and an email. Real provider
-    // SDKs would supply these; the demo accounts are seeded to match.
-    const accounts = {
-      google: { email: 'developer@gmail.com', firstName: 'Google', lastName: 'Developer' },
-      github: { email: 'developer@github.com', firstName: 'GitHub', lastName: 'Developer' },
-    };
-    const account = accounts[provider];
-    if (!account) throw new Error(`Unsupported OAuth provider: ${provider}`);
-
-    const data = await authAPI.oauth(provider, {
-      oauthId: `${provider}-${account.email.split('@')[0]}`,
-      email: account.email,
-      firstName: account.firstName,
-      lastName: account.lastName,
-    });
-    const user = data?.user || null;
-    if (!user) throw new Error('OAuth login succeeded but no user was returned.');
-    setUser(user);
     return user;
   };
 
@@ -323,6 +304,16 @@ export const AppProvider = ({ children }) => {
     let cancelled = false;
     const token = getToken();
     if (!token) {
+      // A preview sign-in has no token — it never created an account.
+      // The browser keeps the preview identity in local storage, so it
+      // survives a reload without the API being involved at all.
+      try {
+        const saved = localStorage.getItem('project-eric_user');
+        const parsed = saved ? JSON.parse(saved) : null;
+        if (parsed?.role === 'preview') return undefined;
+      } catch {
+        /* malformed cache — fall through and clear the session */
+      }
       setUser(null);
       return undefined;
     }
@@ -384,7 +375,6 @@ export const AppProvider = ({ children }) => {
     login,
     loginWithTwoFactor,
     register,
-    loginWithOAuth,
     logout,
     onboarding,
     setOnboarding,

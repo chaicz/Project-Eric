@@ -11,7 +11,8 @@
  */
 
 // API Base URL - Change this to your XAMPP backend URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/project-eric-api/api';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost/project-eric-api/api';
 
 // The root the API is served from, one level above `API_BASE_URL`.
 // Uploaded files (avatars) live there, so their paths are resolved
@@ -30,12 +31,17 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: `${API_BASE_URL}/auth/login`,
     REGISTER: `${API_BASE_URL}/auth/register`,
-    OAUTH: `${API_BASE_URL}/auth/oauth`,
     VALIDATE: `${API_BASE_URL}/auth/validate`,
     FORGOT_PASSWORD: `${API_BASE_URL}/auth/forgot-password`,
     RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
     CHANGE_PASSWORD: `${API_BASE_URL}/auth/change-password`,
     LOGOUT: `${API_BASE_URL}/auth/logout`,
+    // Social sign-in. `PROVIDERS` lists which providers this server has
+    // credentials for, `EXCHANGE` turns the one-time handoff code into
+    // the session.
+    OAUTH_PROVIDERS: `${API_BASE_URL}/auth/oauth/providers`,
+    OAUTH_EXCHANGE: `${API_BASE_URL}/auth/oauth/exchange`,
+    OAUTH_PREVIEW_LOGIN: `${API_BASE_URL}/auth/oauth/preview-login`,
   },
 };
 
@@ -177,15 +183,6 @@ export const authAPI = {
     return apiCall(API_ENDPOINTS.AUTH.VALIDATE);
   },
 
-  oauth: async (provider, oauthData) => {
-    const data = await apiCall(API_ENDPOINTS.AUTH.OAUTH, {
-      method: 'POST',
-      body: JSON.stringify({ provider, ...oauthData }),
-    });
-    if (data?.token) setToken(data.token);
-    return data;
-  },
-
   forgotPassword: async (email) => {
     return apiCall(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
       method: 'POST',
@@ -219,6 +216,72 @@ export const authAPI = {
       // Always drop the local token, even if the server call failed.
       clearToken();
     }
+  },
+
+  /**
+   * Which social sign-in providers this server has credentials for.
+   *
+   * The buttons use this list so a deployment without credentials does
+   * not offer a provider that cannot work.
+   */
+  oauthProviders: async () => {
+    const data = await apiCall(API_ENDPOINTS.AUTH.OAUTH_PROVIDERS);
+    const list = data?.providers;
+    return Array.isArray(list) ? list : [];
+  },
+
+  /**
+   * Finish a social sign-in.
+   *
+   * The API put the session token in a short-lived, HttpOnly cookie and
+   * handed the browser a one-time code. This call sends that code back
+   * and receives the session in the body. The cookie is sent along with
+   * the request, which is why the credentials flag is required.
+   *
+   * A preview sign-in has no token and no database row. The API returns
+   * the verified identity with `isPreview` set, and no token is stored
+   * locally for it.
+   *
+   * @param {string} code The one-time handoff code from the redirect.
+   */
+  oauthExchange: async (code) => {
+    const data = await apiCall(API_ENDPOINTS.AUTH.OAUTH_EXCHANGE, {
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify({ code }),
+    });
+    if (data?.token) setToken(data.token);
+    return data;
+  },
+
+  /**
+   * Sign in with the shared preview account.
+   *
+   * The API creates the account once if it is missing, gives it the
+   * same team and session that a normal account has, and returns a JWT
+   * so every dashboard API treats it like any other signed-in user.
+   */
+  oauthPreviewLogin: async () => {
+    const data = await apiCall(API_ENDPOINTS.AUTH.OAUTH_PREVIEW_LOGIN, {
+      method: 'POST',
+    });
+    if (data?.token) setToken(data.token);
+    return data;
+  },
+
+  /**
+   * The URL that starts a provider sign-in.
+   *
+   * With `preview` set, the server runs the real provider handshake but
+   * stops before it writes anything to the database. The flag is only
+   * accepted on the login page.
+   *
+   * @param {string} provider
+   * @param {{preview?: boolean}} [opts]
+   */
+  oauthStartUrl: (provider, opts = {}) => {
+    const base = `${API_BASE_URL}/auth/oauth/${provider}/start`;
+    return opts.preview ? `${base}?preview=1` : base;
   },
 };
 

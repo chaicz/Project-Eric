@@ -31,6 +31,7 @@ import {
   KeyRound,
   Copy,
   Check,
+  Download,
   AlertCircle,
   ListChecks,
   Wand2,
@@ -47,6 +48,12 @@ import {
   hasGeminiKey,
   resetGeminiModel,
 } from '../services/geminiAdvisor';
+import {
+  buildFixedFileName,
+  downloadTextFile,
+  languageExtension,
+  sourceMimeType,
+} from '../utils/sourceDownload';
 
 // ---------------------------------------------------------------------------
 // Small building blocks
@@ -201,7 +208,7 @@ const GeminiKeyInput = ({ onSaved, compact }) => {
         <button
           type="button"
           onClick={handleSave}
-          className={`${compact ? 'px-3' : 'px-4'} shrink-0 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-sm transition-all`}
+          className={`${compact ? 'px-3' : 'px-4'} shrink-0 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 text-white shadow-sm transition-all`}
         >
           Save
         </button>
@@ -226,8 +233,10 @@ const GeminiKeyInput = ({ onSaved, compact }) => {
  * @param {object} [props.finding]     Required for mode="fix".
  * @param {Array<object>} [props.findings] Required for mode="plan".
  * @param {string} [props.language]
- * @param {string} [props.mode]        Scanner mode: 'code' | 'sql'.
+ * @param {string} [props.scannerMode]  Scanner mode: 'code' | 'sql'.
  * @param {string} [props.dialect]
+ * @param {string} [props.fileName]     Original uploaded source file name.
+ * @param {Function} [props.onApplyFix] Receives the corrected source code.
  * @param {Function} [props.onToast]
  */
 const AiFixPanel = ({
@@ -238,6 +247,8 @@ const AiFixPanel = ({
   language,
   dialect,
   scannerMode = 'code',
+  fileName,
+  onApplyFix,
   onToast,
   compact = false,
 }) => {
@@ -282,6 +293,29 @@ const AiFixPanel = ({
       setLoading(false);
     }
   }, [mode, code, finding, findings, language, scannerMode, dialect, onToast]);
+
+  const downloadFixedSource = useCallback(() => {
+    const fixedCode = String(result?.after || '').trim();
+    if (!fixedCode) {
+      onToast?.('The fix did not include a complete corrected file.', 'warning');
+      return;
+    }
+
+    try {
+      const downloadName = buildFixedFileName(
+        fileName,
+        `scanned-source.${languageExtension(language, scannerMode)}`,
+      );
+      downloadTextFile({
+        content: fixedCode,
+        fileName: downloadName,
+        mimeType: sourceMimeType(language, scannerMode),
+      });
+      onToast?.(`${downloadName} downloaded`, 'success');
+    } catch (error) {
+      onToast?.(`Could not download the fixed file: ${error?.message || String(error)}`, 'error');
+    }
+  }, [result?.after, fileName, language, scannerMode, onToast]);
 
   // ---- No key yet -----------------------------------------------------
   if (!hasKey) {
@@ -421,6 +455,29 @@ const AiFixPanel = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <CodeBlock value={result.before} label="Before — vulnerable" tone="danger" />
               <CodeBlock value={result.after} label="After — fixed" tone="success" />
+            </div>
+          )}
+
+          {result.after && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadFixedSource}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                title="Download the corrected source file"
+              >
+                <Download className="w-3.5 h-3.5" /> Download fixed file
+              </button>
+              {onApplyFix && (
+                <button
+                  type="button"
+                  onClick={() => onApplyFix(result.after)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                  title="Apply the corrected code to the scanner editor"
+                >
+                  <Check className="w-3.5 h-3.5" /> Apply to editor
+                </button>
+              )}
             </div>
           )}
 

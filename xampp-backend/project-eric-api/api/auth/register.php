@@ -22,9 +22,17 @@ $password = $body['password'] ?? '';
 $firstName = sanitizeInput($body['firstName'] ?? '');
 $lastName = sanitizeInput($body['lastName'] ?? '');
 
+// The signup form collects one full-name field. When that name has only
+// one word there is no surname, so the API accepts an empty last name and
+// stores an empty string (the database column is NOT NULL). Explicit
+// first and last names are still supported for other clients.
+if ($lastName === '' && $firstName !== '') {
+    $lastName = '';
+}
+
 // Validation
-if (empty($email) || empty($password) || empty($firstName) || empty($lastName)) {
-    sendError('All fields are required', 400);
+if (empty($email) || empty($password) || empty($firstName)) {
+    sendError('Email, password, and full name are required', 400);
 }
 
 if (!validateEmail($email)) {

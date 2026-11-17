@@ -25,7 +25,6 @@ sendResponse([
         'auth' => [
             'POST /api/auth/login' => 'User login',
             'POST /api/auth/register' => 'User registration',
-            'POST /api/auth/oauth' => 'OAuth authentication',
             'GET /api/auth/validate' => 'Validate JWT token',
             'POST /api/auth/forgot-password' => 'Request password reset',
             'POST /api/auth/reset-password' => 'Reset password with token',

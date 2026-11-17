@@ -38,6 +38,20 @@ const LoadingScreen = () => (
   </div>
 );
 
+/**
+ * Every step carries two gradients.
+ *
+ * `gradient` is the bright one. It is used where the colour sits on a
+ * dark backdrop and carries no text — the gradient-clipped subtitle and
+ * the glow behind the illustration.
+ *
+ * `solidGradient` is the accessible one. White text and white icons are
+ * drawn on top of it, so the fill has to be dark enough for them to
+ * read. The bright shades sit at roughly 2.5:1 against white, which is
+ * below the 4.5:1 WCAG AA threshold for text and below the 3:1
+ * threshold for a meaningful icon, so the solid stops are two or three
+ * shades deeper.
+ */
 const STEPS = [
   {
     title: 'Welcome to Project Eric',
@@ -45,6 +59,7 @@ const STEPS = [
     description: 'Experience the future of secure software development. Built by security experts for developers who care about protecting their applications from day one.',
     icon: Shield,
     gradient: 'from-blue-500 to-cyan-500',
+    solidGradient: 'from-blue-700 to-cyan-800',
     bgGradient: 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20',
     features: ['Enterprise-grade security', 'Real-time threat detection', 'OWASP compliance checks'],
     image: '/Onboarding1.jpg'
@@ -55,6 +70,7 @@ const STEPS = [
     description: 'Our advanced AI engine analyzes your code in real-time, identifying vulnerabilities before they reach production. Powered by machine learning trained on millions of security patterns.',
     icon: ScanSearch,
     gradient: 'from-purple-500 to-pink-500',
+    solidGradient: 'from-purple-700 to-pink-800',
     bgGradient: 'bg-gradient-to-br from-purple-500/20 to-pink-500/20',
     features: ['Automatic vulnerability detection', 'Fix suggestions with code examples', 'Continuous security monitoring'],
     image: '/Onboarding2.jpg'
@@ -65,6 +81,7 @@ const STEPS = [
     description: 'Run your code in a fully isolated environment with network isolation and filesystem sandboxing. Debug with confidence knowing your system is protected.',
     icon: Lock,
     gradient: 'from-emerald-500 to-teal-500',
+    solidGradient: 'from-emerald-700 to-teal-700',
     bgGradient: 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20',
     features: ['Isolated execution environment', 'Network sandboxing', 'Safe debugging experience'],
     image: '/Onboarding3.jpg'
@@ -75,6 +92,7 @@ const STEPS = [
     description: 'Manage your entire development workflow without leaving the IDE. Branch, commit, merge, and collaborate with powerful Git integration.',
     icon: GitBranch,
     gradient: 'from-amber-500 to-orange-500',
+    solidGradient: 'from-amber-700 to-orange-700',
     bgGradient: 'bg-gradient-to-br from-amber-500/20 to-orange-500/20',
     features: ['Visual branch management', 'One-click commits', 'Integrated pull requests'],
     image: '/Onboarding4.jpg'
@@ -85,6 +103,7 @@ const STEPS = [
     description: "You're all set! Your secure development environment is ready. Join thousands of developers who trust Project Eric to build secure, reliable software.",
     icon: Rocket,
     gradient: 'from-rose-500 to-red-500',
+    solidGradient: 'from-rose-700 to-red-700',
     bgGradient: 'bg-gradient-to-br from-rose-500/20 to-red-500/20',
     features: ['24/7 security monitoring', 'Community support', 'Regular security updates'],
     image: '/Onboarding5.jpg'
@@ -367,7 +386,7 @@ const Onboarding = () => {
                 <div className={`transition-all duration-500 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
                   {/* Step Badge — glass pill with stronger blur */}
                   <div className="flex items-center gap-3 mb-6">
-                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r ${step.gradient} text-white shadow-lg backdrop-blur-md border border-white/30`}>
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r ${step.solidGradient} text-white shadow-lg backdrop-blur-md border border-white/30`}>
                       <span className="w-2 h-2 bg-white/70 rounded-full animate-pulse" />
                       Step {currentStep + 1} of {STEPS.length}
                     </span>
@@ -396,11 +415,15 @@ const Onboarding = () => {
                         className="flex items-center gap-4 p-4 bg-white/55 backdrop-blur-xl rounded-2xl border border-white/50 shadow-xl hover:shadow-2xl hover:border-blue-200/80 hover:bg-white/65 transition-all duration-300"
                         style={{ animation: `fade-up 0.5s ease-out ${index * 100}ms both` }}
                       >
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.gradient} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.solidGradient} flex items-center justify-center flex-shrink-0 shadow-lg`}>
                           <CheckCircle className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900 dark:text-slate-100 drop-shadow-sm">{feature}</h3>
+                          {/* The card is a light glass panel in both themes, so
+                              the label stays dark. The `dark:` variant made it
+                              near-white on a near-white card, which is
+                              unreadable. */}
+                          <h3 className="font-semibold text-slate-900 eric-text-on-light drop-shadow-sm">{feature}</h3>
                         </div>
                       </div>
                     ))}
@@ -442,7 +465,7 @@ const Onboarding = () => {
 
                     <button
                       onClick={handleNext}
-                      className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all shadow-lg bg-gradient-to-r ${step.gradient} text-white hover:shadow-xl hover:scale-105 border border-white/20`}
+                      className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all shadow-lg bg-gradient-to-r ${step.solidGradient} text-white hover:shadow-xl hover:scale-105 border border-white/20`}
                     >
                       {isLastStep ? (
                         <>

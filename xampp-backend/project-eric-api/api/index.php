@@ -27,13 +27,18 @@ $routes = [
     // Auth routes
     'auth/login' => 'auth/login.php',
     'auth/register' => 'auth/register.php',
-    'auth/oauth' => 'auth/oauth.php',
     'auth/validate' => 'auth/validate.php',
     'auth/logout' => 'auth/logout.php',
     'auth/forgot-password' => 'auth/forgot-password.php',
     'auth/reset-password' => 'auth/reset-password.php',
     'auth/change-password' => 'auth/change-password.php',
     'auth/onboarding' => 'auth/onboarding.php',
+    // OAuth 2.0 provider sign-in. The provider and the action are
+    // appended to the route, so they are matched separately below.
+    'auth/oauth/providers' => 'auth/oauth.php',
+    'auth/oauth/exchange' => 'auth/oauth-exchange.php',
+    'auth/oauth/quick-login' => 'auth/oauth-quick-login.php',
+    'auth/oauth/preview-login' => 'auth/oauth-preview-login.php',
 
     // Public routes
     'features' => 'features/index.php',
@@ -71,10 +76,28 @@ $routes = [
 if (isset($routes[$route])) {
     require_once __DIR__ . '/' . $routes[$route];
 } else {
-    // Try to find module-level route
-    $moduleFile = __DIR__ . '/' . $module . '/' . ($endpoint ?: 'index.php');
-    if (file_exists($moduleFile)) {
-        require_once $moduleFile;
+    // OAuth routes carry the provider and action as extra path segments:
+    //   /auth/oauth/google/start
+    //   /auth/oauth/github/callback
+    $oauthProvider = strtolower((string) ($parts[2] ?? ''));
+    $oauthAction = strtolower((string) ($parts[3] ?? ''));
+    if (
+        $module === 'auth'
+        && $endpoint === 'oauth'
+        && in_array($oauthProvider, ['google', 'github'], true)
+    ) {
+        if ($oauthAction === 'start') {
+            $_GET['provider'] = $oauthProvider;
+            require_once __DIR__ . '/auth/oauth-start.php';
+        } elseif ($oauthAction === 'callback') {
+            $_GET['provider'] = $oauthProvider;
+            require_once __DIR__ . '/auth/oauth-callback.php';
+        } else {
+            sendError('Endpoint not found', 404);
+        }
+    } elseif (file_exists(__DIR__ . '/' . $module . '/' . ($endpoint ?: 'index.php'))) {
+        // Try to find module-level route
+        require_once __DIR__ . '/' . $module . '/' . ($endpoint ?: 'index.php');
     } else {
         sendError('Endpoint not found', 404);
     }

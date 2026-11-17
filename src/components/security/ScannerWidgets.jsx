@@ -549,7 +549,7 @@ export const CategoryCard = ({
               <div>
                 <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1.5">Count</p>
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  {finding.count} issue{finding.count === 1 ? '' : 's'}
+                  {`${finding.count} ${finding.count === 1 ? 'issue' : 'issues'}`}
                 </p>
               </div>
             </div>

@@ -41,21 +41,37 @@ import { severityScale } from './SecurityProWidgets';
 // ring gives the number a visual weight and the band label gives it a
 // meaning.
 // ---------------------------------------------------------------------------
+// Hex fills for SVG strokes. Tailwind classes like `bg-rose-500` are not
+// valid SVG `stroke` values, so the donut previously rendered its
+// segments in black. One map keeps the chart in sync with the scale.
+const SEVERITY_HEX = {
+  critical: '#f43f5e',
+  high: '#f97316',
+  medium: '#f59e0b',
+  low: '#3b82f6',
+  info: '#64748b',
+};
+
 export const ScoreRing = ({
-  score = 0,
+  score = null,
   size = 168,
   stroke = 12,
   label = 'Secure score',
   sublabel = null,
+  idle = false,
 }) => {
+  const hasScore = !idle && score !== null && score !== undefined;
   const clamped = Math.max(0, Math.min(100, Number(score) || 0));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (clamped / 100) * circumference;
+  // With no score there is nothing to fill — the ring stays empty so an
+  // unscanned workspace never reads as a verdict.
+  const offset = hasScore ? circumference - (clamped / 100) * circumference : circumference;
 
-  const band =
-    clamped >= 85
-      ? { label: 'Strong posture', tone: 'text-emerald-600 dark:text-emerald-400', from: '#10b981', to: '#14b8a6', Icon: ShieldCheck }
+  const band = !hasScore
+    ? { label: 'No scan yet', tone: 'text-slate-400 dark:text-slate-500', from: '#94a3b8', to: '#64748b', Icon: ShieldCheck }
+    : clamped >= 85
+    ? { label: 'Strong posture', tone: 'text-emerald-600 dark:text-emerald-400', from: '#10b981', to: '#14b8a6', Icon: ShieldCheck }
       : clamped >= 65
       ? { label: 'Needs attention', tone: 'text-amber-600 dark:text-amber-400', from: '#f59e0b', to: '#f97316', Icon: Target }
       : { label: 'Action required', tone: 'text-rose-600 dark:text-rose-400', from: '#f43f5e', to: '#ef4444', Icon: Flame };
@@ -107,7 +123,7 @@ export const ScoreRing = ({
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-4xl font-black tabular-nums leading-none text-slate-900 dark:text-slate-50">
-            {clamped}
+            {hasScore ? clamped : '—'}
           </span>
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">
             / 100
@@ -123,7 +139,7 @@ export const ScoreRing = ({
           {band.label}
         </span>
         <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-          {sublabel || label}
+          {hasScore ? sublabel || label : 'Run a scan to get a score'}
         </span>
       </div>
     </div>
@@ -137,22 +153,28 @@ export const ScoreRing = ({
 // detail; this is the answer.
 // ---------------------------------------------------------------------------
 export const HeroBand = ({
-  score = 0,
+  score = null,
   findings = 0,
   criticals = 0,
   resolved = 0,
   scannedAt = null,
   onRunScan = null,
   children = null,
+  idle = false,
 }) => {
-  const band =
-    score >= 85
-      ? { label: 'Strong posture', tone: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', Icon: ShieldCheck }
-      : score >= 65
+  const hasScore = !idle && score !== null && score !== undefined;
+  const numericScore = Number(score) || 0;
+  const band = !hasScore
+    ? { label: 'No scan yet', tone: 'text-slate-500 dark:text-slate-400', chip: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', Icon: ShieldCheck }
+    : numericScore >= 85
+    ? { label: 'Strong posture', tone: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300', Icon: ShieldCheck }
+      : numericScore >= 65
       ? { label: 'Needs attention', tone: 'text-amber-600 dark:text-amber-400', chip: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300', Icon: Target }
       : { label: 'Action required', tone: 'text-rose-600 dark:text-rose-400', chip: 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300', Icon: Flame };
 
-  const summary = criticals > 0
+  const summary = !hasScore
+    ? 'No scan recorded yet — run your first scan to get a verdict.'
+    : criticals > 0
     ? `${criticals} critical ${criticals === 1 ? 'finding needs' : 'findings need'} immediate attention.`
     : findings > 0
     ? `${findings} open ${findings === 1 ? 'finding' : 'findings'}, none critical.`
@@ -202,7 +224,7 @@ export const HeroBand = ({
 
         {/* Right — the score and the action */}
         <div className="flex items-center gap-5 lg:gap-6 flex-shrink-0">
-          <ScoreRing score={score} size={132} stroke={10} />
+          <ScoreRing score={score} size={132} stroke={10} idle={idle} />
           {onRunScan && (
             <button
               type="button"
@@ -342,7 +364,7 @@ export const CategoryHeatGrid = ({ rows = [], onSelect, activeCategory = 'all' }
               style={{
                 opacity: total ? intensity * 0.32 : 0,
                 background: scale
-                  ? `linear-gradient(135deg, ${scale.bar.replace('bg-', '')}, transparent)`
+                  ? `linear-gradient(135deg, ${SEVERITY_HEX[worst] || '#94a3b8'}33, transparent)`
                   : 'transparent',
                 filter: 'blur(22px)',
               }}
@@ -632,7 +654,7 @@ export const DonutBreakdown = ({ counts = {}, total = 0, size = 150 }) => {
                 r={radius}
                 fill="none"
                 strokeWidth={16}
-                stroke={s.scale.bar.replace('bg-', '')}
+                stroke={SEVERITY_HEX[s.key] || '#64748b'}
                 strokeDasharray={dash}
                 strokeDashoffset={-offset}
                 style={{ transition: 'stroke-dasharray 900ms ease-out, stroke-dashoffset 900ms ease-out' }}

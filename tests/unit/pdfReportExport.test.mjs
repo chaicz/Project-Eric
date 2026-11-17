@@ -115,6 +115,17 @@ const startReader = () => {
     '            "title": info.get("title") or "",',
     '            "author": info.get("author") or "",',
     '            "creator": info.get("creator") or "",',
+    '            "spans": [',
+    '                {',
+    '                    "page": page_number,',
+    '                    "text": span.get("text") or "",',
+    '                    "bbox": list(span.get("bbox") or []),',
+    '                }',
+    '                for page_number, page in enumerate(doc, start=1)',
+    '                for block in page.get_text("dict").get("blocks", [])',
+    '                for line in block.get("lines", [])',
+    '                for span in line.get("spans", [])',
+    '            ],',
     '        }',
     '    except Exception as err:',
     '        payload = {"error": str(err)}',
@@ -167,7 +178,7 @@ const stopReader = () => {
  * Read the text of every page of a PDF.
  *
  * @param {Buffer} buffer
- * @returns {{pages: number, text: string, perPage: string[], title: string, author: string, creator: string}}
+ * @returns {{pages: number, text: string, perPage: string[], title: string, author: string, creator: string, spans: Array<{page: number, text: string, bbox: number[]}>}}
  */
 const readPdf = async (buffer) => {
   const tmp = path.resolve('logs/pdf-export-test.pdf');
@@ -333,6 +344,59 @@ describe('OWASP scan → PDF export', () => {
       parsed.text.includes('Verify the fix'),
       'the verification checklist is missing'
     );
+  });
+
+  it('keeps the before/after chips clear of the reference heading', async () => {
+    // The chip used to be drawn high enough to overlap the heading
+    // above it. The heading and the chip are separate text runs, so
+    // their bounding boxes must not touch.
+    //
+    // This builds its own report: the shared `parsed` object is
+    // overwritten by the later suites, so it cannot be relied on here.
+    const withFix = buildScanReportPdf({
+      fileName: 'vulnerable-express.js',
+      languageLabel: 'Node / Express',
+      mode: 'code',
+      code: VULNERABLE_CODE,
+      results,
+      ttlHours: 24,
+    });
+    const fixParsed = await readPdf(await toBuffer(withFix.blob));
+
+    const heading = fixParsed.spans.find(
+      (span) => span.text.trim() === 'Reference implementation'
+    );
+    assert.ok(heading, 'the "Reference implementation" heading is missing');
+
+    const chips = fixParsed.spans.filter((span) => {
+      const text = span.text.trim().toUpperCase();
+      return text.startsWith('BEFORE') || text.startsWith('AFTER');
+    });
+    assert.ok(chips.length >= 2, 'the before/after chips are missing');
+
+    chips.forEach((chip) => {
+      const [chipLeft, chipTop, chipRight, chipBottom] = chip.bbox;
+
+      // The chip belongs to the closest heading above it. A chip that
+      // starts on the next page is not compared with a heading from the
+      // previous page.
+      const headingAbove = fixParsed.spans
+        .filter((span) => span.text.trim() === 'Reference implementation')
+        .filter((span) => span.bbox[1] < chipTop && span.page === chip.page)
+        .sort((a, b) => b.bbox[1] - a.bbox[1])[0];
+
+      if (!headingAbove) return;
+
+      const [headLeft, headTop, headRight, headBottom] = headingAbove.bbox;
+
+      const overlapsHorizontally = chipLeft < headRight && chipRight > headLeft;
+      const overlapsVertically = chipTop < headBottom && chipBottom > headTop;
+
+      assert.ok(
+        !(overlapsHorizontally && overlapsVertically),
+        `the "${chip.text.trim()}" chip overlaps the "Reference implementation" heading`
+      );
+    });
   });
 
   it('shows the categories that passed', async () => {

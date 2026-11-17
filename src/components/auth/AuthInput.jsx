@@ -61,7 +61,7 @@ const AuthInput = ({
 
   // The floated label sits on the field's own surface, so it must match
   // that surface or a visible seam appears across the border.
-  const labelBg = isFloating ? 'bg-white' : 'bg-transparent';
+  const labelBg = isFloating ? 'bg-white dark:bg-slate-900' : 'bg-transparent';
 
   return (
     <div
@@ -106,12 +106,12 @@ const AuthInput = ({
           autoComplete={autoComplete}
           className={`w-full ${
             Icon ? 'pl-12' : 'pl-4'
-          } ${rightAccessory ? 'pr-12' : 'pr-4'} pt-5 pb-3 rounded-xl border bg-white text-slate-900 text-[15px] placeholder-slate-400 outline-none transition-all duration-200 ${
+          } ${rightAccessory ? 'pr-12' : 'pr-4'} pt-5 pb-3 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-[15px] placeholder-slate-400 outline-none transition-all duration-200 ${
             hasError
-              ? 'border-red-400 ring-2 ring-red-100 bg-red-50/60'
+              ? 'border-red-400 ring-2 ring-red-100 dark:ring-red-500/20 bg-red-50/60 dark:bg-red-500/10'
               : focused
-              ? 'border-indigo-500 ring-4 ring-indigo-100/80 shadow-[0_4px_18px_-6px_rgba(99,102,241,0.35)]'
-              : 'border-slate-300 hover:border-slate-400 shadow-[0_2px_8px_-3px_rgba(15,23,42,0.06)]'
+              ? 'border-indigo-500 ring-4 ring-indigo-100/80 dark:ring-indigo-500/20 shadow-[0_4px_18px_-6px_rgba(99,102,241,0.35)]'
+              : 'border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 shadow-[0_2px_8px_-3px_rgba(15,23,42,0.06)]'
           }`}
           placeholder={focused ? placeholder : ''}
         />

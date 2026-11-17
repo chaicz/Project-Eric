@@ -72,9 +72,17 @@ import ReportReadyModal from '../components/ReportReadyModal';
 import { buildScanReportPdf } from '../services/pdfReport';
 import { buildScanReportCsv } from '../services/csvReport';
 import { runDetectors } from '../utils/owaspDetectors';
+import { runProfileScan } from '../utils/owaspHardMode';
+import HardModeToggle from '../components/security/HardModeToggle';
 import { detectCodeLanguage } from '../utils/fileLanguage';
 import { readSourceFileFromEvent, SOURCE_FILE_ACCEPT } from '../utils/sourceUpload';
-import { highlight, highlightLanguage } from '../utils/syntaxHighlight';
+import {
+  buildFixedFileName,
+  downloadTextFile,
+  languageExtension,
+  sourceMimeType,
+} from '../utils/sourceDownload';
+import { highlight } from '../utils/syntaxHighlight';
 import { CODE_LANGUAGES, SQL_DIALECTS, scannerLanguageLabel } from '../utils/scannerLanguages';
 import { CategoryCard, statusStyle } from '../components/security/ScannerWidgets';
 import {
@@ -302,10 +310,19 @@ const hashed = md5(password);
 
 const getSampleCode = (mode, language, dialect) => {
   if (mode === 'sql') {
-    if (dialect === 'postgresql') {
+    // The dialect id is `postgres` (see SQL_DIALECTS in
+    // utils/scannerLanguages.js). It used to be compared against
+    // `postgresql`, so this branch never ran and the PostgreSQL sample
+    // was never actually reachable.
+    if (dialect === 'postgres') {
+      // The sample is plain SQL text the user reads and edits, so the
+      // placeholders are written out literally. Using `${userId}` here
+      // would interpolate a JavaScript variable that does not exist and
+      // threw "userId is not defined" the moment the PostgreSQL sample
+      // was loaded.
       return `-- PostgreSQL — paste your own queries
-SELECT * FROM users WHERE id = '${userId}';
-UPDATE accounts SET balance = balance - ${amount} WHERE id = ${userId};
+SELECT * FROM users WHERE id = '" + userId + "';
+UPDATE accounts SET balance = balance - " + amount + " WHERE id = " + userId;
 `;
     }
     return SAMPLE_SQL;
@@ -420,11 +437,13 @@ const Instrument = ({ icon: Icon, title, subtitle, children, action, className =
 // The scanner
 // ---------------------------------------------------------------------------
 const OWASPScanner = () => {
-  const { showToast, lastScanResult, setLastScanResult, markScanUnpersisted, clearUnpersistedScan } =
+  const { showToast } = useToast();
+  const { lastScanResult, setLastScanResult, markScanUnpersisted, clearUnpersistedScan } =
     useApp();
   const [mode, setMode] = useState('code');
   const [language, setLanguage] = useState('javascript');
   const [dialect, setDialect] = useState('generic');
+  const [hardMode, setHardMode] = useState(false);
   const [code, setCode] = useState(() => getSampleCode('code', 'javascript', 'generic'));
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -442,6 +461,7 @@ const OWASPScanner = () => {
 
   // File upload --------------------------------------------------------
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [fixedSource, setFixedSource] = useState('');
   const fileInputRef = useRef(null);
 
   // PDF report ---------------------------------------------------------
@@ -554,7 +574,7 @@ const OWASPScanner = () => {
   }, [results?.scannedAt, recentScans]);
 
   const highlightedHTML = useMemo(
-    () => highlight(code, highlightLanguage(language, mode, dialect)),
+    () => highlight(code, language, mode, dialect),
     [code, language, mode, dialect]
   );
 
@@ -583,7 +603,16 @@ const OWASPScanner = () => {
 
     const start = performance.now();
     try {
-      const findings = await runDetectors(code, mode, mode === 'sql' ? dialect : language, ({ done, total, latest }) => {
+      // Hard mode swaps the detector set for the strict profile: lower
+      // thresholds, severity floors, the defence-in-depth rule tier and
+      // the mandatory-control check. Both paths report the same finding
+      // shape, so everything downstream is unchanged.
+      const scanFn = hardMode
+        ? (src, m, lang, onProgress) =>
+            runProfileScan(src, lang, { profile: 'hard', onProgress }).then((r) => r.findings)
+        : runDetectors;
+
+      const findings = await scanFn(code, mode, mode === 'sql' ? dialect : language, ({ done, total, latest }) => {
         if (scanAbortRef.current) return;
         setProgress(Math.round((done / total) * 100));
         setResults((prev) => {
@@ -602,6 +631,7 @@ const OWASPScanner = () => {
             mode,
             language: mode === 'sql' ? dialect : language,
             languageLabel,
+            profile: hardMode ? 'hard' : 'standard',
           };
         });
       });
@@ -625,6 +655,7 @@ const OWASPScanner = () => {
         mode,
         language: mode === 'sql' ? dialect : language,
         languageLabel,
+        profile: hardMode ? 'hard' : 'standard',
         // Saved inputs so the destination pages can show what was scanned
         // and let the user re-run the scan from there.
         snippetPreview: code.split('\n').slice(0, 6).join('\n'),
@@ -635,7 +666,10 @@ const OWASPScanner = () => {
       // Share with the rest of the app so the Analysis / Threats /
       // Reports pages can show this result without a re-scan.
       setLastScanResult(finalResult);
-      showToast(`OWASP scan complete · score ${score}/100`, 'success');
+      showToast(
+        `OWASP scan complete · score ${score}/100${hardMode ? ' · hard mode' : ''}`,
+        'success',
+      );
 
       // Persist the scan to the XAMPP/MySQL backend so the dashboard and
       // the data pages read the same stored state. A failure here must not
@@ -743,13 +777,64 @@ const OWASPScanner = () => {
       link.remove();
       // The object URL is released on the next tick so the download has
       // started before it is revoked.
-      setTimeout(() => URL.revokeObject(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       showToast('CSV summary downloaded', 'success');
     } catch (error) {
       showToast(`Could not build the CSV: ${error?.message || String(error)}`, 'error');
     }
   }, [results, mode, languageLabel, uploadedFile, showToast]);
+
+  // ---- Download the uploaded or edited source --------------------------
+  const handleDownloadSource = useCallback(() => {
+    if (!code.trim()) {
+      showToast('There is no source code to download.', 'warning');
+      return;
+    }
+
+    try {
+      const originalName = uploadedFile?.name;
+      const fileName = originalName
+        ? originalName
+        : `scanned-source.${languageExtension(language, mode)}`;
+
+      downloadTextFile({
+        content: code,
+        fileName,
+        mimeType: sourceMimeType(language, mode),
+      });
+
+      showToast(`${fileName} downloaded`, 'success');
+    } catch (error) {
+      showToast(`Could not download the source: ${error?.message || String(error)}`, 'error');
+    }
+  }, [code, language, mode, uploadedFile?.name, showToast]);
+
+  // ---- Download the source with the generated fix applied --------------
+  const handleDownloadFixedSource = useCallback(() => {
+    const fixedCode = String(fixedSource || '').trim();
+    if (!fixedCode) {
+      showToast('Generate a fix before downloading the corrected file.', 'warning');
+      return;
+    }
+
+    try {
+      const fileName = buildFixedFileName(
+        uploadedFile?.name,
+        `scanned-source.${languageExtension(language, mode)}`,
+      );
+
+      downloadTextFile({
+        content: fixedCode,
+        fileName,
+        mimeType: sourceMimeType(language, mode),
+      });
+
+      showToast(`${fileName} downloaded`, 'success');
+    } catch (error) {
+      showToast(`Could not download the fixed file: ${error?.message || String(error)}`, 'error');
+    }
+  }, [fixedSource, language, mode, uploadedFile?.name, showToast]);
 
   const handleCopy = async () => {
     try {
@@ -768,6 +853,7 @@ const OWASPScanner = () => {
     setCode('');
     setResults(null);
     setUploadedFile(null);
+    setFixedSource('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -796,6 +882,7 @@ const OWASPScanner = () => {
     if (detected.mode === 'code') setLanguage(detected.language);
     setResults(null);
     setExpanded(null);
+    setFixedSource('');
 
     showToast(`Loaded ${result.fileName} — ${detected.label} detected`, 'success');
   }, [showToast]);
@@ -907,6 +994,8 @@ const OWASPScanner = () => {
           totalIssues: results.totalIssues,
           scanTime: results.scanTime,
           scannedAt: results.scannedAt,
+          pageCount: built.pageCount,
+          sizeBytes: built.sizeBytes,
         },
       });
     } catch (error) {
@@ -1006,6 +1095,8 @@ const OWASPScanner = () => {
             <div className="xl:ml-auto flex items-center gap-2 flex-wrap">
               <ModePicker mode={mode} onChange={setMode} />
 
+              <HardModeToggle enabled={hardMode} onChange={setHardMode} />
+
               <button
                 type="button"
                 onClick={runScan}
@@ -1014,7 +1105,7 @@ const OWASPScanner = () => {
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   isRunning
                     ? 'bg-amber-500 text-white'
-                    : 'bg-gradient-to-r from-emerald-500 to-blue-500 text-white hover:shadow-emerald-500/30 hover:-translate-y-0.5'
+                    : 'bg-gradient-to-r from-emerald-700 to-blue-600 text-white hover:shadow-emerald-500/30 hover:-translate-y-0.5'
                 }`}
               >
                 {isRunning ? (
@@ -1187,14 +1278,24 @@ const OWASPScanner = () => {
               <Instrument
                 icon={Gauge}
                 title="Secure score"
-                subtitle={results ? results.summary : 'Awaiting a scan'}
+                subtitle={
+                  isRunning
+                    ? 'Scanning…'
+                    : results
+                    ? results.summary
+                    : 'Awaiting a scan'
+                }
               >
                 <div className="flex justify-center py-1">
                   <ScoreGauge
-                    score={results?.score ?? 0}
+                    score={results?.score ?? null}
                     summary={results?.summary}
                     findings={results?.totalIssues ?? 0}
+                    running={isRunning}
+                    completed={results?.findings?.length ?? 0}
+                    total={10}
                     size={160}
+                    idle={!results && !isRunning}
                   />
                 </div>
               </Instrument>
@@ -1317,6 +1418,25 @@ const OWASPScanner = () => {
                     <Upload className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Upload</span>
                   </button>
+                  {fixedSource && (
+                    <button
+                      type="button"
+                      onClick={handleDownloadFixedSource}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+                      title="Download the source file with the applied fix"
+                    >
+                      <Download className="w-4 h-4" /> Download fixed file
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleDownloadSource}
+                    disabled={!code.trim()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Download the current source file"
+                  >
+                    <Download className="w-4 h-4" /> Download source
+                  </button>
                   <button
                     type="button"
                     onClick={handleCopy}
@@ -1413,7 +1533,7 @@ const OWASPScanner = () => {
                   onScroll={syncEditorScroll}
                   spellCheck={false}
                   placeholder={mode === 'sql' ? 'Paste your SQL here (one or more queries)…' : 'Paste your code here…'}
-                  className={`relative block w-full resize-y p-4 text-[12.5px] leading-relaxed font-mono bg-transparent text-transparent caret-emerald-200 placeholder:text-slate-500 focus:outline-none selection:bg-blue-500/40 ${
+                  className={`code-overlay-textarea relative block w-full resize-y p-4 text-[12.5px] leading-relaxed font-mono bg-transparent text-transparent caret-emerald-200 placeholder:text-slate-500 focus:outline-none selection:bg-blue-500/40 whitespace-pre-wrap break-words overflow-auto ${
                     focusMode ? 'min-h-[78vh]' : 'min-h-[460px] max-h-[680px]'
                   }`}
                   style={{ tabSize: 2, WebkitTextFillColor: 'transparent' }}
@@ -1491,14 +1611,16 @@ const OWASPScanner = () => {
                   {results && (
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        results.score >= 85
+                        isRunning
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+                          : results.score >= 85
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                           : results.score >= 65
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
                           : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
                       }`}
                     >
-                      {results.summary}
+                      {isRunning ? 'Scanning…' : results.summary}
                     </span>
                   )}
                 </header>
@@ -1508,6 +1630,7 @@ const OWASPScanner = () => {
                     totalIssues={results?.totalIssues ?? 0}
                     fail={summary.fail}
                     warn={summary.warn}
+                    idle={!results && !isRunning}
                   />
 
                   {results && !results.running && (
@@ -1644,6 +1767,12 @@ const OWASPScanner = () => {
                                     language={mode === 'sql' ? dialect : language}
                                     dialect={dialect}
                                     scannerMode={mode}
+                                    fileName={uploadedFile?.name}
+                                    onApplyFix={(fixedCode) => {
+                                      setFixedSource(fixedCode);
+                                      setCode(fixedCode);
+                                      showToast('Fixed code applied to the editor', 'success');
+                                    }}
                                     onToast={showToast}
                                     compact
                                   />
@@ -1728,6 +1857,12 @@ const OWASPScanner = () => {
                         language={mode === 'sql' ? dialect : language}
                         dialect={dialect}
                         scannerMode={mode}
+                        fileName={uploadedFile?.name}
+                        onApplyFix={(fixedCode) => {
+                          setFixedSource(fixedCode);
+                          setCode(fixedCode);
+                          showToast('Fixed code applied to the editor', 'success');
+                        }}
                         onToast={showToast}
                       />
                     </div>
@@ -1782,7 +1917,11 @@ const OWASPScanner = () => {
       {/* The PDF report popup. */}
       {report && (
         <ReportReadyModal
-          report={report}
+          blob={report.blob}
+          fileName={report.fileName}
+          meta={report.meta}
+          onDownloadCsv={handleExportCsv}
+          onToast={showToast}
           onClose={() => setReport(null)}
         />
       )}

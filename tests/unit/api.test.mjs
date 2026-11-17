@@ -184,10 +184,19 @@ describe('services/api — authAPI', () => {
     assert.equal(getToken(), 'jwt3');
   });
 
-  it('oauth stores the token', async () => {
-    restoreFetch = mockFetch(() => jsonResponse({ success: true, data: { token: 'jwt4' } }));
-    await authAPI.oauth('google', { email: 'a@b.c' });
-    assert.equal(getToken(), 'jwt4');
+  it('register sends the full name fields used by the signup form', async () => {
+    let seen;
+    restoreFetch = mockFetch((url, options) => {
+      seen = options;
+      return jsonResponse({ success: true, data: { token: 'jwt4' } });
+    });
+    await authAPI.register({ firstName: 'chai', lastName: '', email: 'chai@example.com', password: 'pw' });
+    assert.deepEqual(JSON.parse(seen.body), {
+      firstName: 'chai',
+      lastName: '',
+      email: 'chai@example.com',
+      password: 'pw',
+    });
   });
 
   it('logout clears the token even when the server call fails', async () => {

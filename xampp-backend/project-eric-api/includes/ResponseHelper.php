@@ -72,7 +72,7 @@ function generateToken($length = 32) {
  *
  * The dashboard's `AppContext` stores a user object with this exact shape,
  * so the API returns it verbatim instead of the raw DB columns. Keeping
- * the mapping in one place stops the three auth endpoints (login, oauth,
+ * the mapping in one place stops the auth endpoints (login, register,
  * validate) from drifting apart.
  *
  * @param array $row A row from the `users` table.
@@ -115,7 +115,7 @@ function buildUserPayload(array $row) {
         'languages'         => $decode($row['languages'] ?? null),
         'securityFocus'     => $decode($row['security_focus'] ?? null),
         'onboardingComplete'=> (bool) ($row['onboarding_complete'] ?? false),
-        'provider'          => $row['provider'] ?? $row['oauth_provider'] ?? 'email',
+        'provider'          => $row['provider'] ?? 'email',
     ];
 }
 

@@ -10,6 +10,40 @@ import {
   accentLabel,
 } from '../../src/utils/accentColor.js';
 
+/**
+ * The WCAG contrast ratio between two colours.
+ *
+ * Accepts `#RRGGBB` and `rgb(r, g, b)` so it can be used on the accent
+ * shades, which are published in the `rgb()` notation.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {number} 1 (identical) to 21 (black on white)
+ */
+function contrastRatio(a, b) {
+  const toChannels = (color) => {
+    const text = String(color).trim();
+    if (text.startsWith('#')) {
+      const value = parseInt(text.slice(1), 16);
+      return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+    }
+    const match = text.match(/(\d+)\D+(\d+)\D+(\d+)/);
+    return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [0, 0, 0];
+  };
+
+  const luminance = (color) => {
+    const channels = toChannels(color).map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
 describe('utils/accentColor — normalizeAccent', () => {
   it('normalises a six digit hex to upper case', () => {
     assert.equal(normalizeAccent('#3b82f6'), '#3B82F6');
@@ -60,13 +94,62 @@ describe('utils/accentColor — accentShades', () => {
 
   it('picks a light contrast on a dark colour', () => {
     assert.equal(accentShades('#000000').contrast, '#FFFFFF');
-    assert.equal(accentShades('#3B82F6').contrast, '#FFFFFF');
+  });
+
+  it('picks whichever of white / near-black actually reads better', () => {
+    // The default blue is a mid-tone: white on it scores 3.68:1 while
+    // near-black scores 4.85:1, so near-black is the readable choice.
+    assert.equal(accentShades('#3B82F6').contrast, '#0F172A');
+    assert.equal(accentShades('#10B981').contrast, '#0F172A');
+    assert.equal(accentShades('#F59E0B').contrast, '#0F172A');
+    assert.equal(accentShades('#06B6D4').contrast, '#0F172A');
+    assert.equal(accentShades('#475569').contrast, '#FFFFFF');
+    assert.equal(accentShades('#1E293B').contrast, '#FFFFFF');
+  });
+
+  it('keeps the label on the accent above the 4.5:1 AA threshold', () => {
+    for (const preset of ACCENT_PRESETS) {
+      const shades = accentShades(preset.value);
+      // The fill that is actually painted is `shades.base` — a mid-tone
+      // with no readable label colour is darkened until it works.
+      const ratio = contrastRatio(shades.base, shades.contrast);
+      assert.ok(
+        ratio >= 4.5,
+        `${preset.label} (${preset.value} -> ${shades.base}) label contrast is ${ratio.toFixed(2)}:1, needs 4.5:1`
+      );
+    }
+  });
+
+  it('keeps the label on the hover shade above the 4.5:1 AA threshold', () => {
+    for (const preset of ACCENT_PRESETS) {
+      const shades = accentShades(preset.value);
+      // The hover shade is an `rgb()` string, so it is compared against
+      // the same colour in the same notation.
+      const ratio = contrastRatio(shades.strong, shades.contrastStrong);
+      assert.ok(
+        ratio >= 4.5,
+        `${preset.label} hover label contrast is ${ratio.toFixed(2)}:1, needs 4.5:1`
+      );
+    }
+  });
+
+  it('keeps accent TEXT readable on the dark sidebar panel', () => {
+    // The sidebar panel in dark mode: `bg-slate-900/40` over the page.
+    const DARK_PANEL = '#172032';
+    for (const preset of ACCENT_PRESETS) {
+      const shades = accentShades(preset.value);
+      const ratio = contrastRatio(shades.text, DARK_PANEL);
+      assert.ok(
+        ratio >= 4.5,
+        `${preset.label} accent text contrast on the dark panel is ${ratio.toFixed(2)}:1, needs 4.5:1`
+      );
+    }
   });
 
   it('falls back to the default accent for an invalid colour', () => {
     const s = accentShades('not-a-colour');
     assert.equal(s.base, DEFAULT_ACCENT);
-    assert.equal(s.contrast, '#FFFFFF');
+    assert.equal(s.contrast, '#0F172A');
   });
 
   it('falls back to the default accent for null', () => {
@@ -91,6 +174,7 @@ describe('utils/accentColor — applyAccentColor', () => {
     assert.ok(style.getPropertyValue('--accent-color-soft').length > 0);
     assert.ok(style.getPropertyValue('--accent-color-ring').length > 0);
     assert.ok(style.getPropertyValue('--accent-contrast').length > 0);
+    assert.ok(style.getPropertyValue('--accent-text').length > 0);
   });
 
   it('returns null and changes nothing for an invalid colour', () => {

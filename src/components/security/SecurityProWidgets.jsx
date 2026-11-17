@@ -21,6 +21,7 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
+  X,
   Zap,
 } from 'lucide-react';
 
@@ -177,8 +178,8 @@ export const TriageOrder = ({ findings = [], onSelect, activeId = null, fixedIds
                 </span>
                 <span className="block text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
                   {f.category || f.owaspId || 'Uncategorised'}
-                  {f.cweId ? ` 路 ${f.cweId}` : ''}
-                  {f.location ? ` 路 ${f.location}` : ''}
+                  {f.cweId ? ` · ${f.cweId}` : ''}
+                  {f.location ? ` · ${f.location}` : ''}
                 </span>
               </span>
 
@@ -1094,11 +1095,14 @@ const SearchIcon = () => (
 // content down; this sits in the header row and states the verdict next to
 // the number that produced it.
 // ---------------------------------------------------------------------------
-export const PostureLine = ({ score = 0, findings = 0, criticals = 0, trend = 'stable' }) => {
-  const band =
-    score >= 85
-      ? { label: 'Strong posture', tone: 'text-emerald-600 dark:text-emerald-400', Icon: ShieldCheck }
-      : score >= 65
+export const PostureLine = ({ score = null, findings = 0, criticals = 0, trend = 'stable', idle = false }) => {
+  const hasScore = !idle && score !== null && score !== undefined;
+  const numericScore = Number(score) || 0;
+  const band = !hasScore
+    ? { label: 'No score yet', tone: 'text-slate-500 dark:text-slate-400', Icon: CircleDot }
+    : numericScore >= 85
+    ? { label: 'Strong posture', tone: 'text-emerald-600 dark:text-emerald-400', Icon: ShieldCheck }
+      : numericScore >= 65
       ? { label: 'Needs attention', tone: 'text-amber-600 dark:text-amber-400', Icon: Target }
       : { label: 'Action required', tone: 'text-rose-600 dark:text-rose-400', Icon: Flame };
 
@@ -1115,7 +1119,7 @@ export const PostureLine = ({ score = 0, findings = 0, criticals = 0, trend = 's
 
       <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
         <span className="text-base font-bold tabular-nums text-slate-900 dark:text-slate-100">
-          {score}
+          {hasScore ? numericScore : '—'}
         </span>
         secure score
       </span>
@@ -1123,7 +1127,7 @@ export const PostureLine = ({ score = 0, findings = 0, criticals = 0, trend = 's
       <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
         <Activity className="w-3.5 h-3.5" />
         {findings} open
-        {criticals > 0 && <span className="text-rose-600 dark:text-rose-400 font-semibold">路 {criticals} critical</span>}
+        {criticals > 0 && <span className="text-rose-600 dark:text-rose-400 font-semibold">· {criticals} critical</span>}
       </span>
 
       <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
@@ -1216,23 +1220,42 @@ export const InlineEmpty = ({
       )}
       {(primaryCta || secondaryCta) && (
         <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
-          {primaryCta && (
-            <button
-              type="button"
-              onClick={primaryCta.onClick}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-blue-600 text-white text-xs font-semibold hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors"
-            >
-              {primaryCta.label}
-            </button>
-          )}
-          {secondaryCta && (
-            <a
-              href={secondaryCta.href}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
-              {secondaryCta.label}
-            </a>
-          )}
+          {primaryCta &&
+            (primaryCta.href ? (
+              <a
+                href={primaryCta.href}
+                onClick={primaryCta.onClick}
+                className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-blue-600 text-white text-xs font-semibold hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors inline-flex items-center justify-center"
+              >
+                {primaryCta.label}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={primaryCta.onClick}
+                className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-blue-600 text-white text-xs font-semibold hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors"
+              >
+                {primaryCta.label}
+              </button>
+            ))}
+          {secondaryCta &&
+            (secondaryCta.href ? (
+              <a
+                href={secondaryCta.href}
+                onClick={secondaryCta.onClick}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                {secondaryCta.label}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={secondaryCta.onClick}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                {secondaryCta.label}
+              </button>
+            ))}
         </div>
       )}
     </div>

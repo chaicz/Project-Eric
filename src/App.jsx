@@ -20,6 +20,7 @@ import Onboarding from './pages/Onboarding';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import ForgotPassword from './pages/ForgotPassword';
+import OAuthCallback from './pages/OAuthCallback';
 import AboutTeam from './pages/AboutTeam';
 import Sandbox from './pages/Sandbox';
 import OWASPScanner from './pages/OWASPScanner';
@@ -98,6 +99,17 @@ function App() {
                 <AuthRoute>
                   <ForgotPassword />
                 </AuthRoute>
+              } />
+
+              {/* The landing page for a social sign-in. The API has
+                  already verified the provider and created the session by
+                  the time the browser arrives here, so this route sits
+                  outside `AuthRoute` — the user is not signed in yet
+                  until the handoff code is exchanged. */}
+              <Route path="/oauth/callback" element={
+                <PublicRoute>
+                  <OAuthCallback />
+                </PublicRoute>
               } />
 
               {/* Onboarding Route - For logged in users who haven't completed */}

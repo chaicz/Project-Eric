@@ -48,12 +48,20 @@ CREATE TABLE users (
     verification_token VARCHAR(100),
     reset_token VARCHAR(100),
     reset_token_expires DATETIME,
-    oauth_provider VARCHAR(50),
-    oauth_id VARCHAR(255),
     languages JSON DEFAULT NULL,
     security_focus JSON DEFAULT NULL,
     onboarding_complete TINYINT(1) DEFAULT 0,
     provider VARCHAR(50) DEFAULT 'email',
+    -- The social sign-in link.
+    --
+    -- `oauth_provider` is the provider that owns the account ('google' or
+    -- 'github') and `oauth_id` is that provider's own identifier for the
+    -- person. The pair is unique, so a provider identity can never be
+    -- claimed by two Project Eric accounts.
+    --
+    -- Both are NULL for an account that signs in with a password only.
+    oauth_provider VARCHAR(50) DEFAULT NULL,
+    oauth_id VARCHAR(255) DEFAULT NULL,
     -- The second factor, when the account has one turned on.
     --
     -- `two_factor_secret` is the base32 shared secret, encrypted with
@@ -69,7 +77,8 @@ CREATE TABLE users (
     last_login TIMESTAMP NULL,
     is_active BOOLEAN DEFAULT TRUE,
     INDEX idx_email (email),
-    INDEX idx_oauth (oauth_provider, oauth_id)
+    -- One provider identity maps to exactly one account.
+    UNIQUE KEY idx_oauth (oauth_provider, oauth_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Teams Table
@@ -429,14 +438,10 @@ INSERT INTO threats (title, severity, source, description, indicators, affected_
 -- figures. The password for all of them is `demo123`.
 --
 --   demo@project-eric.com  -> owns the sample projects below
---   developer@gmail.com    -> Google-style demo account
---   developer@github.com    -> GitHub-style demo account
 --   user@example.com       -> plain demo account
 
 INSERT INTO users (email, password_hash, first_name, last_name, name, role, experience, languages, security_focus, onboarding_complete, provider, email_verified) VALUES
 ('demo@project-eric.com', '$2y$10$thbV9q2ItJXcD6rPJD4Ih.Jt.R2qr.2niqUFGkX376zMA3AVu/zHu', 'Demo', 'User', 'Demo User', 'user', 'mid', '["JavaScript", "Python"]', '["A01", "A03"]', 1, 'email', TRUE),
-('developer@gmail.com', '$2y$10$thbV9q2ItJXcD6rPJD4Ih.Jt.R2qr.2niqUFGkX376zMA3AVu/zHu', 'Developer', 'Google', 'Developer.google', 'developer', 'mid', '["JavaScript", "Python"]', '["A01", "A03", "A06"]', 1, 'google', TRUE),
-('developer@github.com', '$2y$10$thbV9q2ItJXcD6rPJD4Ih.Jt.R2qr.2niqUFGkX376zMA3AVu/zHu', 'GitHub', 'Developer', 'GitHub Developer', 'developer', 'senior', '["TypeScript", "Go"]', '["A01", "A07"]', 1, 'github', TRUE),
 ('user@example.com', '$2y$10$thbV9q2ItJXcD6rPJD4Ih.Jt.R2qr.2niqUFGkX376zMA3AVu/zHu', 'Test', 'User', 'Test User', 'fullstack', 'junior', '["JavaScript"]', '["A03"]', 1, 'email', TRUE);
 
 -- A personal team for the demo account, mirroring what `register.php`

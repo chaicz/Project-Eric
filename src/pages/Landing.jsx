@@ -193,7 +193,10 @@ const SlideControls = ({ goNext, goPrev, current, total, goTo, slideLabel }) => 
 // two-digit index that pairs with a hairline rule, so the label
 // reads as an editorial marker instead of a typo.
 const SectionLabel = ({ label, index, tone = 'dark' }) => {
-  const muted = tone === 'dark' ? 'text-slate-500' : 'text-white/60';
+  // The muted index sits on the saturated blue CTA slide. At 60% white
+  // it scored 3.4:1 against the blue — under the AA floor for a small
+  // label — so it reads at 80%.
+  const muted = tone === 'dark' ? 'text-slate-500' : 'text-white/80';
   const rule = tone === 'dark' ? 'bg-slate-200' : 'bg-white/25';
   const title = tone === 'dark' ? 'text-slate-900' : 'text-white';
 
@@ -241,15 +244,21 @@ const InteractiveWord = ({ children, variant = 'underline', className = '', as: 
 // ============================================================
 // Slide shell — full viewport snap with light bg + accents
 // ============================================================
+//
+// Each variant carries a dark-mode counterpart. The landing page is a
+// stack of full-viewport slides, and the light gradients underneath the
+// copy were never repainted for dark mode: the global dark rules make
+// the headings light, so they ended up as light text on a light
+// gradient and the slides were unreadable.
 const Slide = ({ children, variant = 'white' }) => {
   const bg =
     variant === 'white'
-      ? 'bg-white'
+      ? 'bg-white dark:bg-slate-950'
       : variant === 'blue'
       ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white'
       : variant === 'soft'
-      ? 'bg-gradient-to-b from-slate-50 to-white'
-      : 'bg-white';
+      ? 'bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900'
+      : 'bg-white dark:bg-slate-950';
 
   return (
     <section
@@ -261,7 +270,7 @@ const Slide = ({ children, variant = 'white' }) => {
           className="absolute inset-0 opacity-[0.05] pointer-events-none"
           style={{
             backgroundImage:
-              'linear-gradient(to right, #0f172a 1px, transparent 1px), linear-gradient(to bottom, #0f172a 1px, transparent 1px)',
+              'linear-gradient(to right, rgba(100,116,139,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(100,116,139,0.6) 1px, transparent 1px)',
             backgroundSize: '80px 80px',
           }}
         />
@@ -412,7 +421,7 @@ const HeroSlide = ({ navigate }) => {
             style={{ animationDelay: '740ms' }}
           >
             <div className="flex -space-x-2.5">
-              {['from-blue-500 to-cyan-400', 'from-violet-500 to-fuchsia-400', 'from-emerald-500 to-teal-400', 'from-amber-500 to-orange-400'].map(
+              {['from-blue-700 to-cyan-700', 'from-violet-700 to-fuchsia-700', 'from-emerald-700 to-teal-700', 'from-amber-700 to-orange-700'].map(
                 (grad, i) => (
                   <div
                     key={i}
@@ -496,7 +505,7 @@ const IDECard = () => (
 
     <div className="grid grid-cols-12 min-h-[420px] sm:min-h-[500px] lg:min-h-[540px]">
       {/* Sidebar */}
-      <div className="hidden sm:flex col-span-3 bg-slate-900/60 border-r border-white/10 p-3 flex-col gap-0.5">
+      <div className="hidden sm:flex col-span-2 bg-slate-900/60 border-r border-white/10 p-2.5 flex-col gap-0.5">
         <div className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-2">
           Explorer
         </div>
@@ -532,17 +541,22 @@ const IDECard = () => (
       </div>
 
       {/* Editor */}
-      <div className="col-span-12 sm:col-span-6 p-4 sm:p-5 font-mono text-[11px] sm:text-[12.5px] leading-relaxed bg-slate-950">
-        <div className="flex gap-3">
+      <div className="col-span-12 sm:col-span-8 p-3 sm:p-4 font-mono text-[11px] sm:text-[12.5px] leading-relaxed bg-slate-950 min-w-0">
+        <div className="flex gap-2 min-w-0">
           <div className="text-slate-600 select-none text-right shrink-0">
-            {Array.from({ length: 11 }).map((_, i) => (
+            {Array.from({ length: 13 }).map((_, i) => (
               <div key={i}>{i + 12}</div>
             ))}
           </div>
-          <pre className="text-slate-300 flex-1 overflow-hidden">
-            <code>
+          {/* The code sample is wider than the column on narrow screens.
+              The lines below are kept short enough to fit the panel, and
+              `overflow-x-auto` is the fallback for even narrower
+              viewports — `overflow-hidden` used to paint the text over
+              the page background outside the card. */}
+          <pre className="text-slate-300 flex-1 min-w-0 overflow-x-auto overflow-y-hidden">
+            <code className="block min-w-max">
               <span className="text-pink-400">async function</span>{' '}
-              <span className="text-cyan-300">login</span>(email, password) {'{'}
+              <span className="text-cyan-300">login</span>(email, pass) {'{'}
               {'\n'}  <span className="text-pink-400">const</span> user ={' '}
               <span className="text-pink-400">await</span> db.users.find(email);
               {'\n'}
@@ -551,13 +565,16 @@ const IDECard = () => (
                 // no rate limiting
               </span>
               {'\n'}    <span className="text-pink-400">throw new</span>{' '}
-              <span className="text-cyan-300">AuthError</span>(<span className="text-emerald-300">'user_not_found'</span>);
+              <span className="text-cyan-300">AuthError</span>(<span className="text-emerald-300">'no_user'</span>);
               {'\n'}  {'}'}
               {'\n'}
               {'\n'}  <span className="text-pink-400">const</span> ok ={' '}
-              <span className="text-pink-400">await</span> bcrypt.compare(password, user.hash);
-              {'\n'}  <span className="text-pink-400">return</span> ok ? issueToken(user) :{' '}
+              <span className="text-pink-400">await</span> bcrypt.compare(pass, user.hash);
+              {'\n'}  <span className="text-pink-400">if</span> (!ok) {'{'}
+              {'\n'}    <span className="text-pink-400">return</span>{' '}
               <span className="text-pink-400">null</span>;
+              {'\n'}  {'}'}
+              {'\n'}  <span className="text-pink-400">return</span> issueToken(user);
               {'\n'}{'}'}
             </code>
           </pre>
@@ -565,7 +582,7 @@ const IDECard = () => (
       </div>
 
       {/* Inspector */}
-      <div className="hidden sm:flex col-span-3 bg-slate-900/40 border-l border-white/10 p-3 flex-col gap-2">
+      <div className="hidden sm:flex col-span-2 bg-slate-900/40 border-l border-white/10 p-2 flex-col gap-2">
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400">
           <Shield className="w-3 h-3" />
           3 issues
@@ -1696,7 +1713,7 @@ const TeamSlide = () => {
                       e.currentTarget.nextElementSibling?.classList.add('flex');
                     }}
                   />
-                  <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-500 text-white text-2xl font-bold">
+                  <div className="hidden w-full h-full items-center justify-center bg-gradient-to-br from-cyan-700 to-blue-600 text-white text-2xl font-bold">
                     {lead.avatar}
                   </div>
                 </div>
@@ -1831,7 +1848,10 @@ const TeamSlide = () => {
               </span>
               <span className="min-w-0">
                 <span className="block text-xs font-bold text-white truncate">{c.label}</span>
-                <span className="block text-[10px] text-slate-400/80 font-medium">{c.owner}</span>
+                {/* 90% rather than 80%: at 80% the owner name only reached
+                    4.36:1 against the card behind it, just under the 4.5:1
+                    AA floor. */}
+                <span className="block text-[10px] text-slate-400/90 font-medium">{c.owner}</span>
               </span>
             </div>
           ))}
@@ -2295,7 +2315,7 @@ const Landing = () => {
   }, [goNext, goPrev]);
 
   return (
-    <div className="relative bg-white text-slate-900 snap-container">
+    <div className="relative bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 snap-container">
       <Header navigate={navigate} currentSlide={currentSlide} />
 
       <SlideControls

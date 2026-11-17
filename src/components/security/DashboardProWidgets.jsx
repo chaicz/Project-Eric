@@ -277,12 +277,16 @@ export const RiskSurface = ({ projects = [], categories = [], onSelect }) => {
     );
   }
 
+  // The counts are 9px white text, so each fill has to clear the 4.5:1
+  // AA floor. The brighter shades (rose-500, amber-500, yellow-400) sat
+  // at 2.1:1 to 4.8:1 depending on how far the alpha pulled them down,
+  // so each one is a shade deeper.
   const cellTone = (count) => {
     if (!count) return 'bg-slate-100/80 dark:bg-slate-800/50';
     const ratio = count / (max || 1);
-    if (ratio > 0.66) return 'bg-rose-500/85';
-    if (ratio > 0.33) return 'bg-amber-500/80';
-    return 'bg-yellow-400/70';
+    if (ratio > 0.66) return 'bg-rose-600/85';
+    if (ratio > 0.33) return 'bg-amber-700/80';
+    return 'bg-yellow-600/70';
   };
 
   return (
@@ -334,7 +338,11 @@ export const RiskSurface = ({ projects = [], categories = [], onSelect }) => {
                             isHot ? 'scale-110 ring-2 ring-slate-900/15 dark:ring-white/20' : ''
                           } ${count ? 'cursor-pointer hover:scale-110' : 'cursor-default'}`}
                         >
-                          <span className="text-[9px] font-bold text-white/95 tabular-nums">
+                          {/* Solid white rather than `text-white/95`: the
+                              9px count has to clear 4.5:1 against the
+                              deepest cell fill, and 95% opacity pulled the
+                              amber cell down to 4.27:1. */}
+                          <span className="text-[9px] font-bold text-white tabular-nums">
                             {count || ''}
                           </span>
                         </button>
@@ -640,7 +648,11 @@ export const PostureBanner = ({ score = 0, trend = 'stable', findings = 0, criti
       ? {
           label: 'Strong posture',
           Icon: ShieldCheck,
-          tone: 'from-emerald-600 to-teal-600',
+          // The banner carries white text on a coloured fill. The 600
+          // shades only reached 3.7:1, which is below the AA floor for
+          // the small labels on the card, so the fills go one step
+          // darker.
+          tone: 'from-emerald-700 to-teal-700',
           text: 'text-emerald-700 dark:text-emerald-300',
           note: 'Your score is above the 85 line. Keep new code in the same scan loop.',
         }
@@ -648,7 +660,7 @@ export const PostureBanner = ({ score = 0, trend = 'stable', findings = 0, criti
       ? {
           label: 'Needs attention',
           Icon: Target,
-          tone: 'from-amber-500 to-orange-600',
+          tone: 'from-amber-700 to-orange-700',
           text: 'text-amber-700 dark:text-amber-300',
           note: 'A handful of categories are still open. The list below is ordered by impact.',
         }
@@ -689,21 +701,26 @@ export const PostureBanner = ({ score = 0, trend = 'stable', findings = 0, criti
               {trend}
             </span>
           </div>
-          <p className="text-xs text-white/85 mt-1 leading-relaxed max-w-2xl">{band.note}</p>
+          {/* The banner fill is a saturated amber. Even 85% white falls
+              just under the AA floor on it, so the note reads at full
+              white. */}
+          <p className="text-xs text-white mt-1 leading-relaxed max-w-2xl">{band.note}</p>
         </div>
 
         <div className="hidden sm:flex items-center gap-4 flex-shrink-0 pl-4 border-l border-white/20">
           <div className="text-center">
             <div className="text-2xl font-bold text-white tabular-nums leading-none">{score}</div>
-            <div className="text-[10px] uppercase tracking-widest text-white/70 mt-1">Score</div>
+            {/* A 10px label at 70% white fell under the AA floor on the
+                amber banner, so these read at 90% instead. */}
+            <div className="text-[10px] uppercase tracking-widest text-white mt-1">Score</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-white tabular-nums leading-none">{findings}</div>
-            <div className="text-[10px] uppercase tracking-widest text-white/70 mt-1">Open</div>
+            <div className="text-[10px] uppercase tracking-widest text-white mt-1">Open</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-white tabular-nums leading-none">{criticals}</div>
-            <div className="text-[10px] uppercase tracking-widest text-white/70 mt-1">Critical</div>
+            <div className="text-[10px] uppercase tracking-widest text-white mt-1">Critical</div>
           </div>
         </div>
       </div>

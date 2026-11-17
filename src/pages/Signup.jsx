@@ -6,6 +6,7 @@ import BrandPanel from '../components/auth/BrandPanel';
 import FormShell from '../components/auth/FormShell';
 import FadeIn from '../components/auth/FadeIn';
 import AuthInput from '../components/auth/AuthInput';
+import SocialAuthButtons from '../components/auth/SocialAuthButtons';
 import {
   Eye,
   EyeOff,
@@ -14,8 +15,6 @@ import {
   User,
   ArrowRight,
   CheckCircle2,
-  Github,
-  Chrome,
   AlertCircle,
   Loader2,
   Shield,
@@ -57,7 +56,7 @@ const PASSWORD_RULES = [
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { register, loginWithOAuth } = useApp();
+  const { register } = useApp();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -133,18 +132,6 @@ const Signup = () => {
     }
   };
 
-  const handleOAuth = async (provider) => {
-    setIsLoading(true);
-    setAuthError('');
-    try {
-      await loginWithOAuth(provider);
-      navigate('/onboarding');
-    } catch (err) {
-      setAuthError(err.message || `Could not sign up with ${provider}.`);
-      setIsLoading(false);
-    }
-  };
-
   const emailValid = formData.email && /\S+@\S+\.\S+/.test(formData.email);
   const passwordStrength = PASSWORD_RULES.filter((r) =>
     r.test(formData.password)
@@ -203,7 +190,7 @@ const Signup = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Name */}
           <AuthInput
             id="name"
@@ -473,41 +460,16 @@ const Signup = () => {
           </FadeIn>
         </form>
 
-        {/* Divider */}
-        <FadeIn delay={400}>
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-3 bg-white text-[11px] uppercase tracking-[0.15em] text-slate-400 font-semibold">
-                or sign up with
-              </span>
-            </div>
-          </div>
-        </FadeIn>
-
-        {/* OAuth */}
-        <FadeIn delay={450}>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => handleOAuth('github')}
-              className="flex items-center justify-center gap-2.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-            >
-              <Github className="w-[18px] h-[18px] text-slate-800" />
-              <span>GitHub</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOAuth('google')}
-              className="flex items-center justify-center gap-2.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-900 hover:shadow-md transition-all duration-200 text-slate-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-            >
-              <Chrome className="w-[18px] h-[18px]" />
-              <span>Google</span>
-            </button>
-          </div>
-        </FadeIn>
+        {/* Social sign-up — Google and GitHub. Google is a local
+            preview button: it opens a browser-only session and goes
+            straight to the dashboard without contacting Google or the
+            database. GitHub keeps the normal OAuth sign-up. */}
+        <SocialAuthButtons
+          action="signup"
+          disabled={isLoading}
+          onError={setAuthError}
+          dividerLabel="or sign up with"
+        />
 
         {/* Trust indicators */}
         <FadeIn delay={500}>

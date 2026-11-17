@@ -44,7 +44,12 @@
   --accent-color-strong: #2563eb;
   --accent-color-soft: rgba(59, 130, 246, 0.12);
   --accent-color-ring: rgba(59, 130, 246, 0.30);
-  --accent-contrast: #ffffff;
+  --accent-contrast: #0f172a;
+  --accent-contrast-strong: #0f172a;
+  /* The accent used as TEXT on a dark surface. The base accent is tuned
+     to be a fill, and as a label on a dark panel it lands under the
+     4.5:1 AA floor. This is the same hue, lifted until it clears it. */
+  --accent-text: #5895f7;
 
   /* Background Colors */
   --bg-primary: #ffffff;
@@ -174,6 +179,7 @@ h4 { font-size: 1rem; font-weight: 600; }
 
 .btn-primary:hover {
   background: var(--accent-color-strong);
+  color: var(--accent-contrast-strong);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -742,6 +748,12 @@ h4 { font-size: 1rem; font-weight: 600; }
 }
 
 /* Shared entrance + tiny animations */
+
+/* The entrance animation moves the element with `transform`.
+   `margin-top` was tried instead, to avoid promoting the element to
+   its own compositing layer — but that was not the cause of the
+   missing hero text. See the note on `animation-fill-mode` in
+   `BrandPanel.jsx` for what actually was. */
 @keyframes auth-fade-up {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1887,14 +1899,40 @@ html.dark .from-slate-50 { --tw-gradient-from: #0b1220 var(--tw-gradient-from-po
 html.dark .via-blue-50  { --tw-gradient-via:  #0f172a var(--tw-gradient-via-position) !important; }
 html.dark .to-indigo-100 { --tw-gradient-to: #1e1b4b var(--tw-gradient-to-position) !important; }
 
-/* Text */
+/* Text
+ *
+ * The slate ramp keeps Tailwind's direction: the smaller the number, the
+ * lighter the text. `text-slate-300` is body copy and must stay lighter
+ * than `text-slate-400`, which is secondary copy, and lighter than
+ * `text-slate-500`, which is the quietest label on the page.
+ *
+ * The old mapping inverted that order (300 -> #475569, 400 -> #64748b),
+ * which pushed ordinary body copy down to roughly 2.5:1 against the dark
+ * surfaces — below the WCAG AA floor of 4.5:1 and unreadable in practice.
+ */
 html.dark .text-slate-900 { color: #f1f5f9 !important; }
 html.dark .text-slate-800 { color: #e2e8f0 !important; }
 html.dark .text-slate-700 { color: #cbd5e1 !important; }
-html.dark .text-slate-600 { color: #94a3b8 !important; }
-html.dark .text-slate-500 { color: #94a3b8 !important; }
-html.dark .text-slate-400 { color: #64748b !important; }
-html.dark .text-slate-300 { color: #475569 !important; }
+html.dark .text-slate-600 { color: #b6c2d2 !important; }
+html.dark .text-slate-500 { color: #a3b1c2 !important; }
+html.dark .text-slate-400 { color: #94a3b8 !important; }
+html.dark .text-slate-300 { color: #cbd5e1 !important; }
+html.dark .text-slate-200 { color: #e2e8f0 !important; }
+html.dark .text-slate-100 { color: #f1f5f9 !important; }
+html.dark .text-slate-50  { color: #f8fafc !important; }
+
+/* The `dark:` variants of the same utilities — see the note on the
+ * second dark-mode text block for why they need their own values. */
+html.dark .dark\:text-slate-900 { color: #f1f5f9 !important; }
+html.dark .dark\:text-slate-800 { color: #e2e8f0 !important; }
+html.dark .dark\:text-slate-700 { color: #cbd5e1 !important; }
+html.dark .dark\:text-slate-600 { color: #b6c2d2 !important; }
+html.dark .dark\:text-slate-500 { color: #a3b1c2 !important; }
+html.dark .dark\:text-slate-400 { color: #94a3b8 !important; }
+html.dark .dark\:text-slate-300 { color: #cbd5e1 !important; }
+html.dark .dark\:text-slate-200 { color: #e2e8f0 !important; }
+html.dark .dark\:text-slate-100 { color: #f1f5f9 !important; }
+html.dark .dark\:text-slate-50  { color: #f8fafc !important; }
 
 /* Borders */
 html.dark .border-slate-100 { border-color: #1e293b !important; }
@@ -1954,12 +1992,34 @@ html.dark .minimal-table thead { color: #94a3b8 !important; }
 /* Progress bars */
 html.dark .progress-bar { background-color: rgba(51, 65, 85, 0.6) !important; }
 
-/* Code blocks / monospace surfaces */
+/* Code blocks / monospace surfaces — plain text only. Token spans
+   inside highlighted editors carry their own Tailwind text colors,
+   which must win over this inherited surface color. */
 html.dark code,
 html.dark pre,
 html.dark .font-mono {
   color: #cbd5e1;
 }
+html.dark pre span[class*='text-'],
+html.dark code span[class*='text-'] {
+  color: inherit;
+}
+/* Re-assert highlighted token colors above the inherited surface
+   color. The `html.dark pre` rule above has higher specificity than
+   a bare Tailwind `.text-*` utility, so without this the whole
+   OWASP/Sandbox overlay editor washes out to a single grey in dark
+   mode. */
+html.dark pre span.text-slate-400, html.dark code span.text-slate-400 { color: #94a3b8 !important; font-style: inherit; }
+html.dark pre span.text-amber-200, html.dark code span.text-amber-200 { color: #fde68a !important; }
+html.dark pre span.text-orange-300, html.dark code span.text-orange-300 { color: #fdba74 !important; }
+html.dark pre span.text-fuchsia-300, html.dark code span.text-fuchsia-300 { color: #f0abfc !important; }
+html.dark pre span.text-cyan-200, html.dark code span.text-cyan-200 { color: #a5f3fc !important; }
+html.dark pre span.text-sky-200, html.dark code span.text-sky-200 { color: #bae6fd !important; }
+html.dark pre span.text-pink-300, html.dark code span.text-pink-300 { color: #f9a8d4 !important; }
+html.dark pre span.text-rose-300, html.dark code span.text-rose-300 { color: #fda4af !important; }
+html.dark pre span.text-yellow-200, html.dark code span.text-yellow-200 { color: #fef08a !important; }
+html.dark pre span.text-slate-100, html.dark code span.text-slate-100 { color: #f1f5f9 !important; }
+html.dark pre span.italic, html.dark code span.italic { font-style: italic; }
 
 /* Scrollbar (webkit) */
 html.dark ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -1999,6 +2059,7 @@ html.dark .btn-primary {
 }
 html.dark .btn-primary:hover {
   background: var(--accent-color-strong) !important;
+  color: var(--accent-contrast-strong) !important;
   box-shadow: 0 0 0 3px var(--accent-color-ring) !important;
 }
 
@@ -2138,14 +2199,52 @@ html.dark .from-slate-100 { --tw-gradient-from: #0f172a var(--tw-gradient-from-p
 html.dark .via-white      { --tw-gradient-via:  #0f172a var(--tw-gradient-via-position) !important; }
 html.dark .to-slate-100   { --tw-gradient-to:   #1e293b var(--tw-gradient-to-position) !important; }
 
-/* Text */
+/* Text — see the note on the first dark-mode text block for the ramp order. */
 html.dark .text-slate-900 { color: #f1f5f9 !important; }
 html.dark .text-slate-800 { color: #e2e8f0 !important; }
 html.dark .text-slate-700 { color: #cbd5e1 !important; }
-html.dark .text-slate-600 { color: #94a3b8 !important; }
-html.dark .text-slate-500 { color: #94a3b8 !important; }
-html.dark .text-slate-400 { color: #64748b !important; }
-html.dark .text-slate-300 { color: #475569 !important; }
+html.dark .text-slate-600 { color: #b6c2d2 !important; }
+html.dark .text-slate-500 { color: #a3b1c2 !important; }
+html.dark .text-slate-400 { color: #94a3b8 !important; }
+html.dark .text-slate-300 { color: #cbd5e1 !important; }
+html.dark .text-slate-200 { color: #e2e8f0 !important; }
+html.dark .text-slate-100 { color: #f1f5f9 !important; }
+html.dark .text-slate-50  { color: #f8fafc !important; }
+
+/* Text on a light glass panel
+ *
+ * Some panels are light in BOTH themes — a frosted card over the
+ * onboarding slideshow, for instance. The dark-mode ramp above turns
+ * every `text-slate-900` into near-white, which on a light panel means
+ * near-white text on a near-white card.
+ *
+ * This class marks text that has to stay dark whatever the theme is.
+ * The colour is picked so it clears the WCAG AA floor of 4.5:1 against
+ * the lightest the panel ever becomes (`bg-white/65`).
+ */
+.eric-text-on-light { color: #1e293b; }
+html.dark .eric-text-on-light { color: #1e293b !important; }
+
+/* The `dark:` variants of the same utilities.
+ *
+ * These are separate selectors from the ones above — Tailwind emits
+ * `.dark\:text-slate-500:is(.dark *)`, so a `dark:` class in the JSX
+ * would otherwise keep Tailwind's own dark value (#64748b for 500,
+ * #475569 for 400) and land under the AA contrast floor.
+ *
+ * The values match the ramp above, so a `dark:` override never pushes
+ * text darker than the same utility without one.
+ */
+html.dark .dark\:text-slate-900 { color: #f1f5f9 !important; }
+html.dark .dark\:text-slate-800 { color: #e2e8f0 !important; }
+html.dark .dark\:text-slate-700 { color: #cbd5e1 !important; }
+html.dark .dark\:text-slate-600 { color: #b6c2d2 !important; }
+html.dark .dark\:text-slate-500 { color: #a3b1c2 !important; }
+html.dark .dark\:text-slate-400 { color: #94a3b8 !important; }
+html.dark .dark\:text-slate-300 { color: #cbd5e1 !important; }
+html.dark .dark\:text-slate-200 { color: #e2e8f0 !important; }
+html.dark .dark\:text-slate-100 { color: #f1f5f9 !important; }
+html.dark .dark\:text-slate-50  { color: #f8fafc !important; }
 
 /* Colored text — keep brand colors, just lift contrast for dark backgrounds */
 html.dark .text-blue-900   { color: #dbeafe !important; }
@@ -2210,6 +2309,44 @@ html.dark .text-sky-900    { color: #e0f2fe !important; }
 html.dark .text-sky-800    { color: #bae6fd !important; }
 html.dark .text-sky-700    { color: #7dd3fc !important; }
 html.dark .text-sky-600    { color: #7dd3fc !important; }
+
+/* Solid badges and buttons.
+ *
+ * A badge is a saturated fill with white text on top. Tailwind's
+ * `bg-yellow-500`, `bg-amber-500` and `bg-emerald-500` are too light
+ * for white text — the contrast sits between 1.9:1 and 2.5:1, well
+ * under the 4.5:1 floor.
+ *
+ * Rather than change the badge colours (they carry the severity
+ * meaning), the *text* on the light fills is darkened and the fills are
+ * stepped down one shade. The severity still reads as red/amber/yellow,
+ * and the label becomes readable.
+ */
+html.dark .bg-yellow-500  { background-color: #a16207 !important; }
+html.dark .bg-yellow-400  { background-color: #854d0e !important; }
+html.dark .bg-amber-500   { background-color: #b45309 !important; }
+html.dark .bg-amber-400   { background-color: #92400e !important; }
+html.dark .bg-orange-500  { background-color: #c2410c !important; }
+html.dark .bg-orange-400  { background-color: #9a3412 !important; }
+html.dark .bg-emerald-500 { background-color: #047857 !important; }
+html.dark .bg-emerald-400 { background-color: #065f46 !important; }
+html.dark .bg-green-500   { background-color: #15803d !important; }
+html.dark .bg-green-400   { background-color: #166534 !important; }
+html.dark .bg-lime-500    { background-color: #4d7c0f !important; }
+html.dark .bg-teal-500    { background-color: #0f766e !important; }
+html.dark .bg-cyan-500    { background-color: #0e7490 !important; }
+html.dark .bg-sky-500     { background-color: #0369a1 !important; }
+html.dark .bg-indigo-500  { background-color: #4338ca !important; }
+html.dark .bg-violet-500  { background-color: #6d28d9 !important; }
+html.dark .bg-purple-500  { background-color: #7e22ce !important; }
+html.dark .bg-pink-500    { background-color: #be185d !important; }
+html.dark .bg-fuchsia-500 { background-color: #a21caf !important; }
+html.dark .bg-rose-500    { background-color: #be123c !important; }
+html.dark .bg-blue-500    { background-color: #2563eb !important; }
+html.dark .bg-blue-400    { background-color: #1d4ed8 !important; }
+html.dark .bg-red-500     { background-color: #dc2626 !important; }
+html.dark .bg-red-400     { background-color: #b91c1c !important; }
+html.dark .bg-slate-500   { background-color: #334155 !important; }
 
 /* Borders */
 html.dark .border-slate-100 { border-color: #1e293b !important; }
@@ -2299,16 +2436,27 @@ html.dark .bg-slate-900 {
 }
 .eric-nav-active:hover {
   background-color: var(--accent-color-strong) !important;
-  color: var(--accent-contrast) !important;
+  color: var(--accent-contrast-strong) !important;
 }
 
-/* The active pill for the gradient variant (Tools section) */
+/* The active pill for the gradient variant (Tools section)
+ *
+ * A gradient spans two colours, and the label colour is only guaranteed
+ * to be readable against one of them — on the default blue the fill
+ * wanted near-black text (4.85:1) while the darker end of the ramp
+ * wanted white (5.31:1), and the pill ended up at about 1:1.
+ *
+ * The gradient is kept, but it is built from shades that sit on the
+ * same side of the contrast threshold, and the label colour is chosen
+ * for the *darker* end of the ramp, which is the harder case.
+ */
 .eric-nav-active-gradient {
   background-image: linear-gradient(
     to right,
     var(--accent-color),
-    var(--accent-color-strong)
+    var(--accent-color)
   ) !important;
+  background-color: var(--accent-color) !important;
   color: var(--accent-contrast) !important;
   box-shadow: 0 4px 6px -1px var(--accent-color-ring) !important;
 }
@@ -2318,7 +2466,8 @@ html.dark .bg-slate-900 {
     var(--accent-color-strong),
     var(--accent-color-strong)
   ) !important;
-  color: var(--accent-contrast) !important;
+  background-color: var(--accent-color-strong) !important;
+  color: var(--accent-contrast-strong) !important;
 }
 
 /* Accent-coloured text (icons, labels) inside the sidebar */
@@ -2332,10 +2481,11 @@ html.dark .bg-slate-900 {
   border-color: var(--accent-color-ring) !important;
 }
 
-/* Dark mode: the accent text stays on the accent colour, the soft panel
-   becomes a readable dark surface. */
+/* Dark mode: the accent text uses the lifted shade so it clears the
+   4.5:1 AA floor on the dark panel, the soft panel becomes a readable
+   dark surface. */
 html.dark .eric-accent-text {
-  color: var(--accent-color) !important;
+  color: var(--accent-text) !important;
 }
 html.dark .eric-accent-soft {
   background-color: rgba(30, 41, 59, 0.6) !important;
@@ -2348,7 +2498,7 @@ html.dark .eric-accent-soft {
 html.dark nav a.eric-nav-active:hover,
 html.dark nav a.eric-nav-active-gradient:hover {
   background-color: var(--accent-color-strong) !important;
-  color: var(--accent-contrast) !important;
+  color: var(--accent-contrast-strong) !important;
 }
 html.dark nav a.eric-nav-active-gradient:hover {
   background-image: linear-gradient(
@@ -2503,6 +2653,68 @@ html.dark button[aria-checked="false"] { color: #cbd5e1 !important; }
 html.dark .status-dot.online  { background: #34d399 !important; }
 html.dark .status-dot.offline { background: #475569 !important; }
 html.dark .status-dot.busy    { background: #f59e0b !important; }
+
+/* ============================================
+   LANDING PAGE — DARK MODE
+   ============================================
+
+   The landing page is a stack of full-viewport slides. Each slide
+   carried a light background — a white panel or a
+   `from-slate-50 to-white` gradient — and the copy on top of it was
+   repainted for a dark surface by the global rules above. The result
+   was light text on a light panel: the headings and the section labels
+   all disappeared.
+
+   The slide backgrounds are repainted here rather than through
+   `dark:` variants on every element, because the slides are rendered
+   by one shared component and their copy is styled by many.
+   ============================================ */
+
+/* The "soft" slide: a light vertical gradient. */
+html.dark .from-slate-50.to-white {
+  --tw-gradient-from: #020617 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important;
+}
+
+/* A plain white slide. */
+html.dark section.bg-white {
+  background-color: #020617 !important;
+}
+
+/* The floating slide arrows: a translucent white disc. */
+html.dark .bg-white\/85 {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+}
+
+/* The chat bubble on the AI slide. */
+html.dark .bg-slate-100.text-slate-900 {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+/* The feature-icon tiles on the detection slide. */
+html.dark .bg-blue-50.border-blue-100 {
+  background-color: rgba(30, 58, 138, 0.30) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+/* The pricing cards. */
+html.dark .border-slate-200.bg-white {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* The marquee of customer names on the landing page. It is scoped to
+   the marquee track because the same class combination is used by the
+   header search button, which needs the brighter colour. */
+html.dark .animate-marquee .text-slate-400 {
+  color: #64748b !important;
+}
+html.dark .animate-marquee .text-slate-400:hover {
+  color: #cbd5e1 !important;
+}
+
 
 /* Staggered children animation */
 .stagger-children > * {
@@ -3128,4 +3340,31 @@ textarea:focus-visible {
   outline: 2px solid rgba(59, 130, 246, 0.6);
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* ============================================
+   CODE OVERLAY EDITORS (OWASP scanner, sandbox)
+   These pair a transparent <textarea> over a highlighted <pre>.
+   The global dark-mode form rules above would give the textarea an
+   opaque background that hides the highlight layer underneath, so
+   overlay editors opt out here. This block stays last so it wins.
+   ============================================ */
+html.dark textarea.code-overlay-textarea,
+textarea.code-overlay-textarea {
+  background-color: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  border-color: transparent !important;
+}
+html.dark textarea.code-overlay-textarea::placeholder,
+textarea.code-overlay-textarea::placeholder {
+  -webkit-text-fill-color: #64748b !important;
+  color: #64748b !important;
+  opacity: 1;
+}
+html.dark textarea.code-overlay-textarea:focus,
+textarea.code-overlay-textarea:focus {
+  background-color: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
 }

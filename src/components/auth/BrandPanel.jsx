@@ -31,6 +31,25 @@ const SCAN_EVENTS = [
  *
  * Props mirror the previous version so Login/Signup don't need
  * to change how they consume this component.
+ *
+ * A note on the entrance animations
+ * ---------------------------------
+ * The elements below animate with `auth-fade-up` and a fill mode of
+ * `forwards`, not `both`.
+ *
+ * `both` applies the animation's backwards fill — the `from` keyframe,
+ * which is `opacity: 0` — for the whole delay before the animation
+ * starts. This panel is an isolated stacking context that contains a
+ * grain overlay painted with `mix-blend-mode: overlay`. A fully
+ * transparent element inside such a context is composited into the
+ * blend group, and Chrome dropped the element entirely: the hero
+ * headline, the description and the feature list were never painted,
+ * and the panel rendered as an empty gradient with only the logo
+ * showing.
+ *
+ * `forwards` keeps the end state once the animation completes and
+ * applies no backwards fill, so nothing is ever composited while it
+ * is invisible.
  */
 const BrandPanel = ({
   badgeTitle,
@@ -69,10 +88,6 @@ const BrandPanel = ({
 
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden isolate">
-      {/* Dark glass tint — keeps white text legible while letting the
-          background slideshow show through. */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/55 via-indigo-950/50 to-slate-950/55 backdrop-blur-md" />
-
       {/* Aurora mesh blobs */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div
@@ -142,6 +157,21 @@ const BrandPanel = ({
         aria-hidden="true"
       />
 
+      {/* Dark glass tint — keeps the white text legible while letting
+          the background slideshow show through.
+
+          It has to be painted ON TOP of the aurora blobs and the grid,
+          not below them. The blobs are bright saturated colours at
+          40-50% opacity, so a tint underneath them was completely
+          washed out: in light mode the panel rendered pale lavender
+          and the white feature descriptions measured 3.07:1 against
+          it — effectively unreadable.
+
+          At 55% over everything the panel reads as a dark tinted
+          surface in both themes, and the `text-white/55` labels clear
+          the 4.5:1 AA floor. */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/55 via-indigo-950/50 to-slate-950/55 backdrop-blur-md" />
+
       {/* Vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -195,7 +225,7 @@ const BrandPanel = ({
           {/* Badge */}
           <div
             className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-sm font-medium text-white/90 mb-6 self-start shadow-lg shadow-black/10"
-            style={{ animation: 'auth-fade-up 0.6s ease-out 100ms both' }}
+            style={{ animation: 'auth-fade-up 0.6s ease-out 100ms forwards' }}
           >
             <span className="relative flex w-2.5 h-2.5">
               <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
@@ -208,7 +238,7 @@ const BrandPanel = ({
           {/* Hero headline */}
           <h1
             className="text-[52px] xl:text-[64px] 2xl:text-[72px] font-bold text-white leading-[1.03] tracking-[-0.025em] mb-5 max-w-[13ch]"
-            style={{ animation: 'auth-fade-up 0.6s ease-out 200ms both' }}
+            style={{ animation: 'auth-fade-up 0.6s ease-out 200ms forwards' }}
           >
             {heroPrefix}{' '}
             <span className="relative inline-block">
@@ -226,7 +256,7 @@ const BrandPanel = ({
           {/* Description */}
           <p
             className="text-lg text-white/70 leading-relaxed max-w-lg"
-            style={{ animation: 'auth-fade-up 0.6s ease-out 300ms both' }}
+            style={{ animation: 'auth-fade-up 0.6s ease-out 300ms forwards' }}
           >
             {description}
           </p>
@@ -235,7 +265,7 @@ const BrandPanel = ({
           {features.length > 0 && (
             <div
               className="grid grid-cols-3 gap-3.5 mt-8"
-              style={{ animation: 'auth-fade-up 0.6s ease-out 400ms both' }}
+              style={{ animation: 'auth-fade-up 0.6s ease-out 400ms forwards' }}
             >
               {features.map((feature, i) => {
                 const Icon = feature.icon;
@@ -256,7 +286,11 @@ const BrandPanel = ({
                     <div className="text-sm font-semibold text-white leading-tight">
                       {feature.title}
                     </div>
-                    <div className="text-xs text-white/45 mt-1.5 leading-snug">
+                    {/* 70% rather than 45%: the description sits on the
+                        brand panel, and at 45% it only reached 4.41:1
+                        against the panel behind it, just under the 4.5:1
+                        AA floor. */}
+                    <div className="text-xs text-white/70 mt-1.5 leading-snug">
                       {feature.desc}
                     </div>
                   </div>
@@ -270,7 +304,7 @@ const BrandPanel = ({
               that is running right now, rather than a static poster. */}
           <div
             className="mt-6 w-full max-w-md rounded-2xl border border-white/12 bg-white/[0.05] backdrop-blur-xl overflow-hidden"
-            style={{ animation: 'auth-fade-up 0.6s ease-out 450ms both' }}
+            style={{ animation: 'auth-fade-up 0.6s ease-out 450ms forwards' }}
           >
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10">
               <div className="flex items-center gap-2">
@@ -300,7 +334,7 @@ const BrandPanel = ({
                   style={{
                     top: i * 26,
                     height: 26,
-                    animation: `auth-event-in 0.6s ease-out ${i * 120}ms both`,
+                    animation: `auth-event-in 0.6s ease-out ${i * 120}ms forwards`,
                   }}
                 >
                   <span
@@ -330,7 +364,7 @@ const BrandPanel = ({
             values are never truncated. */}
         <div
           className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 shrink-0 max-w-2xl"
-          style={{ animation: 'auth-fade-up 0.6s ease-out 500ms both' }}
+          style={{ animation: 'auth-fade-up 0.6s ease-out 500ms forwards' }}
         >
           {[
             { icon: Shield, label: 'Encryption', value: '256-bit SSL' },
@@ -360,18 +394,23 @@ const BrandPanel = ({
         {/* Footer — social proof */}
         <div
           className="flex items-center gap-3.5 shrink-0"
-          style={{ animation: 'auth-fade-up 0.6s ease-out 600ms both' }}
+          style={{ animation: 'auth-fade-up 0.6s ease-out 600ms forwards' }}
         >
           <div className="flex -space-x-2.5">
             {[
-              'from-blue-400 to-cyan-400',
-              'from-purple-400 to-pink-400',
-              'from-emerald-400 to-teal-400',
-              'from-amber-400 to-orange-400',
+              // The avatars carry white initials. A 12px bold initial is
+              // "normal" text under WCAG, so the fill has to clear 4.5:1
+              // — the 400 shades only reached about 2:1 and the initial
+              // disappeared into the circle. Even the 600 shades land
+              // around 3.8:1 for the warm ramps, so these go to 700.
+              'from-blue-700 to-cyan-700',
+              'from-purple-700 to-pink-700',
+              'from-emerald-700 to-teal-700',
+              'from-amber-700 to-orange-700',
             ].map((grad, i) => (
               <div
                 key={i}
-                className={`w-9 h-9 rounded-full bg-gradient-to-br ${grad} border-2 border-[#0a0a1f] flex items-center justify-center text-xs font-bold text-white shadow-md`}
+                className={`w-9 h-9 rounded-full bg-gradient-to-br ${grad} border-2 border-white/25 dark:border-white/20 flex items-center justify-center text-xs font-bold text-white shadow-md`}
               >
                 {['A', 'M', 'K', 'S'][i]}
               </div>

@@ -22,6 +22,7 @@ import { useToast } from '../components/Toast';
 import PageTip from '../components/PageTip';
 import EmptyState from '../components/EmptyState';
 import { dashboardAPI } from '../services/api';
+import { downloadAuditLogsPdf, formatLogDate, formatLogTime, formatLogTimestamp } from '../services/auditReport';
 import { useApp } from '../context/AppContext';
 
 // The API records what happened ("SCAN_COMPLETED", "login", ...). The page
@@ -55,8 +56,22 @@ const ACTION_ALIASES = {
   INTEGRATION_DISCONNECTED: 'settings_changed',
 };
 
+// Each stored action belongs to one filter pill. Anything unknown stays
+// visible under "All Events" instead of vanishing from every filter.
+const ACTION_TYPES = {
+  security_scan: 'security',
+  vulnerability_fixed: 'security',
+  critical_vulnerability: 'security',
+  api_key_created: 'api',
+  team_invite: 'team',
+  login: 'auth',
+  failed_login: 'auth',
+  settings_changed: 'auth',
+  activity: 'general',
+};
+
 const describeDetails = (details) => {
-  if (!details) return 'Activity recorded.';
+  if (details === null || details === undefined || details === '') return 'Activity recorded.';
   if (typeof details === 'string') return details;
   if (typeof details !== 'object') return String(details);
   const parts = Object.entries(details)
@@ -65,28 +80,41 @@ const describeDetails = (details) => {
   return parts.length ? parts.join(' · ') : 'Activity recorded.';
 };
 
-const normaliseLog = (row, actorName, actorEmail) => {
+const normaliseLog = (row, actorName, actorEmail, index = 0) => {
   const action = ACTION_ALIASES[row.action] || 'activity';
   const resource = row.resourceType
     ? `${row.resourceType}${row.resourceId ? ': ' + row.resourceId : ''}`
     : 'Account';
 
+  // Severity drives the stat cards; status drives the badge. The old code
+  // never produced "success", so the Successful card was stuck at zero.
+  const severity =
+    action === 'critical_vulnerability'
+      ? 'error'
+      : action === 'failed_login' || action === 'api_key_created'
+        ? 'warning'
+        : action === 'activity'
+          ? 'info'
+          : 'success';
+  const status =
+    action === 'critical_vulnerability'
+      ? 'alert'
+      : action === 'failed_login'
+        ? 'failed'
+        : 'success';
+
   return {
-    id: row.id,
-    timestamp: row.createdAt,
+    id: row.id ?? `log-${index}`,
+    timestamp: row.createdAt || row.created_at || row.timestamp || null,
     action,
+    type: ACTION_TYPES[action] || 'general',
     actor: actorName || 'You',
     actorEmail: actorEmail || '',
     resource,
-    details: describeDetails(row.details),
-    ip: row.ipAddress || 'N/A',
-    status: 'success',
-    severity:
-      action === 'critical_vulnerability'
-        ? 'error'
-        : action === 'api_key_created' || action === 'failed_login'
-          ? 'warning'
-          : 'info',
+    details: describeDetails(row.details ?? row.details_text ?? row.detailsText),
+    ip: row.ipAddress || row.ip_address || row.ip || 'N/A',
+    status,
+    severity,
   };
 };
 
@@ -100,34 +128,81 @@ const AuditLogs = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [expandedLog, setExpandedLog] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // The export covers what the list shows: the current search and filter
+  // apply, so exporting "Failed logins" gives a file with failed logins.
+  const exportRows = (list) => list.map((log) => ({
+    timestamp: log.timestamp,
+    event: actionConfig[log.action]?.label || log.action,
+    action: log.action,
+    actor: log.actor,
+    email: log.actorEmail,
+    resource: log.resource,
+    details: log.details,
+    ip: log.ip,
+    status: log.status,
+    severity: log.severity,
+  }));
+
+  const downloadJson = (rows) => {
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   // Handle export logs
   const handleExportLogs = () => {
+    if (isExporting) return;
+    setIsExporting(true);
     showToast('Preparing audit logs export...', 'info');
     setTimeout(() => {
-      const data = logs.map(log => ({
-        timestamp: log.timestamp,
-        action: log.action,
-        actor: log.actor,
-        email: log.actorEmail,
-        resource: log.resource,
-        details: log.details,
-        ip: log.ip,
-        status: log.status
-      }));
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Audit logs exported successfully!');
-    }, 1000);
+      try {
+        downloadJson(exportRows(filteredLogs));
+        showToast('Audit logs exported successfully!');
+      } catch {
+        showToast('Could not export the audit logs.', 'error');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 300);
+  };
+
+  // Handle export logs as PDF
+  const handleExportPdf = () => {
+    if (isExporting) return;
+    if (!filteredLogs.length) {
+      showToast('There is nothing to export yet.', 'info');
+      return;
+    }
+    setIsExporting(true);
+    showToast('Preparing audit logs PDF...', 'info');
+    setTimeout(() => {
+      try {
+        downloadAuditLogsPdf({
+          logs: filteredLogs.map((log) => ({
+            ...log,
+            actionLabel: actionConfig[log.action]?.label || log.action,
+          })),
+          exportedBy: userName,
+        });
+        showToast('Audit logs PDF exported successfully!');
+      } catch {
+        showToast('Could not export the audit logs PDF.', 'error');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 300);
   };
 
   // Handle refresh
@@ -150,7 +225,7 @@ const AuditLogs = () => {
     try {
       const data = await dashboardAPI.getAuditLogs();
       const list = Array.isArray(data?.logs) ? data.logs : [];
-      setLogs(list.map((l) => normaliseLog(l, userName, userEmail)));
+      setLogs(list.map((l, index) => normaliseLog(l, userName, userEmail, index)));
     } catch {
       setLogs([]);
     }
@@ -196,10 +271,25 @@ const AuditLogs = () => {
     alert: 'badge-error',
   };
 
-  const filteredLogs = logs.filter(log => {
-    if (searchQuery && !log.details.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !log.actor.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
+  const typeFilteredLogs = selectedType === 'all'
+    ? logs
+    : logs.filter((log) => log.type === selectedType);
+
+  const query = searchQuery.trim().toLowerCase();
+  const filteredLogs = typeFilteredLogs.filter((log) => {
+    if (!query) return true;
+    const haystack = [
+      log.details,
+      log.actor,
+      log.actorEmail,
+      log.resource,
+      log.ip,
+      actionConfig[log.action]?.label || log.action,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(query);
   });
 
   return (
@@ -209,7 +299,7 @@ const AuditLogs = () => {
         pageId="audit-logs"
         variant="info"
         title="Full activity timeline"
-        body="Every scan, fix, login, and setting change is recorded here. Click any row to expand it for IP and resource details, or export the full log to JSON."
+        body="Every scan, fix, login, and setting change is recorded here. Click any row to expand it for IP and resource details, or export the filtered log to JSON or PDF."
       />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -218,14 +308,23 @@ const AuditLogs = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-1">Track all security and system events</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleExportLogs}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            Export Logs
+            Export JSON
           </button>
-          <button 
+          <button
+            onClick={handleExportPdf}
+            disabled={isExporting || filteredLogs.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            Export PDF
+          </button>
+          <button
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
@@ -295,18 +394,18 @@ const AuditLogs = () => {
               icon={ClipboardList}
               iconColor="from-blue-500 to-violet-500"
               iconBg="bg-blue-50"
-              title={searchQuery ? 'No log entries match your search' : 'No activity yet'}
-              description={searchQuery
-                ? 'Try a different keyword or clear the search to see all events.'
+              title={query || selectedType !== 'all' ? 'No log entries match your filters' : 'No activity yet'}
+              description={query || selectedType !== 'all'
+                ? 'Try a different keyword or switch the event filter to see all events.'
                 : 'System events will appear here as soon as activity is detected.'}
-              primaryCta={searchQuery
-                ? { label: 'Clear search', onClick: () => setSearchQuery('') }
+              primaryCta={query || selectedType !== 'all'
+                ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); setSelectedType('all'); } }
                 : { label: 'Refresh', onClick: handleRefresh }}
             />
           </div>
         ) : (
         filteredLogs.map((log) => {
-          const config = actionConfig[log.action];
+          const config = actionConfig[log.action] || actionConfig.activity;
           const Icon = config.icon;
           const isExpanded = expandedLog === log.id;
           
@@ -340,11 +439,11 @@ const AuditLogs = () => {
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {new Date(log.timestamp).toLocaleDateString()}
+                        {formatLogDate(log.timestamp)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {log.timestamp.split(' ')[1]}
+                        {formatLogTime(log.timestamp) || '—'}
                       </span>
                       <span>IP: {log.ip}</span>
                     </div>
@@ -379,7 +478,7 @@ const AuditLogs = () => {
                       </div>
                       <div>
                         <div className="text-slate-400 mb-1">Timestamp</div>
-                        <div className="text-slate-900 dark:text-slate-100">{log.timestamp}</div>
+                        <div className="text-slate-900 dark:text-slate-100">{formatLogTimestamp(log.timestamp)}</div>
                       </div>
                     </div>
                   </div>

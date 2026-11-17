@@ -36,8 +36,47 @@ ini_set('display_errors', 1);
 // ---------------------------------------------------------------------------
 date_default_timezone_set('UTC');
 
+// ---------------------------------------------------------------------------
 // CORS Headers
-header('Access-Control-Allow-Origin: *');
+//
+// The allowed origins are listed here instead of using `*`. A wildcard
+// origin cannot be combined with `Access-Control-Allow-Credentials`,
+// and the browser rejects that combination outright — the response is
+// blocked before the page can read it.
+//
+// Credentials are needed for the social sign-in: the API puts the
+// session in a short-lived, HttpOnly cookie and the browser has to
+// send that cookie back when it exchanges the one-time handoff code.
+// ---------------------------------------------------------------------------
+
+/**
+ * The origins that may call the API with credentials.
+ *
+ * The frontend runs on the Vite dev server during development. Add the
+ * production origin here when the app is deployed.
+ */
+const ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:4173',
+    'http://127.0.0.1:4173',
+];
+
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if ($requestOrigin !== '' && in_array($requestOrigin, ALLOWED_ORIGINS, true)) {
+    // Echo the exact origin. A wildcard is not allowed here, because a
+    // credentialed request needs a specific origin.
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+    header('Access-Control-Allow-Credentials: true');
+    header('Vary: Origin');
+} else {
+    // A request without an Origin header (a same-origin call, or a
+    // server-side one) gets no CORS headers at all — it does not need
+    // them, and sending a wildcard would be wrong.
+    header('Access-Control-Allow-Origin: *');
+}
+
 // PATCH has to be listed here. The browser sends a preflight for every
 // non-simple request, and a preflight that answers with a method list
 // without PATCH is rejected outright — which is why "mark as read" on a

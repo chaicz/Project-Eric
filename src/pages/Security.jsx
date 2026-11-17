@@ -47,6 +47,9 @@ import { dashboardAPI } from '../services/api';
 import { useToast } from '../components/Toast';
 import { useApp } from '../context/AppContext';
 import PageTip from '../components/PageTip';
+import ReportReadyModal from '../components/ReportReadyModal';
+import { buildScanReportPdf } from '../services/pdfReport';
+import { buildScanReportCsv } from '../services/csvReport';
 import { readUserScoped, writeUserScoped, removeUserScoped } from '../utils/userStorage';
 import {
   severityScale,
@@ -249,9 +252,9 @@ const AnalysisBackground = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
     {/* Soft grid backdrop */}
     <div
-      className="absolute inset-0 opacity-[0.04]"
+      className="absolute inset-0 opacity-[0.05]"
       style={{
-        backgroundImage: `linear-gradient(#0f172a 1px, transparent 1px), linear-gradient(90deg, #0f172a 1px, transparent 1px)`,
+        backgroundImage: `linear-gradient(rgba(100,116,139,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.6) 1px, transparent 1px)`,
         backgroundSize: '52px 52px',
       }}
     />
@@ -308,12 +311,14 @@ const LatestScanBanner = ({ scan, onDismiss }) => {
   const failCount = scan.findings.filter((f) => f.status === 'fail').length;
   const warnCount = scan.findings.filter((f) => f.status === 'warning').length;
   const passCount = scan.findings.filter((f) => f.status === 'pass').length;
+  // Darker fills keep white text above the AA contrast floor — the same
+  // fix the scanner's run button and the dashboard banner received.
   const scoreAccent =
     scan.score >= 85
-      ? 'from-emerald-500 to-teal-600'
+      ? 'from-emerald-700 to-teal-700'
       : scan.score >= 65
-      ? 'from-amber-500 to-orange-600'
-      : 'from-rose-500 to-red-600';
+      ? 'from-amber-700 to-orange-700'
+      : 'from-rose-700 to-red-700';
   const scannedAt = scan.scannedAt ? new Date(scan.scannedAt) : new Date();
   return (
     <div className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-500/30 glass-strong p-4 sm:p-5">
@@ -373,16 +378,6 @@ const LatestScanBanner = ({ scan, onDismiss }) => {
 // The key is scoped to the signed-in account (see utils/userStorage.js),
 // so the reports one account generated are never shown to another.
 const REPORT_HISTORY_KEY = 'project-eric_report_history';
-
-// Escape text before it goes into the printable report document.
-const escapeHtml = (value) =>
-  String(value ?? '').replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[c]);
 
 const readHistory = () => {
   try {
@@ -454,6 +449,9 @@ const Security = () => {
   const [previewReport, setPreviewReport] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // The generated PDF ready for download — same shape the scanner hands
+  // to ReportReadyModal, so both pages offer the identical PDF + CSV pair.
+  const [generatedReport, setGeneratedReport] = useState(null);
 
   useEffect(() => {
     setMounted(true);
@@ -693,15 +691,20 @@ const Security = () => {
   }, [lastScanResult]);
 
   // The secure score: the scanner's score when there is one, otherwise a
-  // score derived from the open findings so the number is never missing.
+  // score derived from the open findings so stored backend rows still get
+  // a verdict. With no scan and no stored rows there is no score — the
+  // hero and the posture line render their idle states instead of a
+  // fake "100".
   const secureScore = useMemo(() => {
     if (typeof lastScanResult?.score === 'number') return lastScanResult.score;
+    if (!vulnerabilities.length) return null;
     const open = vulnerabilities.filter((v) => !fixedVulns.has(v.id));
     if (!open.length) return 100;
     const weighted =
       open.reduce((sum, v) => sum + (severityScale(v.severity).weight + 1) * 10, 0);
     return Math.max(0, Math.round(100 - weighted / open.length));
   }, [lastScanResult, vulnerabilities, fixedVulns]);
+  const hasSecureScore = secureScore !== null && secureScore !== undefined;
 
   const openFindings = useMemo(
     () => vulnerabilities.filter((v) => !fixedVulns.has(v.id)),
@@ -770,8 +773,13 @@ const Security = () => {
 
   // Handle CVE search — looks a vulnerability up by its CVE id.
   const handleCveSearch = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     if (!cveSearchQuery.trim()) return;
+    // A second lookup while one is already running would race the two
+    // results against each other — the slower one would overwrite the
+    // newer answer. The button is disabled while searching; this covers
+    // the Enter key, which is not.
+    if (isSearchingCve) return;
 
     setIsSearchingCve(true);
     showToast(`Searching for ${cveSearchQuery}...`, 'info');
@@ -797,6 +805,9 @@ const Security = () => {
     .sort((a, b) => b.count - a.count);
 
   // ---------------------- Reports actions ----------------------
+  // Same pipeline as the scanner: JSON for ticketing, CSV from the shared
+  // builder (one row per category plus one per hit), PDF from the shared
+  // builder shown in ReportReadyModal with its own CSV action.
 
   const handleDownload = (report) => {
     showToast(`Preparing ${report.name}...`, 'info');
@@ -821,27 +832,44 @@ const Security = () => {
   };
 
   const handleExportCSV = (report) => {
+    const payload = report?.payload;
+    if (!payload) {
+      showToast('This report has no scan payload to export.', 'warning');
+      return;
+    }
     showToast(`Exporting ${report.name} as CSV...`, 'info');
-    setTimeout(() => {
-      let csvContent = `Name,Type,Date,Size,Status,Score\n${report.name},${report.type},${report.date},${report.size},${report.status},${report.score ?? ''}`;
-      if (report.payload?.findings?.length) {
-        csvContent += '\n\nTitle,Category,Severity,Status,CWE\n';
-        csvContent += report.payload.findings
-          .map(
-            (f) =>
-              `"${(f.title || '').replace(/"/g, '""')}","${f.id || ''}",${f.severity || ''},${f.status || ''},"${f.cwe || ''}"`
-          )
-          .join('\n');
-      }
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+    try {
+      const built = buildScanReportCsv({
+        fileName: report.name || 'security-report',
+        languageLabel: payload.languageLabel || payload.language || 'Unknown',
+        mode: payload.mode || 'code',
+        results: payload,
+      });
+      const blob = new Blob([built.csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${report.name.replace(/\s+/g, '-').toLowerCase()}.csv`;
+      a.download = built.fileName;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      a.remove();
+      // The object URL is released on the next tick so the download has
+      // started before it is revoked.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       showToast('CSV exported successfully!');
-    }, 800);
+    } catch (error) {
+      showToast(`Could not build the CSV: ${error?.message || String(error)}`, 'error');
+    }
+  };
+
+  // CSV for the generated-report modal — exports the same payload the
+  // PDF was built from.
+  const handleGeneratedCsv = () => {
+    if (!generatedReport?.payload) return;
+    handleExportCSV({
+      name: generatedReport.fileName || 'security-report',
+      payload: generatedReport.payload,
+    });
   };
 
   const handleShare = async (report) => {
@@ -862,12 +890,12 @@ const Security = () => {
     }
   };
 
-  // Generate Report is a smart affordance: if no scan has ever run,
-  // route the user to the scanner; otherwise download the latest
-  // generated report. Reports themselves are auto-generated the moment
-  // a scan finishes — this button reflects that contract.
+  // Generate Report builds the real PDF through the shared builder,
+  // exactly like the scanner does, and shows it in ReportReadyModal with
+  // the matching CSV action — instead of downloading a JSON file.
   const handleGenerateReport = () => {
-    if (reportHistory.length === 0) {
+    const latest = reportHistory[0];
+    if (!latest?.payload) {
       showToast('Run a scan first to generate your first report.', 'info');
       navigate('/owasp');
       return;
@@ -875,10 +903,37 @@ const Security = () => {
     if (isGenerating) return;
     setIsGenerating(true);
     showToast('Preparing your latest report...', 'info');
-    setTimeout(() => {
-      handleDownload(reportHistory[0]);
+    try {
+      const payload = latest.payload;
+      const built = buildScanReportPdf({
+        fileName: latest.name || 'security-report',
+        languageLabel: payload.languageLabel || payload.language || 'Unknown',
+        mode: payload.mode || 'code',
+        code: payload.snippetPreview || '',
+        results: payload,
+        ttlHours: 24,
+      });
+      setGeneratedReport({
+        blob: built.blob,
+        fileName: built.fileName,
+        payload,
+        meta: {
+          fileName: latest.name || 'security-report',
+          languageLabel: payload.languageLabel || payload.language || 'Unknown',
+          score: payload.score,
+          summary: payload.summary,
+          totalIssues: payload.totalIssues,
+          scanTime: payload.scanTime,
+          scannedAt: payload.scannedAt,
+          pageCount: built.pageCount,
+          sizeBytes: built.sizeBytes,
+        },
+      });
+    } catch (error) {
+      showToast(`Could not generate the report: ${error?.message || String(error)}`, 'error');
+    } finally {
       setIsGenerating(false);
-    }, 600);
+    }
   };
 
   const handleDeleteOne = (report) => {
@@ -906,72 +961,47 @@ const Security = () => {
     showToast('All reports deleted.', 'success');
   };
 
-  // Build a printable report and hand it to the browser's print dialog,
-  // which is where "Save as PDF" lives. The tile used to download a JSON
-  // file while calling itself a PDF report.
+  // PDF export builds the real document through the shared builder and
+  // shows it in ReportReadyModal — the same flow as the scanner.
   const handlePdfExport = (report) => {
-    const findings = report?.payload?.findings || [];
-    const rows = findings
-      .map(
-        (f) => `<tr>
-          <td>${escapeHtml(f.id || '')}</td>
-          <td>${escapeHtml(f.name || '')}</td>
-          <td>${escapeHtml(f.severity || '')}</td>
-          <td>${escapeHtml(f.cwe || '')}</td>
-          <td>${escapeHtml(f.description || '')}</td>
-          <td>${escapeHtml(f.remediation || '')}</td>
-        </tr>`
-      )
-      .join('');
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>${escapeHtml(report?.name || 'Project Eric security report')}</title>
-<style>
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a; margin: 32px; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  .meta { color: #475569; font-size: 13px; margin-bottom: 20px; }
-  .summary { display: flex; gap: 24px; margin-bottom: 24px; font-size: 13px; }
-  .summary b { display: block; font-size: 20px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; }
-  th { background: #f1f5f9; }
-  .empty { color: #64748b; font-size: 13px; }
-</style>
-</head>
-<body>
-  <h1>${escapeHtml(report?.name || 'Project Eric security report')}</h1>
-  <p class="meta">Generated ${escapeHtml(report?.generatedAt || report?.date || '')}</p>
-  <div class="summary">
-    <div><b>${report?.score ?? '-'}</b>Security score</div>
-    <div><b>${findings.length}</b>Categories checked</div>
-    <div><b>${report?.totalIssues ?? report?.payload?.totalIssues ?? 0}</b>Issues found</div>
-  </div>
-  ${
-    findings.length
-      ? `<table>
-          <thead><tr><th>ID</th><th>Category</th><th>Severity</th><th>CWE</th><th>Finding</th><th>Remediation</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>`
-      : '<p class="empty">This report has no findings recorded.</p>'
-  }
-</body>
-</html>`;
-
-    const win = window.open('', '_blank');
-    if (!win) {
-      showToast('Your browser blocked the report window. Allow pop-ups for this site.', 'warning');
+    const payload = report?.payload;
+    if (!payload) {
+      showToast('This report has no scan payload to export.', 'warning');
       return;
     }
-    win.document.write(html);
-    win.document.close();
-    // Give the document a moment to lay out before the print dialog opens.
-    setTimeout(() => {
-      win.focus();
-      win.print();
-    }, 300);
+    if (isGenerating) return;
+    setIsGenerating(true);
+    showToast(`Preparing ${report.name}...`, 'info');
+    try {
+      const built = buildScanReportPdf({
+        fileName: report.name || 'security-report',
+        languageLabel: payload.languageLabel || payload.language || 'Unknown',
+        mode: payload.mode || 'code',
+        code: payload.snippetPreview || '',
+        results: payload,
+        ttlHours: 24,
+      });
+      setGeneratedReport({
+        blob: built.blob,
+        fileName: built.fileName,
+        payload,
+        meta: {
+          fileName: report.name || 'security-report',
+          languageLabel: payload.languageLabel || payload.language || 'Unknown',
+          score: payload.score,
+          summary: payload.summary,
+          totalIssues: payload.totalIssues,
+          scanTime: payload.scanTime,
+          scannedAt: payload.scannedAt,
+          pageCount: built.pageCount,
+          sizeBytes: built.sizeBytes,
+        },
+      });
+    } catch (error) {
+      showToast(`Could not generate the PDF: ${error?.message || String(error)}`, 'error');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleQuickExport = (format) => {
@@ -1611,6 +1641,16 @@ const Security = () => {
                     type="text"
                     value={cveSearchQuery}
                     onChange={(e) => setCveSearchQuery(e.target.value)}
+                    // Enter runs the lookup without waiting for the
+                    // browser's implicit form submission, which does not
+                    // happen in every embedded webview the app is served
+                    // in. The handler below stops the keypress from also
+                    // submitting the form, so the search runs once.
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      handleCveSearch(e);
+                    }}
                     placeholder="CVE-2024-1234"
                     aria-label="CVE identifier"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 text-xs text-slate-700 dark:text-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
@@ -2080,14 +2120,18 @@ const Security = () => {
             resolved={fixedVulns.size}
             scannedAt={lastScanResult?.scannedAt || null}
             onRunScan={handleScan}
+            idle={!hasSecureScore}
           >
             {/* Inline posture summary inside the hero */}
             <PostureLine
               score={secureScore}
               findings={openFindings.length}
               criticals={severityCounts.critical}
+              idle={!hasSecureScore}
               trend={
-                typeof lastScanResult?.score === 'number' && secureScore >= 70
+                typeof lastScanResult?.score === 'number' &&
+                hasSecureScore &&
+                secureScore >= 70
                   ? 'improving'
                   : 'stable'
               }
@@ -2357,6 +2401,17 @@ const Security = () => {
               </div>
             </div>
           </div>
+        )}
+        {/* The generated PDF popup — same as the scanner. */}
+        {generatedReport && (
+          <ReportReadyModal
+            blob={generatedReport.blob}
+            fileName={generatedReport.fileName}
+            meta={generatedReport.meta}
+            onDownloadCsv={handleGeneratedCsv}
+            onToast={showToast}
+            onClose={() => setGeneratedReport(null)}
+          />
         )}
       </div>
     </div>
