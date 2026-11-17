@@ -10,6 +10,10 @@
  *   Set your production API URL
  */
 
+// The fixed identity behind the "Continue with Google" button. It lives
+// in the browser and is never sent to, or fetched from, the API.
+import { PRESET_GOOGLE_USER } from './previewSession';
+
 // API Base URL - Change this to your XAMPP backend URL
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost/project-eric-api/api';
@@ -41,7 +45,6 @@ export const API_ENDPOINTS = {
     // the session.
     OAUTH_PROVIDERS: `${API_BASE_URL}/auth/oauth/providers`,
     OAUTH_EXCHANGE: `${API_BASE_URL}/auth/oauth/exchange`,
-    OAUTH_PREVIEW_LOGIN: `${API_BASE_URL}/auth/oauth/preview-login`,
   },
 };
 
@@ -255,18 +258,21 @@ export const authAPI = {
   },
 
   /**
-   * Sign in with the shared preview account.
+   * Sign in as the preset Google identity.
    *
-   * The API creates the account once if it is missing, gives it the
-   * same team and session that a normal account has, and returns a JWT
-   * so every dashboard API treats it like any other signed-in user.
+   * This is a local action. It does not call the API, so no account is
+   * created and nothing is written to the database. The identity comes
+   * from `PRESET_GOOGLE_USER` and is returned in the same shape a
+   * password sign-in returns, so the caller does not have to care
+   * which path produced it.
+   *
+   * There is no JWT: a local session has no server-side account to
+   * sign for. The app context keeps the identity in local storage and
+   * skips token validation for it.
    */
   oauthPreviewLogin: async () => {
-    const data = await apiCall(API_ENDPOINTS.AUTH.OAUTH_PREVIEW_LOGIN, {
-      method: 'POST',
-    });
-    if (data?.token) setToken(data.token);
-    return data;
+    clearToken();
+    return { user: { ...PRESET_GOOGLE_USER }, isPreview: true };
   },
 
   /**

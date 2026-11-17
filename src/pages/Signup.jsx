@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { authAPI } from '../services/api';
 import BackgroundSlideshow from '../components/BackgroundSlideshow';
 import BrandPanel from '../components/auth/BrandPanel';
 import FormShell from '../components/auth/FormShell';
@@ -56,7 +57,7 @@ const PASSWORD_RULES = [
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { register } = useApp();
+  const { register, setUser } = useApp();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -128,6 +129,33 @@ const Signup = () => {
       navigate('/onboarding');
     } catch (err) {
       setAuthError(err.message || 'Could not create your account. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Sign in as the preset Google identity.
+   *
+   * The identity is defined in the browser, so this never reaches the
+   * API: no account is created, no session row is written, and the
+   * database is not involved at all. The app context keeps the
+   * identity in local storage and skips token validation for it.
+   */
+  const handleGooglePreviewLogin = async () => {
+    setIsLoading(true);
+    setAuthError('');
+
+    try {
+      const data = await authAPI.oauthPreviewLogin();
+      const previewUser = data?.user;
+      if (!previewUser) {
+        throw new Error('The preview sign-in did not return a user.');
+      }
+
+      setUser(previewUser);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      setAuthError(error?.message || 'The preview sign-in could not be started.');
       setIsLoading(false);
     }
   };
@@ -460,14 +488,15 @@ const Signup = () => {
           </FadeIn>
         </form>
 
-        {/* Social sign-up — Google and GitHub. Google is a local
-            preview button: it opens a browser-only session and goes
-            straight to the dashboard without contacting Google or the
-            database. GitHub keeps the normal OAuth sign-up. */}
+        {/* Social sign-up — Google and GitHub. Google signs you in as
+            a preset identity that lives in the browser: it does not
+            contact Google and it does not touch the database. GitHub
+            keeps the normal OAuth sign-up. */}
         <SocialAuthButtons
           action="signup"
           disabled={isLoading}
           onError={setAuthError}
+          onPreviewLogin={handleGooglePreviewLogin}
           dividerLabel="or sign up with"
         />
 

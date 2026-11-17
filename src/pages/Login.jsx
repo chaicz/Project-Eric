@@ -245,11 +245,12 @@ const Login = () => {
   };
 
   /**
-   * Open the shared preview account.
+   * Sign in as the preset Google identity.
    *
-   * This does not contact Google. The API creates the preview account
-   * once, gives it a normal team and JWT session, and returns the same
-   * user shape as a password sign-in.
+   * The identity is defined in the browser, so this never reaches the
+   * API: no account is created, no session row is written, and the
+   * database is not involved at all. The app context keeps the
+   * identity in local storage and skips token validation for it.
    */
   const handleGooglePreviewLogin = async () => {
     setIsLoading(true);
@@ -340,10 +341,10 @@ const Login = () => {
           </span>
         </button>
 
-        {/* Social sign-in — Google and GitHub. Google is a local
-            preview button: it opens a browser-only session and goes
-            straight to the dashboard without contacting Google or the
-            database. GitHub keeps the normal OAuth sign-in. */}
+        {/* Social sign-in — Google and GitHub. Google signs you in as
+            a preset identity that lives in the browser: it does not
+            contact Google and it does not touch the database. GitHub
+            keeps the normal OAuth sign-in. */}
         <SocialAuthButtons
           action="login"
           disabled={isLoading}

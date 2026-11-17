@@ -1,10 +1,10 @@
 /**
  * Provider sign-in buttons for Google and GitHub.
  *
- * The Google button is a local preview action: it creates a temporary
- * browser-only session and goes straight to the dashboard. It does not
- * open Google's website, request OAuth credentials, or write anything
- * to the database.
+ * The Google button signs you in as a preset identity that lives in
+ * the browser. It does not open Google's website, it does not request
+ * OAuth credentials, and it does not write anything to the database —
+ * the whole sign-in happens in the page.
  *
  * The GitHub button keeps the server-side OAuth flow. The API owns the
  * client secret, exchanges the authorization code, and issues the
@@ -58,9 +58,9 @@ export default function SocialAuthButtons({
   const startProviderLogin = (provider) => {
     setLoadingProvider(provider);
 
-    // Google is a local preview button. It never redirects to Google
-    // and never contacts the OAuth provider. The parent creates the
-    // temporary browser-only session and sends the person to the app.
+    // Google is a preset sign-in. It never redirects to Google and
+    // never contacts the API. The parent signs the browser in as the
+    // preset identity and sends the person to the app.
     if (provider === 'google') {
       try {
         onPreviewLogin?.();
@@ -121,9 +121,9 @@ export default function SocialAuthButtons({
               {isPreview && (
                 <span
                   className="ml-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700"
-                  title="Preview sign-in — nothing is saved to the database"
+                  title="Preset sign-in — no Google account and nothing is saved to the database"
                 >
-                  Preview
+                  Preset
                 </span>
               )}
             </button>
@@ -132,8 +132,8 @@ export default function SocialAuthButtons({
       </div>
 
       <p className="text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
-        Preview sign-in: opens the shared preview account in this browser. No Google account is
-        requested, and the preview account is created in the database only once.
+        Google sign-in uses a preset account that is set up in this browser. No Google account is
+        requested, and nothing is saved to the database.
       </p>
     </div>
   );
